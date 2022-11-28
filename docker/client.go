@@ -29,6 +29,7 @@ func Login(url string, username string, passwd string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Login: %w", err)
 	}
+	defer resp.Body.Close()
 
 	var res map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&res)
@@ -38,6 +39,7 @@ func Login(url string, username string, passwd string) (string, error) {
 		return "", errors.New("login failed")
 	}
 	logrus.Debugf("Get token: %v...", token.(string)[:20])
+	logrus.Info("Login successfully.")
 
 	return token.(string), nil
 }

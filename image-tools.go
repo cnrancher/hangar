@@ -14,8 +14,6 @@ func init() {
 }
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
-
 	if len(os.Args) < 2 {
 		showHelp()
 		os.Exit(0)
@@ -26,6 +24,8 @@ func main() {
 	mirrorCmd := flag.NewFlagSet("mirror", flag.ExitOnError)
 	mirrorFile := mirrorCmd.String("file", "", "the image list file")
 	mirrorArch := mirrorCmd.String("arch", "x86_64,arm64", "the ARCH list of images, seperate with ','")
+	mirrorSourceReg := mirrorCmd.String("source", "", "override the source registry")
+	mirrorDestReg := mirrorCmd.String("dest", "", "override the destination registry")
 	mirrorDebug := mirrorCmd.Bool("debug", false, "debug mode")
 
 	switch os.Args[1] {
@@ -36,7 +36,9 @@ func main() {
 		}
 		logrus.Debugln("mirrorFile: ", *mirrorFile)
 		logrus.Debugln("mirrorArch: ", *mirrorArch)
-		mirror.MirrorImage(*mirrorFile, *mirrorArch)
+		logrus.Debugln("sourceReg: ", *mirrorSourceReg)
+		logrus.Debugln("destReg: ", *mirrorDestReg)
+		mirror.MirrorImages(*mirrorFile, *mirrorArch, *mirrorSourceReg, *mirrorDestReg)
 	case "":
 	default:
 		showHelp()
