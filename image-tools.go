@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"cnrancher.io/image-tools/mirror"
+	"cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,14 +20,15 @@ func main() {
 		os.Exit(0)
 	}
 
-	// mirror reads file from image-list.txt or stdin and mirror image from
-	// original repo to
+	// mirror subcmd reads file from image-list txt or stdin and mirror image
+	// from source repo to the destination repo
 	mirrorCmd := flag.NewFlagSet("mirror", flag.ExitOnError)
-	mirrorFile := mirrorCmd.String("f", "", "the image list file")
-	mirrorArch := mirrorCmd.String("a", "x86_64,arm64", "the ARCH list of images, seperate with ','")
+	mirrorFile := mirrorCmd.String("f", "", "image list file")
+	mirrorArch := mirrorCmd.String("a", "x86_64,arm64", "architecture list of images, seperate with ','")
 	mirrorSourceReg := mirrorCmd.String("s", "", "override the source registry")
 	mirrorDestReg := mirrorCmd.String("d", "", "override the destination registry")
-	mirrorDebug := mirrorCmd.Bool("debug", false, "debug mode")
+	mirrorDestLoginURL := mirrorCmd.String("login-url", utils.DockerLoginURL, "destination registry login URL")
+	mirrorDebug := mirrorCmd.Bool("debug", false, "enable the debug output")
 
 	switch os.Args[1] {
 	case "mirror":
@@ -38,7 +40,10 @@ func main() {
 		logrus.Debugln("mirrorArch: ", *mirrorArch)
 		logrus.Debugln("sourceReg: ", *mirrorSourceReg)
 		logrus.Debugln("destReg: ", *mirrorDestReg)
-		mirror.MirrorImages(*mirrorFile, *mirrorArch, *mirrorSourceReg, *mirrorDestReg)
+		logrus.Debugln("mirrorDestLoginURL: ", *mirrorDestLoginURL)
+		mirror.MirrorImages(
+			*mirrorFile, *mirrorArch, *mirrorSourceReg,
+			*mirrorDestReg, *mirrorDestLoginURL)
 	case "":
 	default:
 		showHelp()
@@ -47,7 +52,7 @@ func main() {
 }
 
 func showHelp() {
-	fmt.Printf("Usage: %s <subcommand> <parameters>\n", os.Args[0])
-	fmt.Printf("Run '%s <subcommand> -h' for more info.\n", os.Args[0])
-	fmt.Printf("Subcommands: mirror\n")
+	fmt.Printf("Usage:\n\t%s <subcommand> <parameters>\n", os.Args[0])
+	fmt.Printf("\t%s <subcommand> -h  -  get help info for subcommand\n", os.Args[0])
+	fmt.Printf("\nSubcommand available: mirror\n")
 }

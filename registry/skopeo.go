@@ -1,7 +1,7 @@
-package utils
+package registry
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"runtime"
 
+	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	skopeoAmd64URL = "https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/amd64/1.9.3/skopeo"
-	skopeoArm64URL = "https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/arm64/1.9.3/skopeo"
+	skopeoAmd64URL    = "https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/amd64/1.9.3/skopeo"
+	skopeoArm64URL    = "https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/arm64/1.9.3/skopeo"
+	skopeoInsGuideURL = "https://github.com/containers/skopeo/blob/main/install.md"
 )
 
 // EnsureSkopeoInstalled ensures the skopeo command is installed.
@@ -32,6 +34,8 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 	}
 
 	if runtime.GOOS != "linux" {
+		logrus.Warnf("Your OS is %s, please install skopeo manually: %s",
+			runtime.GOOS, skopeoInsGuideURL)
 		return "", fmt.Errorf("unsupported system: %v", runtime.GOOS)
 	}
 
@@ -52,7 +56,9 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 	case "arm64":
 		resp, err = http.Get(skopeoArm64URL)
 	default:
-		return "", errors.New("unsupported arch")
+		logrus.Warnf("skopeo not found, please install manually: %s",
+			skopeoInsGuideURL)
+		return "", u.ErrSkopeoNotFound
 	}
 	if err != nil {
 		return "", fmt.Errorf("InstallSkopeo: %w", err)
@@ -65,4 +71,27 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 	}
 
 	return filepath.Join(path, "skopeo"), nil
+}
+
+// InspectRaw function executs `skopeo inspect --raw ${img}` command
+// and return the output if execute successfully
+func SkopeoInspectRaw(img string) (*bytes.Buffer, error) {
+	// Ensure skopeo installed
+	skopeoPath, err := EnsureSkopeoInstalled("")
+	if err != nil {
+		return nil, fmt.Errorf("unable to locate skopeo path: %w", err)
+	}
+
+	// Inspect the source image info
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command(skopeoPath, "inspect", "--raw", img)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("mirrorImage: \n%s\n%w", stderr.String(), err)
+	}
+
+	return &stdout, nil
 }

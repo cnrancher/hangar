@@ -2,26 +2,25 @@ package mirror
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
-	"cnrancher.io/image-tools/docker"
-	"cnrancher.io/image-tools/utils"
+	"cnrancher.io/image-tools/registry"
+	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
-func MirrorImages(fileName, arches, sourceReg, destReg string) {
-	username := os.Getenv("DOCKER_USERNAME")
-	passwd := os.Getenv("DOCKER_PASSWORD")
+func MirrorImages(fileName, arches, sourceReg, destReg, loginURL string) {
+	username := os.Getenv("REGISTRY_USERNAME")
+	passwd := os.Getenv("REGISTRY_PASSWORD")
 	if username == "" || passwd == "" {
-		logrus.Fatal("DOCKER_USERNAME and DOCKER_PASSWORD environment variable not set!")
+		logrus.Fatal("REGISTRY_USERNAME and REGISTRY_PASSWORD environment variable not set!")
+		// TODO: read username and password by commandline
 	}
-	token, err := docker.Login("", username, passwd)
+	token, err := registry.LoginToken(destReg, username, passwd)
 	if err != nil {
 		logrus.Fatalf("failed to login: %v", err.Error())
 	}
@@ -90,6 +89,26 @@ func MirrorImages(fileName, arches, sourceReg, destReg string) {
 }
 
 func copyIfChanged(sourceRef, destRef, arch, args string) error {
+
+	// Inspect the source image info
+	inspectImg := fmt.Sprintf("docker://%s", sourceRef)
+	sourceManifestBuff, err := registry.SkopeoInspectRaw(inspectImg)
+	if err != nil {
+		return fmt.Errorf("copyIfChanged: %w", err)
+	}
+	fmt.Println(sourceManifestBuff.String())
+	// var sourceManifest map[string]interface{}
+	// json.NewDecoder(buff).Decode(&sourceManifest)
+
+	inspectImg = fmt.Sprintf("docker://%s", destRef)
+	destManifestBuff, err := registry.SkopeoInspectRaw(inspectImg)
+	if err != nil {
+		return fmt.Errorf("copyIfChanged: %w", err)
+	}
+	fmt.Println(destManifestBuff.String())
+
+	// TODO: calculate sha256sum for manifest and compare it.
+
 	return nil
 }
 
@@ -102,44 +121,31 @@ func mirrorImage(source, dest, tag string, archList []string) error {
 		return fmt.Errorf("invalid arch list")
 	}
 
-	// Ensure skopeo installed
-	skopeoPath, err := utils.EnsureSkopeoInstalled("")
+	inspectImg := fmt.Sprintf("docker://%s:%s", source, tag)
+	buff, err := registry.SkopeoInspectRaw(inspectImg)
 	if err != nil {
 		return fmt.Errorf("mirrorImage: %w", err)
 	}
 
-	// Inspect the source image info
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command(
-		skopeoPath, "inspect", "--raw",
-		fmt.Sprintf("docker://%s:%s", source, tag))
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("mirrorImage: \n%s\n%w", stderr.String(), err)
-	}
-
 	var sourceInfoMap map[string]interface{}
-	json.NewDecoder(&stdout).Decode(&sourceInfoMap)
+	json.NewDecoder(buff).Decode(&sourceInfoMap)
 	// Get source image schemaVersion and mediaType
-	schemaVersion, ok := sourceInfoMap["schemaVersion"]
+	schemaVersion, ok := u.ReadJsonIntVal(sourceInfoMap, "schemaVersion")
 	if !ok {
-		return fmt.Errorf("reading schemaVersion: %w", utils.ErrReadJsonFailed)
+		return fmt.Errorf("reading schemaVersion: %w", u.ErrReadJsonFailed)
 	}
-	schemaVersion = int(schemaVersion.(float64))
-	mediaType, ok := sourceInfoMap["mediaType"]
+	mediaType, ok := u.ReadJsonStringVal(sourceInfoMap, "mediaType")
 	if !ok {
-		return fmt.Errorf("reading mediaType: %w", utils.ErrReadJsonFailed)
+		return fmt.Errorf("reading mediaType: %w", u.ErrReadJsonFailed)
 	}
 	logrus.Debugf("schemaVersion: %v", schemaVersion)
 	logrus.Debugf("mediaType: %v", mediaType)
 
 	if schemaVersion == 2 {
-		l, ok := sourceInfoMap["manifests"]
+		manifestList, ok := u.ReadJsonSubArray(sourceInfoMap, "manifests")
 		if !ok {
-			return fmt.Errorf("reading manifests: %w", utils.ErrReadJsonFailed)
+			// unable to read manifests list, return error of this image
+			return fmt.Errorf("reading manifests: %w", u.ErrReadJsonFailed)
 		}
 		switch mediaType {
 		case "application/vnd.docker.distribution.manifest.list.v2+json":
@@ -147,21 +153,68 @@ func mirrorImage(source, dest, tag string, archList []string) error {
 			// (and their variants) out to individual suffixed tags in the
 			// destination, then recombining them into a single manifest list
 			// on the bare tags.
-			mList, err := getManifestList(mediaType.(string), l.([]interface{}), archList)
 			if err != nil {
 				return fmt.Errorf("mirrorImage: %w", err)
 			}
-			if len(mList) == 0 {
-				logrus.Warnf("No manifest available for image %v and arch: %v",
-					source, archList)
-				logrus.Warnf("Skip mirror image %v", source)
-				return nil
+
+			// if there is no image copied to dest registry, return an error
+			copiedImageNum := 0
+			for _, v := range manifestList {
+				m := v.(map[string]interface{})
+				logrus.Debugf("manifest: %v", m)
+
+				digest, ok := u.ReadJsonStringVal(m, "digest")
+				if !ok {
+					// digest not found in manifest list,
+					// failed to copy this image, skip
+					continue
+				}
+				logrus.Debugf("---- digest: %s", digest)
+				platform, ok := u.ReadJsonSubObj(m, "platform")
+				if !ok {
+					// platform not found in this manifest,
+					// failed to copy this image, skip
+					continue
+				}
+				arch, ok := u.ReadJsonStringVal(platform, "architecture")
+				if !ok {
+					// platform does not have architecture attrib,
+					// failed to copy this image, skip
+					continue
+				}
+				if !slices.Contains(archList, arch) {
+					logrus.Infof("skip copy image %s arch %s", source, arch)
+					continue
+				}
+				logrus.Debugf("---- arch: %s", arch)
+				// os, ok := u.ReadJsonStringVal(platform, "os")
+
+				// retag the destination image with ARCH information
+				var destFmt string
+				// if this platform has variant and the arch is not arm64v8
+				// (arm64 only have one variant v8 so we skip it)
+				variant, ok := u.ReadJsonStringVal(platform, "variant")
+				if ok && arch != "arm64" && variant != "" {
+					// ${DEST}:${TAG}-${ARCH}${VARIANT}
+					destFmt = fmt.Sprintf("%s:%s-%s%s",
+						dest, tag, arch, variant)
+				} else {
+					// ${DEST}:${TAG}-${ARCH}
+					destFmt = fmt.Sprintf("%s:%s-%s",
+						dest, tag, arch)
+				}
+				// ${SOURCE}@${DIGEST}
+				srcFmt := fmt.Sprintf("%s@%s", source, digest)
+				logrus.Debugf("---- srcFmt: %s", srcFmt)
+				logrus.Debugf("---- destFmt: %s", destFmt)
+				err = copyIfChanged(srcFmt, destFmt, arch, "")
+				if err != nil {
+					// TODO:
+				}
+
+				// If image copied successfully
+				copiedImageNum++
 			}
-			for _, m := range mList {
-				logrus.Debugf("GetManifestList: %v", m)
-			}
-			// TODO: arch variant
-			// TODO: copyIfChanged
 		case "application/vnd.docker.distribution.manifest.v2+json":
 			// Standalone manifests don't include architecture info,
 			// we have to get that from the image config
@@ -175,31 +228,4 @@ func mirrorImage(source, dest, tag string, archList []string) error {
 	}
 
 	return nil
-}
-
-// getManifestList gets the
-func getManifestList(mediaType string, manifestList []interface{}, archList []string) ([]interface{}, error) {
-	if manifestList == nil {
-		return nil, errors.New("failed to read manifest list")
-	}
-	if len(manifestList) == 0 {
-		return nil, errors.New("failed to read manifest list")
-	}
-
-	var mList []interface{}
-	for _, arch := range archList {
-		for _, m := range manifestList {
-			platform, ok := m.(map[string]interface{})["platform"]
-			if !ok {
-				continue
-			}
-			a, ok := platform.(map[string]interface{})["architecture"]
-			// variant, ok := platform.(map[string]interface{})["variant"]
-			if a == arch {
-				mList = append(mList, m)
-			}
-		}
-	}
-
-	return mList, nil
 }
