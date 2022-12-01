@@ -23,7 +23,7 @@ func main() {
 	// from source repo to the destination repo
 	mirrorCmd := flag.NewFlagSet("mirror", flag.ExitOnError)
 	mirrorFile := mirrorCmd.String("f", "", "image list file")
-	mirrorArch := mirrorCmd.String("a", "x86_64,arm64", "architecture list of images, seperate with ','")
+	mirrorArch := mirrorCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
 	mirrorSourceReg := mirrorCmd.String("s", "", "override the source registry")
 	mirrorDestReg := mirrorCmd.String("d", "", "override the destination registry")
 	// mirrorDestLoginURL := mirrorCmd.String("login-url", utils.DockerLoginURL, "destination registry login URL")

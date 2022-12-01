@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -74,16 +73,8 @@ func Login(url string, username string, passwd string) error {
 	)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return fmt.Errorf("failed to get stdinpipe: %w", err)
-	}
-	if err = cmd.Start(); err != nil {
-		return fmt.Errorf("command start failed: %w", err)
-	}
-	io.WriteString(stdin, passwd)
-	stdin.Close()
-	if err = cmd.Wait(); err != nil {
+	cmd.Stdin = strings.NewReader(passwd)
+	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}
 	logrus.Info("Login successfully.")

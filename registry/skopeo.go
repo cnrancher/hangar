@@ -90,8 +90,43 @@ func SkopeoInspectRaw(img string) (*bytes.Buffer, error) {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("mirrorImage: \n%s\n%w", stderr.String(), err)
+		return nil, fmt.Errorf("SkopeoInspectRaw: \n%s\n%w",
+			stderr.String(), err)
 	}
 
 	return &stdout, nil
+}
+
+// SkopeoCopyArchOS
+// `skopeo copy --override-arch={ARCH} --override-os={OS}`;
+// You can add --override-variant={VARIANT} in `extraArgs`
+// the os parameter can be set to empty string,
+// extraArgs can be nil
+func SkopeoCopyArchOS(arch, os, source, dest string, extraArgs []string) error {
+	skopeoPath, err := EnsureSkopeoInstalled("")
+	if err != nil {
+		return fmt.Errorf("unable to locate skopeo path: %w", err)
+	}
+
+	// Inspect the source image info
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	var args []string
+	args = append(args, "copy", "--override-arch="+arch)
+	if os != "" {
+		args = append(args, "--override-os="+os)
+	}
+	if extraArgs != nil {
+		args = append(args, extraArgs...)
+	}
+	cmd := exec.Command(skopeoPath, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("SkopeoCopyOverrideArch: \n%s\n%w",
+			stderr.String(), err)
+	}
+
+	return nil
 }
