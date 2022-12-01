@@ -14,13 +14,17 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Mirrorer struct {
+type Image struct {
 	source     string
 	destnation string
 	tag        string
-	archList   []string
 
-	failedImage []string
+	// available arch list
+	archList []string
+
+	copiedDigestList []string
+	copiedSources    []string
+	// copyFailedDigestList []string
 }
 
 func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
@@ -37,7 +41,7 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 	}
 
 	// execute docker login command
-	err := registry.Login(regUrl, username, passwd)
+	err := registry.DockerLogin(regUrl, username, passwd)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
@@ -68,7 +72,7 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 		// Ignore empty/comment line
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
 			if usingStdin {
-				fmt.Printf(">>>")
+				fmt.Printf(">>> ")
 			}
 			continue
 		}
@@ -82,14 +86,14 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 		if len(v) != 3 {
 			logrus.Errorf("Invalid line format")
 			if usingStdin {
-				fmt.Printf(">>>")
+				fmt.Printf(">>> ")
 			}
 			continue
 		}
 
-		mirrorer := Mirrorer{
-			source:     constructureRegistry(v[0], sourceRegOverride),
-			destnation: constructureRegistry(v[1], destRegOverride),
+		mirrorer := Image{
+			source:     constructRegistry(v[0], sourceRegOverride),
+			destnation: constructRegistry(v[1], destRegOverride),
 			tag:        v[2],
 			archList:   strings.Split(arches, ","),
 		}
@@ -98,16 +102,16 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 
 		err = mirrorer.mirrorImage()
 		if err != nil {
-			logrus.Errorf("Failed for copy image %s\n", mirrorer.source)
+			logrus.Errorf("Failed to copy image %s\n", mirrorer.source)
 			logrus.Error(err.Error())
 			// TODO: append the image to the list which is copy failed
 			if usingStdin {
-				fmt.Printf(">>>")
+				fmt.Printf(">>> ")
 			}
 			continue
 		}
 		if usingStdin {
-			fmt.Printf(">>>")
+			fmt.Printf(">>> ")
 		}
 	}
 	if usingStdin {
@@ -115,17 +119,13 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 	}
 }
 
-func setRepoDescription(sourceSpec, destSpec string) error {
-	return nil
-}
-
-func (m *Mirrorer) mirrorImage() error {
-	if m.archList == nil || len(m.archList) == 0 {
+func (img *Image) mirrorImage() error {
+	if img.archList == nil || len(img.archList) == 0 {
 		return fmt.Errorf("invalid arch list")
 	}
 
-	inspectSrcImg := fmt.Sprintf("docker://%s:%s", m.source, m.tag)
-	buff, err := registry.SkopeoInspectRaw(inspectSrcImg)
+	inspectSrcImg := fmt.Sprintf("docker://%s:%s", img.source, img.tag)
+	buff, err := registry.SkopeoInspect(inspectSrcImg, []string{"--raw"})
 	if err != nil {
 		return fmt.Errorf("mirrorImage: %w", err)
 	}
@@ -145,23 +145,35 @@ func (m *Mirrorer) mirrorImage() error {
 	logrus.Debugf("mediaType: %v", mediaType)
 
 	if srcSchemaVersion == 2 {
-		manifestList, ok := u.ReadJsonSubArray(sourceInfoMap, "manifests")
-		if !ok {
-			// unable to read manifests list, return error of this image
-			return fmt.Errorf("reading manifests: %w", u.ErrReadJsonFailed)
-		}
 		switch mediaType {
 		case "application/vnd.docker.distribution.manifest.list.v2+json":
 			// Handle manifest lists by copying all the architectures
 			// (and their variants) out to individual suffixed tags in the
 			// destination, then recombining them into a single manifest list
 			// on the bare tags.
+			logrus.Infof("[%s:%s] is manifest.list.v2", img.source, img.tag)
 
-			m.copyByManifestListV2(manifestList)
+			manifestList, ok := u.ReadJsonSubArray(sourceInfoMap, "manifests")
+			if !ok {
+				// unable to read manifests list, return error of this image
+				return fmt.Errorf("reading manifests: %w", u.ErrReadJsonFailed)
+			}
+			err = img.copyByManifestListV2(manifestList)
+			if err != nil {
+				return err
+			}
+			err = img.updateManifestList()
+			if err != nil {
+				return err
+			}
 		case "application/vnd.docker.distribution.manifest.v2+json":
 			// Standalone manifests don't include architecture info,
 			// we have to get that from the image config
-
+			logrus.Infof("[%s:%s] is manifest.v2", img.source, img.tag)
+			err = img.copyByManifestV2()
+			if err != nil {
+				return err
+			}
 		default:
 		}
 	} else if srcSchemaVersion == 1 {
@@ -173,7 +185,7 @@ func (m *Mirrorer) mirrorImage() error {
 	return nil
 }
 
-// constructureRegistry will re-construct the image url:
+// constructRegistry will re-construct the image url:
 //
 // If `registryOverride` is "", example:
 // nginx --> docker.io/nginx (add docker.io prefix)
@@ -184,7 +196,7 @@ func (m *Mirrorer) mirrorImage() error {
 // nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
 // reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
 // reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
-func constructureRegistry(image, registryOverride string) string {
+func constructRegistry(image, registryOverride string) string {
 	s := strings.Split(image, "/")
 	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
 		if registryOverride != "" {
@@ -206,7 +218,7 @@ func constructureRegistry(image, registryOverride string) string {
 }
 
 // copyByManifestListV2
-func (m *Mirrorer) copyByManifestListV2(manifestList []interface{}) ([]interface{}, error) {
+func (img *Image) copyByManifestListV2(manifestList []interface{}) error {
 	var err error
 	// if there is no image copied to dest registry, return an error
 	copiedImageNum := 0
@@ -216,25 +228,19 @@ func (m *Mirrorer) copyByManifestListV2(manifestList []interface{}) ([]interface
 
 		digest, ok := u.ReadJsonStringVal(manifest, "digest")
 		if !ok {
-			// digest not found in manifest list,
-			// failed to copy this image, skip
 			continue
 		}
 		logrus.Debugf("---- digest: %s", digest)
 		platform, ok := u.ReadJsonSubObj(manifest, "platform")
 		if !ok {
-			// platform not found in this manifest,
-			// failed to copy this image, skip
 			continue
 		}
 		arch, ok := u.ReadJsonStringVal(platform, "architecture")
 		if !ok {
-			// platform does not have architecture attrib,
-			// failed to copy this image, skip
 			continue
 		}
-		if !slices.Contains(m.archList, arch) {
-			logrus.Debugf("skip copy image %s arch %s", m.source, arch)
+		if !slices.Contains(img.archList, arch) {
+			logrus.Debugf("skip copy image %s arch %s", img.source, arch)
 			continue
 		}
 		os, _ := u.ReadJsonStringVal(platform, "os")
@@ -247,35 +253,81 @@ func (m *Mirrorer) copyByManifestListV2(manifestList []interface{}) ([]interface
 		if ok && arch != "arm64" && variant != "" {
 			// ${DEST}:${TAG}-${ARCH}${VARIANT}
 			destFmt = fmt.Sprintf("%s:%s-%s%s",
-				m.destnation, m.tag, arch, variant)
+				img.destnation, img.tag, arch, variant)
 		} else {
 			// ${DEST}:${TAG}-${ARCH}
 			destFmt = fmt.Sprintf("%s:%s-%s",
-				m.destnation, m.tag, arch)
+				img.destnation, img.tag, arch)
 		}
 		// ${SOURCE}@${DIGEST}
-		srcFmt := fmt.Sprintf("%s@%s", m.source, digest)
+		srcFmt := fmt.Sprintf("%s@%s", img.source, digest)
 		logrus.Debugf("---- srcFmt: %s", srcFmt)
 		logrus.Debugf("---- destFmt: %s", destFmt)
-		logrus.Infof("Copying image [%s] to [%s] arch [%s]",
-			m.source, m.destnation, arch)
-		err = m.copyIfChanged(srcFmt, destFmt, arch, os)
+		logrus.Infof("Copy [%s] to [%s] arch [%s]",
+			img.source, img.destnation, arch)
+		err = img.copyIfChanged(srcFmt, destFmt, arch, os)
 		if err != nil {
-			logrus.Errorf("Error accured: %s", err.Error())
+			logrus.Error(err.Error())
 			continue
 		}
 
 		// If image copied successfully
 		copiedImageNum++
+		img.copiedDigestList = append(img.copiedDigestList, digest)
 	}
 
-	return nil, nil
+	if copiedImageNum == 0 {
+		return fmt.Errorf("failed to copy %s", img.source)
+	}
+	return nil
 }
 
-func (m *Mirrorer) copyIfChanged(sourceRef, destRef, arch, os string) error {
+func (img *Image) copyByManifestV2() error {
+	inspectSrcImg := fmt.Sprintf("docker://%s:%s", img.source, img.tag)
+	buff, err := registry.SkopeoInspect(
+		inspectSrcImg, []string{"--raw", "--config"})
+	if err != nil {
+		return fmt.Errorf("copyByManifestV2: %w", err)
+	}
+
+	var sourceInfoMap map[string]interface{}
+	json.NewDecoder(buff).Decode(&sourceInfoMap)
+
+	arch, ok := u.ReadJsonStringVal(sourceInfoMap, "architecture")
+	if !ok {
+		return u.ErrReadJsonFailed
+	}
+	os, _ := u.ReadJsonStringVal(sourceInfoMap, "os")
+	// config, ok := u.ReadJsonSubObj(sourceInfoMap, "config")
+	// if !ok {
+	// 	return u.ErrReadJsonFailed
+	// }
+	// digest, ok := u.ReadJsonStringVal(config, "digest")
+	// if !ok {
+	// 	return u.ErrReadJsonFailed
+	// }
+
+	if slices.Contains(img.archList, arch) {
+		srcFmt := fmt.Sprintf("%s:%s", img.source, img.tag)
+		dstFmt := fmt.Sprintf("%s:%s-%s", img.destnation, img.tag, arch)
+		logrus.Infof("Copy [%s] to [%s] arch [%s]",
+			img.source, img.destnation, arch)
+		err := img.copyIfChanged(srcFmt, dstFmt, arch, os)
+		if err != nil {
+			logrus.Error(err.Error())
+		}
+	} else {
+		logrus.Debugf("skip copy image %s arch %s", img.source, arch)
+	}
+
+	return nil
+}
+
+func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 	// Inspect the source image info
 	sourceDockerImage := fmt.Sprintf("docker://%s", sourceRef)
-	sourceManifestBuff, err := registry.SkopeoInspectRaw(sourceDockerImage)
+	sourceManifestBuff, err := registry.SkopeoInspect(
+		sourceDockerImage, []string{"--raw"})
 	if err != nil {
 		// if source image not found, return error.
 		return fmt.Errorf("copyIfChanged: %w", err)
@@ -283,7 +335,8 @@ func (m *Mirrorer) copyIfChanged(sourceRef, destRef, arch, os string) error {
 	// fmt.Println(sourceManifestBuff.String())
 
 	destDockerImage := fmt.Sprintf("docker://%s", destRef)
-	destManifestBuff, err := registry.SkopeoInspectRaw(destDockerImage)
+	destManifestBuff, err := registry.SkopeoInspect(
+		destDockerImage, []string{"--raw"})
 	if err != nil {
 		// if destination image not found, set destManifestBuff to nil
 		destManifestBuff = nil
@@ -293,13 +346,45 @@ func (m *Mirrorer) copyIfChanged(sourceRef, destRef, arch, os string) error {
 	srcManifestSum := u.Sha256Sum(sourceManifestBuff.String())
 	dstManifestSum := u.Sha256Sum(destManifestBuff.String())
 	if srcManifestSum == dstManifestSum {
-		logrus.Infof("    Unchanged: %s... == %s", sourceRef[0:20], destRef)
-		logrus.Infof("    Digest   : %s", srcManifestSum)
+		logrus.Infof("    Unchanged: %s... == %s", sourceRef, destRef)
+		logrus.Debugf("    source Digest: %s", srcManifestSum)
+		logrus.Debugf("    dest   Digest: %s", dstManifestSum)
 	} else {
 		logrus.Infof("    Copying: %s => %s", sourceRef, destRef)
-		logrus.Infof("             %s == %s", srcManifestSum, dstManifestSum)
-		registry.SkopeoCopyArchOS(
+		logrus.Infof("             %s => %s", srcManifestSum, dstManifestSum)
+		return registry.SkopeoCopyArchOS(
 			arch, os, sourceDockerImage, destDockerImage, nil)
+	}
+
+	return nil
+}
+
+// updateManifestList
+func (img *Image) updateManifestList() error {
+	destImage := fmt.Sprintf("docker://%s:%s", img.destnation, img.tag)
+	buff, err := registry.SkopeoInspect(destImage, []string{"--raw"})
+	var destInfoMap map[string]interface{}
+	if err != nil {
+		// this error is expected if the dest image manifest not exist
+		buff = nil
+	}
+	// get all digists of destination image from manifest list
+	json.NewDecoder(buff).Decode(&destInfoMap)
+	manifests, ok := u.ReadJsonSubArray(destInfoMap, "manifests")
+	if !ok {
+		return fmt.Errorf("read manifests failed: %w", u.ErrReadJsonFailed)
+	}
+	var destDigistList []string
+	for _, m := range manifests {
+		digest, ok := u.ReadJsonStringVal(m.(map[string]interface{}), "digest")
+		if !ok {
+			return fmt.Errorf("read digest failed: %w", u.ErrReadJsonFailed)
+		}
+		destDigistList = append(destDigistList, digest)
+	}
+	if slices.Compare(destDigistList, img.copiedDigestList) != 0 {
+		// destnation manifest digest list is not same with copied images
+		// TODO:
 	}
 
 	return nil

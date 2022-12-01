@@ -49,8 +49,8 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 	return token.(string), nil
 }
 
-func Login(url string, username string, passwd string) error {
-	// docker login ${DOCKER_REGISTRY:-docker.io} --username=${DOCKER_USERNAME} --password-stdin <<< ${DOCKER_PASSWORD}
+func DockerLogin(url string, username string, passwd string) error {
+	// docker login ${DOCKER_REGISTRY} --username=${USERNAME} --password-stdin
 	if url == "" {
 		url = utils.DockerHubRegistry
 	}
@@ -78,6 +78,35 @@ func Login(url string, username string, passwd string) error {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}
 	logrus.Info("Login successfully.")
+
+	return nil
+}
+
+func DockerManifestCreate(name string, values []string) error {
+	logrus.Debug("Running docker manifest create...")
+	if values == nil {
+		return utils.ErrInvalidParameter
+	}
+	// Ensure docker installed
+	path, err := exec.LookPath("docker")
+	if err != nil {
+		return utils.ErrDockerNotFound
+	}
+
+	// Inspect the source image info
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	var args []string
+	args = append(args, "manifest", "create", name)
+	args = append(args, values...)
+	cmd := exec.Command(path, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("DockerManifestCreate: \n%s\n%w",
+			stderr.String(), err)
+	}
 
 	return nil
 }

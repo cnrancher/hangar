@@ -12,6 +12,7 @@ var (
 	ErrDockerNotFound   = errors.New("docker not found")
 	ErrLoginFailed      = errors.New("login failed")
 	ErrNoAvailableImage = errors.New("no image available for specified arch list")
+	ErrInvalidParameter = errors.New("invalid parameter")
 )
 
 const (

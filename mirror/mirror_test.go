@@ -20,44 +20,44 @@ func init() {
 // }
 
 func TestConstructureRegistry(t *testing.T) {
-	s := constructureRegistry("nginx", "")
+	s := constructRegistry("nginx", "")
 	if s != "docker.io/nginx" {
 		t.Error("value should be 'docker.io/nginx'")
 	}
 
-	s = constructureRegistry("docker.io/nginx", "")
+	s = constructRegistry("docker.io/nginx", "")
 	if s != "docker.io/nginx" {
 		t.Error("value should be 'docker.io/nginx'")
 	}
 
-	s = constructureRegistry("localhost/nginx", "")
+	s = constructRegistry("localhost/nginx", "")
 	if s != "localhost/nginx" {
 		t.Error("value should be 'localhost/nginx'")
 	}
 
-	s = constructureRegistry("custom.io/nginx", "")
+	s = constructRegistry("custom.io/nginx", "")
 	if s != "custom.io/nginx" {
 		t.Error("value should be 'custom.io/nginx'")
 	}
 
 	dstReg := "private.io"
 
-	s = constructureRegistry("nginx", dstReg)
+	s = constructRegistry("nginx", dstReg)
 	if s != dstReg+"/nginx" {
 		t.Error("value should be 'docker.io/nginx'")
 	}
 
-	s = constructureRegistry("docker.io/nginx", dstReg)
+	s = constructRegistry("docker.io/nginx", dstReg)
 	if s != dstReg+"/nginx" {
 		t.Error("value should be 'docker.io/nginx'")
 	}
 
-	s = constructureRegistry("localhost/nginx", dstReg)
+	s = constructRegistry("localhost/nginx", dstReg)
 	if s != dstReg+"/nginx" {
 		t.Error("value should be 'localhost/nginx'")
 	}
 
-	s = constructureRegistry("custom.io/nginx", dstReg)
+	s = constructRegistry("custom.io/nginx", dstReg)
 	if s != dstReg+"/nginx" {
 		t.Error("value should be 'custom.io/nginx'")
 	}
