@@ -2,30 +2,35 @@ package mirror
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"cnrancher.io/image-tools/registry"
+	"cnrancher.io/image-tools/utils"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
 
-func MirrorImages(fileName, arches, sourceReg, destReg, loginURL string) {
-	username := os.Getenv("REGISTRY_USERNAME")
-	passwd := os.Getenv("REGISTRY_PASSWORD")
+func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
+	username := os.Getenv("DOCKER_USERNAME")
+	passwd := os.Getenv("DOCKER_PASSWORD")
+	regUrl := os.Getenv("DOCKER_REGISTRY")
 	if username == "" || passwd == "" {
-		logrus.Fatal("REGISTRY_USERNAME and REGISTRY_PASSWORD environment variable not set!")
-		// TODO: read username and password by commandline
+		logrus.Fatal("DOCKER_USERNAME and DOCKER_PASSWORD environment variable not set!")
+		// TODO: read username and password from stdin
 	}
-	token, err := registry.LoginToken(destReg, username, passwd)
+
+	if destRegOverride != "" {
+		regUrl = destRegOverride
+	}
+
+	err := registry.Login(regUrl, username, passwd)
 	if err != nil {
-		logrus.Fatalf("failed to login: %v", err.Error())
-	}
-	if token == "" {
-		return
+		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 
 	var scanner *bufio.Scanner
@@ -33,7 +38,7 @@ func MirrorImages(fileName, arches, sourceReg, destReg, loginURL string) {
 		// read line from stdin
 		scanner = bufio.NewScanner(os.Stdin)
 		logrus.Info("Reading '<SOURCE> <DESTINATION> <TAG>' from stdin")
-		logrus.Info("Use Ctrl+D to exit...")
+		logrus.Info("Use Ctrl+C/Ctrl+D to exit...")
 	} else {
 		readFile, err := os.Open(fileName)
 		if err != nil {
@@ -48,6 +53,7 @@ func MirrorImages(fileName, arches, sourceReg, destReg, loginURL string) {
 	for scanner.Scan() {
 		var err error
 		line := scanner.Text()
+		// Ignore comment line
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
 			continue
 		}
@@ -62,27 +68,17 @@ func MirrorImages(fileName, arches, sourceReg, destReg, loginURL string) {
 			logrus.Errorf("Invalid line format")
 			continue
 		}
-		logrus.Debugf("SOURCE: [%v] DEST: [%v] TAG: [%v]", v[0], v[1], v[2])
 
-		// TODO: ensure that source specifies an explicit registry and repository
+		source := constructureRegistry(v[0], sourceRegOverride)
+		dest := constructureRegistry(v[1], destRegOverride)
+		logrus.Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
+			source, dest, v[2])
 
-		// override destination registry if set
-
-		// override destination org/user if set
-
-		// source, err := url.Parse(v[0])
-		// if err != nil {
-		// 	logrus.Errorf(err.Error())
-		// }
-		// dest, err := url.Parse(v[1])
-		// if err != nil {
-		// 	logrus.Errorf(err.Error())
-		// }
-
-		err = mirrorImage(v[0], v[1], v[2], strings.Split(arches, ","))
+		err = mirrorImage(source, dest, v[2], strings.Split(arches, ","))
 		if err != nil {
 			logrus.Errorf("Failed copying image for %s\n", v[1])
 			logrus.Error(err.Error())
+			// TODO: append the image to the list which is copy failed
 			continue
 		}
 	}
@@ -96,18 +92,25 @@ func copyIfChanged(sourceRef, destRef, arch, args string) error {
 	if err != nil {
 		return fmt.Errorf("copyIfChanged: %w", err)
 	}
-	fmt.Println(sourceManifestBuff.String())
-	// var sourceManifest map[string]interface{}
-	// json.NewDecoder(buff).Decode(&sourceManifest)
+	// fmt.Println(sourceManifestBuff.String())
 
 	inspectImg = fmt.Sprintf("docker://%s", destRef)
 	destManifestBuff, err := registry.SkopeoInspectRaw(inspectImg)
 	if err != nil {
 		return fmt.Errorf("copyIfChanged: %w", err)
 	}
-	fmt.Println(destManifestBuff.String())
+	// fmt.Println(destManifestBuff.String())
 
-	// TODO: calculate sha256sum for manifest and compare it.
+	srcManifestSum := utils.Sha256Sum(sourceManifestBuff.String())
+	dstManifestSum := utils.Sha256Sum(destManifestBuff.String())
+	if srcManifestSum == dstManifestSum {
+		logrus.Infof("---- Unchanged: %s... == %s", sourceRef[0:20], destRef)
+		logrus.Infof("---- Digest   : %s", srcManifestSum)
+	} else {
+		logrus.Infof("---- Copying: %s => %s", sourceRef, destRef)
+		logrus.Infof("----          %s == %s", srcManifestSum, dstManifestSum)
+		// TODO: skopeo copy
+	}
 
 	return nil
 }
@@ -183,10 +186,10 @@ func mirrorImage(source, dest, tag string, archList []string) error {
 					continue
 				}
 				if !slices.Contains(archList, arch) {
-					logrus.Infof("skip copy image %s arch %s", source, arch)
+					logrus.Debugf("skip copy image %s arch %s", source, arch)
 					continue
 				}
-				logrus.Debugf("---- arch: %s", arch)
+				logrus.Infof("Copying image: %s, arch: %s", source, arch)
 				// os, ok := u.ReadJsonStringVal(platform, "os")
 
 				// retag the destination image with ARCH information
@@ -228,4 +231,36 @@ func mirrorImage(source, dest, tag string, archList []string) error {
 	}
 
 	return nil
+}
+
+// constructureRegistry will re-construct the image url:
+//
+// If `registryOverride` is "", example:
+// nginx --> docker.io/nginx (add docker.io prefix)
+// reg.io/nginx --> reg.io/nginx (nothing changed)
+// reg.io/user/nginx --> reg.io/user/nginx (nothing changed)
+//
+// If `registryOverride` set, example:
+// nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
+// reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
+// reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
+func constructureRegistry(image, registryOverride string) string {
+	s := strings.Split(image, "/")
+	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+		if registryOverride != "" {
+			s[0] = registryOverride
+		}
+	} else {
+		if registryOverride != "" {
+			s = append([]string{registryOverride}, s...)
+		} else {
+			s = append([]string{u.DockerHubRegistry}, s...)
+		}
+	}
+
+	var sBuffer bytes.Buffer
+	for _, v := range s {
+		sBuffer.WriteString(v + "/")
+	}
+	return strings.TrimRight(sBuffer.String(), "/")
 }

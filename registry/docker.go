@@ -3,27 +3,27 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os/exec"
 	"strings"
 
 	"cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func LoginToken(url string, username string, passwd string) (string, error) {
-	// docker login ${DOCKER_REGISTRY:-docker.io} --username=${DOCKER_USERNAME} --password-stdin <<< ${DOCKER_PASSWORD}
+func GetLoginToken(url string, username string, passwd string) (string, error) {
 	// export DOCKER_TOKEN=$(curl -s -d @- -X POST -H "Content-Type: application/json" https://hub.docker.com/v2/users/login/ <<< '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' | jq -r '.token')
 	if url == "" {
 		url = utils.DockerLoginURL
-		logrus.Infof("Logging in to %v", url)
 	}
 
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		// add https prefix
 		url = "https://" + url
 	}
+	logrus.Infof("Get token from %v", url)
 
 	values := map[string]string{"username": username, "password": passwd}
 	json_data, err := json.Marshal(values)
@@ -43,10 +43,50 @@ func LoginToken(url string, username string, passwd string) (string, error) {
 
 	token, ok := res["token"]
 	if !ok {
-		return "", errors.New("login failed")
+		return "", utils.ErrLoginFailed
 	}
 	logrus.Debugf("Get token: %v...", token.(string)[:20])
-	logrus.Info("Login successfully.")
 
 	return token.(string), nil
+}
+
+func Login(url string, username string, passwd string) error {
+	// docker login ${DOCKER_REGISTRY:-docker.io} --username=${DOCKER_USERNAME} --password-stdin <<< ${DOCKER_PASSWORD}
+	if url == "" {
+		url = utils.DockerHubRegistry
+	}
+	logrus.Infof("Logging in to %v", url)
+
+	path, err := exec.LookPath("docker")
+	if err != nil {
+		return utils.ErrDockerNotFound
+	}
+	logrus.Debugf("found docker installed at: %v", path)
+
+	// Inspect the source image info
+	var stdout bytes.Buffer
+	cmd := exec.Command(
+		path,
+		"login",
+		url,
+		"-u", username,
+		"--password-stdin",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stdout
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdinpipe: %w", err)
+	}
+	if err = cmd.Start(); err != nil {
+		return fmt.Errorf("command start failed: %w", err)
+	}
+	io.WriteString(stdin, passwd)
+	stdin.Close()
+	if err = cmd.Wait(); err != nil {
+		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
+	}
+	logrus.Info("Login successfully.")
+
+	return nil
 }

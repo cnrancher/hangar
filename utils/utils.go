@@ -1,15 +1,22 @@
 package utils
 
-import "errors"
+import (
+	"crypto/sha256"
+	"errors"
+	"fmt"
+)
 
 var (
 	ErrReadJsonFailed   = errors.New("failed to read value from json")
 	ErrSkopeoNotFound   = errors.New("skopeo not found")
+	ErrDockerNotFound   = errors.New("docker not found")
+	ErrLoginFailed      = errors.New("login failed")
 	ErrNoAvailableImage = errors.New("no image available for specified arch list")
 )
 
 const (
-	DockerLoginURL = "https://hub.docker.com/v2/users/login/"
+	DockerLoginURL    = "https://hub.docker.com/v2/users/login/"
+	DockerHubRegistry = "docker.io"
 )
 
 func ReadJsonStringVal(j map[string]interface{}, k string) (string, bool) {
@@ -50,4 +57,9 @@ func ReadJsonSubArray(j map[string]interface{}, k string) ([]interface{}, bool) 
 		return nil, false
 	}
 	return v.([]interface{}), true
+}
+
+func Sha256Sum(s string) string {
+	sum := sha256.Sum256([]byte("hello world\n"))
+	return fmt.Sprintf("%x", sum)
 }

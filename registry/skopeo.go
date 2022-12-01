@@ -24,7 +24,7 @@ const (
 // If the skopeo is not instqlled, download the binary to current dir.
 func EnsureSkopeoInstalled(path string) (string, error) {
 	if path, err := exec.LookPath("skopeo"); err == nil {
-		logrus.Infof("found skopeo installed at: %v", path)
+		logrus.Debugf("found skopeo installed at: %v", path)
 		return path, nil
 	}
 

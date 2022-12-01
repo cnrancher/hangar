@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"cnrancher.io/image-tools/mirror"
-	"cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,7 @@ func main() {
 	mirrorArch := mirrorCmd.String("a", "x86_64,arm64", "architecture list of images, seperate with ','")
 	mirrorSourceReg := mirrorCmd.String("s", "", "override the source registry")
 	mirrorDestReg := mirrorCmd.String("d", "", "override the destination registry")
-	mirrorDestLoginURL := mirrorCmd.String("login-url", utils.DockerLoginURL, "destination registry login URL")
+	// mirrorDestLoginURL := mirrorCmd.String("login-url", utils.DockerLoginURL, "destination registry login URL")
 	mirrorDebug := mirrorCmd.Bool("debug", false, "enable the debug output")
 
 	switch os.Args[1] {
@@ -40,10 +39,9 @@ func main() {
 		logrus.Debugln("mirrorArch: ", *mirrorArch)
 		logrus.Debugln("sourceReg: ", *mirrorSourceReg)
 		logrus.Debugln("destReg: ", *mirrorDestReg)
-		logrus.Debugln("mirrorDestLoginURL: ", *mirrorDestLoginURL)
 		mirror.MirrorImages(
 			*mirrorFile, *mirrorArch, *mirrorSourceReg,
-			*mirrorDestReg, *mirrorDestLoginURL)
+			*mirrorDestReg)
 	case "":
 	default:
 		showHelp()
