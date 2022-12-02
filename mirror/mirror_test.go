@@ -10,15 +10,6 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
-// func TestMirrorImage(t *testing.T) {
-// 	archList := []string{"arm64", "amd64"}
-
-// 	err := mirrorImage("nginx", "example/nginx", "1.22", archList)
-// 	if err != nil {
-// 		t.Error(err.Error())
-// 	}
-// }
-
 func TestConstructureRegistry(t *testing.T) {
 	s := constructRegistry("nginx", "")
 	if s != "docker.io/nginx" {
@@ -44,21 +35,21 @@ func TestConstructureRegistry(t *testing.T) {
 
 	s = constructRegistry("nginx", dstReg)
 	if s != dstReg+"/nginx" {
-		t.Error("value should be 'docker.io/nginx'")
+		t.Errorf("value should be '%s'", dstReg+"/nginx")
 	}
 
 	s = constructRegistry("docker.io/nginx", dstReg)
 	if s != dstReg+"/nginx" {
-		t.Error("value should be 'docker.io/nginx'")
+		t.Errorf("value should be '%s'", dstReg+"/nginx")
 	}
 
 	s = constructRegistry("localhost/nginx", dstReg)
 	if s != dstReg+"/nginx" {
-		t.Error("value should be 'localhost/nginx'")
+		t.Errorf("value should be '%s'", dstReg+"/nginx")
 	}
 
 	s = constructRegistry("custom.io/nginx", dstReg)
 	if s != dstReg+"/nginx" {
-		t.Error("value should be 'custom.io/nginx'")
+		t.Errorf("value should be '%s'", dstReg+"/nginx")
 	}
 }

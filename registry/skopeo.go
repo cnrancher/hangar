@@ -75,7 +75,7 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 
 // InspectRaw function executs `skopeo inspect --raw ${img}` command
 // and return the output if execute successfully
-func SkopeoInspect(img string, extraArgs []string) (*bytes.Buffer, error) {
+func SkopeoInspect(img string, extraArgs ...string) (*bytes.Buffer, error) {
 	logrus.Debug("Running skopeo inspect...")
 	// Ensure skopeo installed
 	skopeoPath, err := EnsureSkopeoInstalled("")
@@ -88,9 +88,7 @@ func SkopeoInspect(img string, extraArgs []string) (*bytes.Buffer, error) {
 	var stderr bytes.Buffer
 	var args []string
 	args = append(args, "inspect", img)
-	if extraArgs != nil {
-		args = append(args, extraArgs...)
-	}
+	args = append(args, extraArgs...)
 	cmd := exec.Command(skopeoPath, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -108,7 +106,7 @@ func SkopeoInspect(img string, extraArgs []string) (*bytes.Buffer, error) {
 // You can add --override-variant={VARIANT} in `extraArgs`
 // the os parameter can be set to empty string,
 // extraArgs can be nil
-func SkopeoCopyArchOS(arch, os, source, dest string, extraArgs []string) error {
+func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) error {
 	logrus.Debug("Running skopeo copy...")
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
@@ -120,12 +118,10 @@ func SkopeoCopyArchOS(arch, os, source, dest string, extraArgs []string) error {
 	var stderr bytes.Buffer
 	var args []string
 	args = append(args, "copy", "--override-arch="+arch)
-	if os != "" {
-		args = append(args, "--override-os="+os)
+	if osType != "" {
+		args = append(args, "--override-os="+osType)
 	}
-	if extraArgs != nil {
-		args = append(args, extraArgs...)
-	}
+	args = append(args, extraArgs...)
 	cmd := exec.Command(skopeoPath, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

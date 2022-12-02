@@ -82,7 +82,7 @@ func DockerLogin(url string, username string, passwd string) error {
 	return nil
 }
 
-func DockerManifestCreate(name string, values []string) error {
+func DockerManifestCreate(name string, values ...string) error {
 	logrus.Debug("Running docker manifest create...")
 	if values == nil {
 		return utils.ErrInvalidParameter

@@ -14,6 +14,9 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type Imager interface {
+}
+
 type Image struct {
 	source     string
 	destnation string
@@ -27,21 +30,37 @@ type Image struct {
 	// copyFailedDigestList []string
 }
 
+var (
+	dockerUsername = os.Getenv("DOCKER_USERNAME")
+	dockerPassword = os.Getenv("DOCKER_PASSWORD")
+	dockerRegistry = os.Getenv("DOCKER_REGISTRY")
+)
+
 func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
-	username := os.Getenv("DOCKER_USERNAME")
-	passwd := os.Getenv("DOCKER_PASSWORD")
-	regUrl := os.Getenv("DOCKER_REGISTRY")
-	if username == "" || passwd == "" {
+	if dockerUsername == "" || dockerPassword == "" {
 		logrus.Fatal("DOCKER_USERNAME and DOCKER_PASSWORD environment variable not set!")
 		// TODO: read username and password from stdin
 	}
 
+	if sourceRegOverride != "" {
+		logrus.Debugf("Set source registry to [%s]", sourceRegOverride)
+	} else {
+		logrus.Debugf("Set source registry to [%s]", u.DockerHubRegistry)
+	}
+
+	// Command line parameter is prior than environment variable
+	if destRegOverride == "" && dockerRegistry != "" {
+		destRegOverride = dockerRegistry
+	}
+
 	if destRegOverride != "" {
-		regUrl = destRegOverride
+		logrus.Debugf("Set destination registry to [%s]", destRegOverride)
+	} else {
+		logrus.Debugf("Set destination registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(regUrl, username, passwd)
+	err := registry.DockerLogin(destRegOverride, dockerUsername, dockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
@@ -91,18 +110,18 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 			continue
 		}
 
-		mirrorer := Image{
+		image := Image{
 			source:     constructRegistry(v[0], sourceRegOverride),
 			destnation: constructRegistry(v[1], destRegOverride),
 			tag:        v[2],
 			archList:   strings.Split(arches, ","),
 		}
 		logrus.Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
-			mirrorer.source, mirrorer.destnation, mirrorer.tag)
+			image.source, image.destnation, image.tag)
 
-		err = mirrorer.mirrorImage()
+		err = image.mirrorImage()
 		if err != nil {
-			logrus.Errorf("Failed to copy image %s\n", mirrorer.source)
+			logrus.Errorf("Failed to copy image %s\n", image.source)
 			logrus.Error(err.Error())
 			// TODO: append the image to the list which is copy failed
 			if usingStdin {
@@ -125,7 +144,7 @@ func (img *Image) mirrorImage() error {
 	}
 
 	inspectSrcImg := fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	buff, err := registry.SkopeoInspect(inspectSrcImg, []string{"--raw"})
+	buff, err := registry.SkopeoInspect(inspectSrcImg, "--raw")
 	if err != nil {
 		return fmt.Errorf("mirrorImage: %w", err)
 	}
@@ -285,7 +304,7 @@ func (img *Image) copyByManifestListV2(manifestList []interface{}) error {
 func (img *Image) copyByManifestV2() error {
 	inspectSrcImg := fmt.Sprintf("docker://%s:%s", img.source, img.tag)
 	buff, err := registry.SkopeoInspect(
-		inspectSrcImg, []string{"--raw", "--config"})
+		inspectSrcImg, "--raw", "--config")
 	if err != nil {
 		return fmt.Errorf("copyByManifestV2: %w", err)
 	}
@@ -326,22 +345,20 @@ func (img *Image) copyByManifestV2() error {
 func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 	// Inspect the source image info
 	sourceDockerImage := fmt.Sprintf("docker://%s", sourceRef)
-	sourceManifestBuff, err := registry.SkopeoInspect(
-		sourceDockerImage, []string{"--raw"})
+	sourceManifestBuff, err := registry.SkopeoInspect(sourceDockerImage, "--raw")
 	if err != nil {
 		// if source image not found, return error.
 		return fmt.Errorf("copyIfChanged: %w", err)
 	}
-	// fmt.Println(sourceManifestBuff.String())
+	// logrus.Debug("sourceManifest: ", sourceManifestBuff.String())
 
 	destDockerImage := fmt.Sprintf("docker://%s", destRef)
-	destManifestBuff, err := registry.SkopeoInspect(
-		destDockerImage, []string{"--raw"})
+	destManifestBuff, err := registry.SkopeoInspect(destDockerImage, "--raw")
 	if err != nil {
 		// if destination image not found, set destManifestBuff to nil
 		destManifestBuff = nil
 	}
-	// fmt.Println(destManifestBuff.String())
+	// logrus.Debug("destManifest: ", destManifestBuff.String())
 
 	srcManifestSum := u.Sha256Sum(sourceManifestBuff.String())
 	dstManifestSum := u.Sha256Sum(destManifestBuff.String())
@@ -353,7 +370,7 @@ func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 		logrus.Infof("    Copying: %s => %s", sourceRef, destRef)
 		logrus.Infof("             %s => %s", srcManifestSum, dstManifestSum)
 		return registry.SkopeoCopyArchOS(
-			arch, os, sourceDockerImage, destDockerImage, nil)
+			arch, os, sourceDockerImage, destDockerImage)
 	}
 
 	return nil
@@ -362,7 +379,7 @@ func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 // updateManifestList
 func (img *Image) updateManifestList() error {
 	destImage := fmt.Sprintf("docker://%s:%s", img.destnation, img.tag)
-	buff, err := registry.SkopeoInspect(destImage, []string{"--raw"})
+	buff, err := registry.SkopeoInspect(destImage, "--raw")
 	var destInfoMap map[string]interface{}
 	if err != nil {
 		// this error is expected if the dest image manifest not exist

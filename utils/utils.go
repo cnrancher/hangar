@@ -61,6 +61,6 @@ func ReadJsonSubArray(j map[string]interface{}, k string) ([]interface{}, bool) 
 }
 
 func Sha256Sum(s string) string {
-	sum := sha256.Sum256([]byte("hello world\n"))
+	sum := sha256.Sum256([]byte(s))
 	return fmt.Sprintf("%x", sum)
 }
