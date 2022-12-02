@@ -124,7 +124,7 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	var args []string
-	args = append(args, "copy", "--override-arch="+arch)
+	args = append(args, "copy", "--format=v2s2", "--override-arch="+arch)
 	if osType != "" {
 		args = append(args, "--override-os="+osType)
 	}

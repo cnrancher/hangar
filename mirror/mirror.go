@@ -14,13 +14,35 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Imager interface {
+type Mirrorer interface {
+	// Source gets the source image
+	// [registry.io/library/name]
+	Source() string
+
+	// Destination gets the destination image
+	// [registry.io/library/name]
+	Destination() string
+
+	// Tag gets the image tag
+	Tag() string
+
+	// HasArch checks the arch of this image should be copied or not
+	HasArch(string) bool
+
+	// AppendImage adds an image to the Mirrorer
+	AppendImage(Imagerer)
 }
 
-type Image struct {
+type Imagerer interface {
+}
+
+type Mirror struct {
 	source     string
 	destnation string
 	tag        string
+
+	sourceManifest map[string]interface{}
+	destManifest   map[string]interface{}
 
 	// available arch list
 	archList []string
@@ -28,6 +50,9 @@ type Image struct {
 	copiedDigestList []string
 	copiedSources    []string
 	// copyFailedDigestList []string
+}
+
+type image struct {
 }
 
 var (
@@ -121,9 +146,9 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 
 		err = image.mirrorImage()
 		if err != nil {
-			logrus.Errorf("Failed to copy image %s\n", image.source)
+			logrus.Errorf("Failed to copy image [%s]\n", image.source)
 			logrus.Error(err.Error())
-			// TODO: append the image to the list which is copy failed
+			// TODO: append the copy failed image to failed list
 			if usingStdin {
 				fmt.Printf(">>> ")
 			}
@@ -149,14 +174,14 @@ func (img *Image) mirrorImage() error {
 		return fmt.Errorf("mirrorImage: %w", err)
 	}
 
-	var sourceInfoMap map[string]interface{}
-	json.NewDecoder(buff).Decode(&sourceInfoMap)
+	var sourceManifest map[string]interface{}
+	json.NewDecoder(buff).Decode(&sourceManifest)
 	// Get source image schemaVersion and mediaType
-	srcSchemaVersion, ok := u.ReadJsonIntVal(sourceInfoMap, "schemaVersion")
+	srcSchemaVersion, ok := u.ReadJsonIntVal(sourceManifest, "schemaVersion")
 	if !ok {
 		return fmt.Errorf("reading schemaVersion: %w", u.ErrReadJsonFailed)
 	}
-	mediaType, ok := u.ReadJsonStringVal(sourceInfoMap, "mediaType")
+	mediaType, ok := u.ReadJsonStringVal(sourceManifest, "mediaType")
 	if !ok {
 		return fmt.Errorf("reading mediaType: %w", u.ErrReadJsonFailed)
 	}
@@ -172,7 +197,7 @@ func (img *Image) mirrorImage() error {
 			// on the bare tags.
 			logrus.Infof("[%s:%s] is manifest.list.v2", img.source, img.tag)
 
-			manifestList, ok := u.ReadJsonSubArray(sourceInfoMap, "manifests")
+			manifestList, ok := u.ReadJsonSubArray(sourceManifest, "manifests")
 			if !ok {
 				// unable to read manifests list, return error of this image
 				return fmt.Errorf("reading manifests: %w", u.ErrReadJsonFailed)
@@ -196,6 +221,8 @@ func (img *Image) mirrorImage() error {
 		default:
 		}
 	} else if srcSchemaVersion == 1 {
+		logrus.Infof("[%s:%s] is manifest.v1", img.source, img.tag)
+		img.copyByManifestV1(sourceManifest)
 
 	} else {
 		return fmt.Errorf("unknown schemaVersion: %v", srcSchemaVersion)
@@ -239,30 +266,34 @@ func constructRegistry(image, registryOverride string) string {
 // copyByManifestListV2
 func (img *Image) copyByManifestListV2(manifestList []interface{}) error {
 	var err error
+	var ok bool
+	var (
+		digest   string
+		platform map[string]interface{}
+		arch     string
+		osType   string
+	)
 	// if there is no image copied to dest registry, return an error
 	copiedImageNum := 0
 	for _, v := range manifestList {
 		manifest := v.(map[string]interface{})
 		// logrus.Debugf("manifest: %v", manifest)
 
-		digest, ok := u.ReadJsonStringVal(manifest, "digest")
-		if !ok {
+		if digest, ok = u.ReadJsonStringVal(manifest, "digest"); !ok {
 			continue
 		}
 		logrus.Debugf("---- digest: %s", digest)
-		platform, ok := u.ReadJsonSubObj(manifest, "platform")
-		if !ok {
+		if platform, ok = u.ReadJsonSubObj(manifest, "platform"); !ok {
 			continue
 		}
-		arch, ok := u.ReadJsonStringVal(platform, "architecture")
-		if !ok {
+		if arch, ok = u.ReadJsonStringVal(platform, "architecture"); !ok {
 			continue
 		}
 		if !slices.Contains(img.archList, arch) {
 			logrus.Debugf("skip copy image %s arch %s", img.source, arch)
 			continue
 		}
-		os, _ := u.ReadJsonStringVal(platform, "os")
+		osType, _ = u.ReadJsonStringVal(platform, "os")
 
 		// retag the destination image with ARCH information
 		var destFmt string
@@ -284,7 +315,7 @@ func (img *Image) copyByManifestListV2(manifestList []interface{}) error {
 		logrus.Debugf("---- destFmt: %s", destFmt)
 		logrus.Infof("Copy [%s] to [%s] arch [%s]",
 			img.source, img.destnation, arch)
-		err = img.copyIfChanged(srcFmt, destFmt, arch, os)
+		err = img.copyIfChanged(srcFmt, destFmt, arch, osType)
 		if err != nil {
 			logrus.Error(err.Error())
 			continue
@@ -303,21 +334,20 @@ func (img *Image) copyByManifestListV2(manifestList []interface{}) error {
 
 func (img *Image) copyByManifestV2() error {
 	inspectSrcImg := fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	buff, err := registry.SkopeoInspect(
-		inspectSrcImg, "--raw", "--config")
+	buff, err := registry.SkopeoInspect(inspectSrcImg, "--raw", "--config")
 	if err != nil {
 		return fmt.Errorf("copyByManifestV2: %w", err)
 	}
 
-	var sourceInfoMap map[string]interface{}
-	json.NewDecoder(buff).Decode(&sourceInfoMap)
+	var sourceManifest map[string]interface{}
+	json.NewDecoder(buff).Decode(&sourceManifest)
 
-	arch, ok := u.ReadJsonStringVal(sourceInfoMap, "architecture")
+	arch, ok := u.ReadJsonStringVal(sourceManifest, "architecture")
 	if !ok {
 		return u.ErrReadJsonFailed
 	}
-	os, _ := u.ReadJsonStringVal(sourceInfoMap, "os")
-	// config, ok := u.ReadJsonSubObj(sourceInfoMap, "config")
+	osType, _ := u.ReadJsonStringVal(sourceManifest, "os")
+	// config, ok := u.ReadJsonSubObj(sourceManifest, "config")
 	// if !ok {
 	// 	return u.ErrReadJsonFailed
 	// }
@@ -326,23 +356,36 @@ func (img *Image) copyByManifestV2() error {
 	// 	return u.ErrReadJsonFailed
 	// }
 
-	if slices.Contains(img.archList, arch) {
-		srcFmt := fmt.Sprintf("%s:%s", img.source, img.tag)
-		dstFmt := fmt.Sprintf("%s:%s-%s", img.destnation, img.tag, arch)
-		logrus.Infof("Copy [%s] to [%s] arch [%s]",
-			img.source, img.destnation, arch)
-		err := img.copyIfChanged(srcFmt, dstFmt, arch, os)
-		if err != nil {
-			logrus.Error(err.Error())
-		}
-	} else {
+	if !slices.Contains(img.archList, arch) {
+		logrus.Debugf("skip copy image %s arch %s", img.source, arch)
+	}
+	srcFmt := fmt.Sprintf("%s:%s", img.source, img.tag)
+	dstFmt := fmt.Sprintf("%s:%s-%s", img.destnation, img.tag, arch)
+	logrus.Infof("Copy [%s] to [%s] arch [%s]",
+		img.source, img.destnation, arch)
+	return img.copyIfChanged(srcFmt, dstFmt, arch, osType)
+}
+
+func (img *Image) copyByManifestV1(sourceManifest map[string]interface{}) error {
+	var arch, osType string
+	var ok bool
+
+	if arch, ok = u.ReadJsonStringVal(sourceManifest, "architecture"); !ok {
+		return fmt.Errorf("read architecture failed: %w", u.ErrReadJsonFailed)
+	}
+	if osType, ok = u.ReadJsonStringVal(sourceManifest, "os"); !ok {
+		return fmt.Errorf("read os failed: %w", u.ErrReadJsonFailed)
+	}
+	if !slices.Contains(img.archList, arch) {
 		logrus.Debugf("skip copy image %s arch %s", img.source, arch)
 	}
 
-	return nil
+	srcRef := fmt.Sprintf("%s:%s", img.source, img.tag)
+	dstRef := fmt.Sprintf("%s:%s-%s", img.source, img.tag, arch)
+	return img.copyIfChanged(srcRef, dstRef, arch, osType)
 }
 
-func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
+func (img *Image) copyIfChanged(sourceRef, destRef, arch, osType string) error {
 	// Inspect the source image info
 	sourceDockerImage := fmt.Sprintf("docker://%s", sourceRef)
 	sourceManifestBuff, err := registry.SkopeoInspect(sourceDockerImage, "--raw")
@@ -366,14 +409,11 @@ func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 		logrus.Infof("Unchanged: %s... == %s", sourceRef, destRef)
 		logrus.Debugf("source Digest: %s", srcManifestSum)
 		logrus.Debugf("dest   Digest: %s", dstManifestSum)
-	} else {
-		logrus.Infof("Copying: %s => %s", sourceRef, destRef)
-		logrus.Infof("%s => %s", srcManifestSum, dstManifestSum)
-		return registry.SkopeoCopyArchOS(
-			arch, os, sourceDockerImage, destDockerImage)
+		return nil
 	}
-
-	return nil
+	logrus.Infof("Copying: %s => %s", sourceRef, destRef)
+	logrus.Infof("%s => %s", srcManifestSum, dstManifestSum)
+	return registry.SkopeoCopyArchOS(arch, osType, sourceDockerImage, destDockerImage)
 }
 
 // updateManifestList
