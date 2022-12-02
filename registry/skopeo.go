@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ const (
 // If the skopeo is not instqlled, download the binary to current dir.
 func EnsureSkopeoInstalled(path string) (string, error) {
 	if path, err := exec.LookPath("skopeo"); err == nil {
-		logrus.Debugf("found skopeo installed at: %v", path)
+		logrus.Debugf("Found skopeo installed at: %v", path)
 		return path, nil
 	}
 
@@ -97,6 +98,12 @@ func SkopeoInspect(img string, extraArgs ...string) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("SkopeoInspect: \n%s\n%w",
 			stderr.String(), err)
 	}
+	skopeoOutput := stdout.String()
+	// logrus.Debugf("skopeo copy output: %s", skopeoOutput)
+	if strings.Contains(skopeoOutput, "Usage:") {
+		return nil, fmt.Errorf("SkopeoCopyArchOs: \n%s\n%w",
+			skopeoOutput, u.ErrInvalidParameter)
+	}
 
 	return &stdout, nil
 }
@@ -121,6 +128,7 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	if osType != "" {
 		args = append(args, "--override-os="+osType)
 	}
+	args = append(args, source, dest)
 	args = append(args, extraArgs...)
 	cmd := exec.Command(skopeoPath, args...)
 	cmd.Stdout = &stdout
@@ -129,6 +137,12 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	if err != nil {
 		return fmt.Errorf("SkopeoCopyArchOS: \n%s\n%w",
 			stderr.String(), err)
+	}
+	skopeoOutput := stdout.String()
+	logrus.Debugf("skopeo copy output: %s", skopeoOutput)
+	if strings.Contains(skopeoOutput, "Usage:") {
+		return fmt.Errorf("SkopeoCopyArchOs: \n%s\n%w",
+			skopeoOutput, u.ErrInvalidParameter)
 	}
 
 	return nil

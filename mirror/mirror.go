@@ -363,12 +363,12 @@ func (img *Image) copyIfChanged(sourceRef, destRef, arch, os string) error {
 	srcManifestSum := u.Sha256Sum(sourceManifestBuff.String())
 	dstManifestSum := u.Sha256Sum(destManifestBuff.String())
 	if srcManifestSum == dstManifestSum {
-		logrus.Infof("    Unchanged: %s... == %s", sourceRef, destRef)
-		logrus.Debugf("    source Digest: %s", srcManifestSum)
-		logrus.Debugf("    dest   Digest: %s", dstManifestSum)
+		logrus.Infof("Unchanged: %s... == %s", sourceRef, destRef)
+		logrus.Debugf("source Digest: %s", srcManifestSum)
+		logrus.Debugf("dest   Digest: %s", dstManifestSum)
 	} else {
-		logrus.Infof("    Copying: %s => %s", sourceRef, destRef)
-		logrus.Infof("             %s => %s", srcManifestSum, dstManifestSum)
+		logrus.Infof("Copying: %s => %s", sourceRef, destRef)
+		logrus.Infof("%s => %s", srcManifestSum, dstManifestSum)
 		return registry.SkopeoCopyArchOS(
 			arch, os, sourceDockerImage, destDockerImage)
 	}
@@ -384,24 +384,28 @@ func (img *Image) updateManifestList() error {
 	if err != nil {
 		// this error is expected if the dest image manifest not exist
 		buff = nil
-	}
-	// get all digists of destination image from manifest list
-	json.NewDecoder(buff).Decode(&destInfoMap)
-	manifests, ok := u.ReadJsonSubArray(destInfoMap, "manifests")
-	if !ok {
-		return fmt.Errorf("read manifests failed: %w", u.ErrReadJsonFailed)
-	}
-	var destDigistList []string
-	for _, m := range manifests {
-		digest, ok := u.ReadJsonStringVal(m.(map[string]interface{}), "digest")
+		// TODO: create manifest list
+	} else {
+		// get all digists of destination image from manifest list
+		json.NewDecoder(buff).Decode(&destInfoMap)
+		manifests, ok := u.ReadJsonSubArray(destInfoMap, "manifests")
 		if !ok {
-			return fmt.Errorf("read digest failed: %w", u.ErrReadJsonFailed)
+			return fmt.Errorf("read manifests failed: %w", u.ErrReadJsonFailed)
 		}
-		destDigistList = append(destDigistList, digest)
-	}
-	if slices.Compare(destDigistList, img.copiedDigestList) != 0 {
-		// destnation manifest digest list is not same with copied images
-		// TODO:
+		var destDigistList []string
+		for _, m := range manifests {
+			digest, ok := u.ReadJsonStringVal(m.(map[string]interface{}), "digest")
+			if !ok {
+				return fmt.Errorf("read digest failed: %w", u.ErrReadJsonFailed)
+			}
+			destDigistList = append(destDigistList, digest)
+		}
+		if slices.Compare(destDigistList, img.copiedDigestList) != 0 {
+			// destnation manifest digest list is not same with copied images
+			// TODO: create manifest list
+		} else {
+			// TODO: manifest list already exists and no need to update
+		}
 	}
 
 	return nil
