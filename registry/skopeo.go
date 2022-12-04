@@ -77,7 +77,7 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 // InspectRaw function executs `skopeo inspect --raw ${img}` command
 // and return the output if execute successfully
 func SkopeoInspect(img string, extraArgs ...string) (*bytes.Buffer, error) {
-	logrus.Debug("Running skopeo inspect...")
+	logrus.Debugf("Running skopeo inspect [%s] %v", img, extraArgs)
 	// Ensure skopeo installed
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
@@ -114,7 +114,8 @@ func SkopeoInspect(img string, extraArgs ...string) (*bytes.Buffer, error) {
 // the os parameter can be set to empty string,
 // extraArgs can be nil
 func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) error {
-	logrus.Debug("Running skopeo copy...")
+	logrus.Debugf("Running skopeo copy arch[%s] os[%s] src[%s] dst[%s] %v",
+		arch, osType, source, dest, extraArgs)
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
 		return fmt.Errorf("unable to locate skopeo path: %w", err)

@@ -34,6 +34,10 @@ type Imagerer interface {
 
 	// Copied checks the image is copied or not
 	Copied() bool
+
+	// CopiedTag gets the tag of the copied image:
+	// the format should be: ${VERSION}-${ARCH}${VARIANT}
+	CopiedTag() string
 }
 
 type Image struct {
@@ -113,6 +117,20 @@ func (img *Image) Copy() error {
 	if err := img.copyIfChanged(); err != nil {
 		return fmt.Errorf("Copy: %w", err)
 	}
+
+	if img.sourceSchemaVersion == 1 {
+		// get digests from copied dest image
+		destImage := fmt.Sprintf("docker://%s:%s",
+			img.destination, img.CopiedTag())
+		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
+		buff, err := registry.SkopeoInspect(destImage, "--raw")
+		if err != nil {
+			return fmt.Errorf("Copy: %w", err)
+		}
+		digest := "sha256:" + u.Sha256Sum(buff.String())
+		img.digest = digest
+	}
+
 	img.copied = true
 	return nil
 }
@@ -121,32 +139,48 @@ func (img *Image) Copied() bool {
 	return img.copied
 }
 
+func (img *Image) CopiedTag() string {
+	switch img.arch {
+	case "amd64":
+		return fmt.Sprintf("%s-%s", img.tag, img.arch)
+	case "arm64":
+		return fmt.Sprintf("%s-%s", img.tag, img.arch)
+	case "arm":
+		return fmt.Sprintf("%s-%s%s", img.tag, img.arch, img.variant)
+	default:
+		// other arch: s390x, ppc64...
+		return fmt.Sprintf("%s-%s%s", img.tag, img.arch, img.variant)
+	}
+}
+
 func (img *Image) copyIfChanged() error {
 	var (
 		srcDockerImage string
 		dstDockerImage string
 	)
 
-	switch img.sourceSchemaVersion {
-	case 1:
-		// docker://registry/repository:va.b.c
+	if img.sourceSchemaVersion == 1 {
 		srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	case 2:
-		switch img.sourceMediaType {
-		case u.MediaTypeManifestListV2:
-			// docker://registry/repository@sha256:abcdef...
-			srcDockerImage = fmt.Sprintf("docker://%s@%s",
-				img.source, img.digest)
-		case u.MediaTypeManifestV2:
-			// docker://registry/repository:va.b.c
-			srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-		}
+		dstDockerImage = fmt.Sprintf("docker://%s:%s",
+			img.destination, img.CopiedTag())
+		logrus.Infof("[%s] is schema v1, no need to compare", srcDockerImage)
+		logrus.Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
+		return registry.SkopeoCopyArchOS(
+			img.arch, img.os, srcDockerImage, dstDockerImage)
 	}
 
-	// TODO: handle the image variant
-	// docker://registry/repository:va.b.c-ARCH
-	dstDockerImage = fmt.Sprintf("docker://%s:%s-%s",
-		img.destination, img.tag, img.arch)
+	switch img.sourceMediaType {
+	case u.MediaTypeManifestListV2:
+		// docker://registry/repository@sha256:abcdef...
+		srcDockerImage = fmt.Sprintf("docker://%s@%s", img.source, img.digest)
+	case u.MediaTypeManifestV2:
+		// docker://registry/repository:va.b.c
+		srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
+	}
+
+	// docker://registry/repository:${ORIGINAL_TAG}-${ARCH}${VARIANT}
+	dstDockerImage = fmt.Sprintf("docker://%s:%s",
+		img.destination, img.CopiedTag())
 
 	// Inspect the source image info
 	sourceManifestBuff, err := registry.SkopeoInspect(srcDockerImage, "--raw")
@@ -163,14 +197,20 @@ func (img *Image) copyIfChanged() error {
 	}
 	// logrus.Debug("destManifest: ", destManifestBuff.String())
 
-	srcManifestSum := "sha256:" + u.Sha256Sum(sourceManifestBuff.String())
-	dstManifestSum := "sha256:" + u.Sha256Sum(destManifestBuff.String())
+	var srcManifestSum string
+	var dstManifestSum string = "<nil>"
+	srcManifestSum = "sha256:" + u.Sha256Sum(sourceManifestBuff.String())
+	if destManifestBuff != nil {
+		dstManifestSum = "sha256:" + u.Sha256Sum(destManifestBuff.String())
+	}
 	// compare the source manifest with the dest manifest
 	if srcManifestSum == dstManifestSum {
 		logrus.Infof("Unchanged: %s == %s", srcDockerImage, dstDockerImage)
-		logrus.Debugf("source digest: %s", srcManifestSum)
-		logrus.Debugf("destin digest: %s", dstManifestSum)
+		logrus.Infof("  source digest: %s", srcManifestSum)
+		logrus.Infof("  destin digest: %s", dstManifestSum)
 		return nil
+	} else {
+		logrus.Infof("Digest: %s => %s", srcManifestSum, dstManifestSum)
 	}
 	logrus.Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
 	return registry.SkopeoCopyArchOS(

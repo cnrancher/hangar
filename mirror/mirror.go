@@ -35,6 +35,9 @@ type Mirrorer interface {
 	// HasArch checks the arch of this image should be copied or not
 	HasArch(string) bool
 
+	// ImageNum gets the number of the images
+	ImageNum() int
+
 	// AppendImage adds an image to the Mirrorer
 	AppendImage(image.Imagerer)
 
@@ -100,15 +103,15 @@ func (m *Mirror) Mirror() error {
 	if err != nil {
 		return fmt.Errorf("Mirror: %w", err)
 	}
-	sourceMediaType, err := m.sourceManifestMediaType()
-	if err != nil {
-		return fmt.Errorf("Mirror: %w", err)
-	}
 	logrus.Debugf("sourceSchemaVersion: %v", sourceSchemaVersion)
-	logrus.Debugf("sourceMediaType: %v", sourceMediaType)
 
 	switch sourceSchemaVersion {
 	case 2:
+		sourceMediaType, err := m.sourceManifestMediaType()
+		if err != nil {
+			return fmt.Errorf("Mirror: %w", err)
+		}
+		logrus.Debugf("sourceMediaType: %v", sourceMediaType)
 		switch sourceMediaType {
 		case u.MediaTypeManifestListV2:
 			logrus.Infof("[%s:%s] is manifest.list.v2", m.source, m.tag)
@@ -140,9 +143,12 @@ func (m *Mirror) Mirror() error {
 
 	// If the source manifest list does not equal to the dest manifest list
 	if !m.compareSourceDestManifest() {
+		logrus.Info("Creating dest manifest list...")
 		if err := m.updateDestManifest(); err != nil {
 			return err
 		}
+	} else {
+		logrus.Info("Dest manifest list already exists, no need to recreate")
 	}
 
 	logrus.Infof("Successfully copied %s:%s => %s:%s.",
@@ -165,6 +171,10 @@ func (m *Mirror) Tag() string {
 
 func (m *Mirror) HasArch(a string) bool {
 	return slices.Contains(m.availableArchList, a)
+}
+
+func (m *Mirror) ImageNum() int {
+	return len(m.images)
 }
 
 func (m *Mirror) AppendImage(img image.Imagerer) {
@@ -195,11 +205,6 @@ func (m *Mirror) DestinationDigests() []string {
 
 	switch schema {
 	case 1:
-		digest, ok := u.ReadJsonString(m.destManifest, "digest")
-		if !ok {
-			return digests
-		}
-		digests = append(digests, digest)
 		return digests
 	case 2:
 		mediaType, ok := u.ReadJsonString(m.destManifest, "mediaType")
@@ -290,7 +295,8 @@ func (m *Mirror) initSourceDestinationManifest() error {
 func (m *Mirror) sourceManifestSchemaVersion() (int, error) {
 	schemaVersion, ok := u.ReadJsonInt(m.sourceManifest, "schemaVersion")
 	if !ok {
-		return 0, fmt.Errorf("SourceManifestSchemaVersion: %w",
+		return 0, fmt.Errorf(
+			"SourceManifestSchemaVersion read schemaVersion: %w",
 			u.ErrReadJsonFailed)
 	}
 	return schemaVersion, nil
@@ -299,7 +305,7 @@ func (m *Mirror) sourceManifestSchemaVersion() (int, error) {
 func (m *Mirror) sourceManifestMediaType() (string, error) {
 	mediaType, ok := u.ReadJsonString(m.sourceManifest, "mediaType")
 	if !ok {
-		return "", fmt.Errorf("SourceManifestMediaType: %w",
+		return "", fmt.Errorf("SourceManifestMediaType read mediaType: %w",
 			u.ErrReadJsonFailed)
 	}
 	return mediaType, nil
@@ -386,18 +392,21 @@ func (m *Mirror) initImageListByV2() error {
 		ok     bool
 	)
 
-	var sourceManifest map[string]interface{}
-	json.NewDecoder(buff).Decode(&sourceManifest)
-	m.sourceManifest = sourceManifest
-	if arch, ok = u.ReadJsonString(m.sourceManifest, "architecture"); !ok {
-		return u.ErrReadJsonFailed
+	var sourceOciConfig map[string]interface{}
+	json.NewDecoder(buff).Decode(&sourceOciConfig)
+	if arch, ok = u.ReadJsonString(sourceOciConfig, "architecture"); !ok {
+		return fmt.Errorf("initImageListByV2 read architecture: %w",
+			u.ErrReadJsonFailed)
 	}
-	osType, _ = u.ReadJsonString(m.sourceManifest, "os")
-	if config, ok = u.ReadJsonSubObj(sourceManifest, "config"); !ok {
-		return u.ErrReadJsonFailed
+	osType, _ = u.ReadJsonString(sourceOciConfig, "os")
+
+	if config, ok = u.ReadJsonSubObj(m.sourceManifest, "config"); !ok {
+		return fmt.Errorf("initImageListByV2 read config: %w",
+			u.ErrReadJsonFailed)
 	}
 	if digest, ok = u.ReadJsonString(config, "digest"); !ok {
-		return u.ErrReadJsonFailed
+		return fmt.Errorf("initImageListByV2 read digest: %w",
+			u.ErrReadJsonFailed)
 	}
 
 	if !slices.Contains(m.availableArchList, arch) {
@@ -424,27 +433,30 @@ func (m *Mirror) initImageListByV2() error {
 func (m *Mirror) initImageListByV1() error {
 	var (
 		arch   string
-		osType string
-		config map[string]interface{}
-		digest string
 		ok     bool
+		osType string
 	)
+
+	sourceImage := fmt.Sprintf("docker://%s:%s", m.source, m.tag)
+	// `skopeo inspect docker://docker.io/<image>`
+	buff, err := registry.SkopeoInspect(sourceImage)
+	if err != nil {
+		return fmt.Errorf("initImageListByV2: %w", err)
+	}
+	var sourceInfo map[string]interface{}
+	json.NewDecoder(buff).Decode(&sourceInfo)
 
 	if arch, ok = u.ReadJsonString(m.sourceManifest, "architecture"); !ok {
 		return fmt.Errorf("read architecture failed: %w", u.ErrReadJsonFailed)
 	}
-	if osType, ok = u.ReadJsonString(m.sourceManifest, "os"); !ok {
-		return fmt.Errorf("read os failed: %w", u.ErrReadJsonFailed)
-	}
 	if !slices.Contains(m.availableArchList, arch) {
 		logrus.Debugf("skip copy image %s arch %s", m.source, arch)
 	}
-	if config, ok = u.ReadJsonSubObj(m.sourceManifest, "config"); !ok {
-		return u.ErrReadJsonFailed
+
+	if osType, ok = u.ReadJsonString(sourceInfo, "Os"); !ok {
+		return fmt.Errorf("read Os failed: %w", u.ErrReadJsonFailed)
 	}
-	if digest, ok = u.ReadJsonString(config, "digest"); !ok {
-		return u.ErrReadJsonFailed
-	}
+
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
 		Source:              m.source,
@@ -453,7 +465,7 @@ func (m *Mirror) initImageListByV1() error {
 		Arch:                arch,
 		Variant:             "",
 		OS:                  osType,
-		Digest:              digest,
+		Digest:              "", // schemaVersion 1 does not have digest
 		SourceSchemaVersion: 1,
 		SourceMediaType:     "", // schemaVersion 1 does not have mediaType
 	})
@@ -465,16 +477,19 @@ func (m *Mirror) initImageListByV1() error {
 func (m *Mirror) compareSourceDestManifest() bool {
 	if m.destManifest == nil {
 		// dest image does not exist, return false
+		logrus.Debug("compareSourceDestManifest: dest manifest does not exist")
 		return false
 	}
 	schema, ok := u.ReadJsonInt(m.destManifest, "schemaVersion")
 	if !ok {
 		// read json failed, return false
+		logrus.Debug("compareSourceDestManifest: read schemaVersion failed")
 		return false
 	}
 	switch schema {
 	// The destination manifest list schemaVersion should be 2
 	case 1:
+		logrus.Debug("compareSourceDestManifest: dest schemaVersion is 1")
 		return false
 	case 2:
 		mediaType, ok := u.ReadJsonString(m.destManifest, "mediaType")
@@ -486,9 +501,13 @@ func (m *Mirror) compareSourceDestManifest() bool {
 			// Compare the source image digest list and dest image digest list
 			srcDigests := m.SourceDigests()
 			dstDigests := m.DestinationDigests()
+			logrus.Debug("compareSourceDestManifest: ")
+			logrus.Debugf("  srcDigests: %v", srcDigests)
+			logrus.Debugf("  dstDigests: %v", dstDigests)
 			return slices.Compare(srcDigests, dstDigests) == 0
 		case u.MediaTypeManifestV2:
 			// The destination manifest mediaType should be 'manifest.list.v2'
+			logrus.Debug("compareSourceDestManifest: dest mediaType is m.v2")
 			return false
 		}
 	}
@@ -498,17 +517,22 @@ func (m *Mirror) compareSourceDestManifest() bool {
 
 // updateDestManifest
 func (m *Mirror) updateDestManifest() error {
-	sourceDigests := m.SourceDigests()
-	args := []string{
+	var args []string = []string{
 		"imagetools",
 		"create",
 		fmt.Sprintf("--tag=%s:%s", m.destination, m.tag),
 	}
-	args = append(args, sourceDigests...)
 
-	// docker buildx imagetools create --tag=registry/repository:tag <digests>
-	err := registry.DockerBuildx(args...)
-	if err != nil {
+	for _, img := range m.images {
+		if !img.Copied() {
+			continue
+		}
+		copiedImage := fmt.Sprintf("%s:%s", img.Destination(), img.CopiedTag())
+		args = append(args, copiedImage)
+	}
+
+	// docker buildx imagetools create --tag=registry/repository:tag <images>
+	if err := registry.DockerBuildx(args...); err != nil {
 		return fmt.Errorf("updateDestManifest: %w", err)
 	}
 	return nil
@@ -516,7 +540,7 @@ func (m *Mirror) updateDestManifest() error {
 
 func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 	if dockerUsername == "" || dockerPassword == "" {
-		logrus.Fatal("DOCKER_USERNAME and DOCKER_PASSWORD environment variable not set!")
+		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
 		// TODO: read username and password from stdin
 	}
 
@@ -564,17 +588,17 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 	}
 
 	for scanner.Scan() {
-		line := scanner.Text()
+		l := scanner.Text()
 		// Ignore empty/comment line
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
 			if usingStdin {
 				fmt.Printf(">>> ")
 			}
 			continue
 		}
 
-		var v []string
-		for _, s := range strings.Split(line, " ") {
+		var v []string = make([]string, 0, 4)
+		for _, s := range strings.Split(l, " ") {
 			if s != "" {
 				v = append(v, s)
 			}
