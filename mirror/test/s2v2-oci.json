@@ -1,0 +1,163 @@
+{
+    "architecture": "arm64",
+    "config": {
+      "Hostname": "",
+      "Domainname": "",
+      "User": "",
+      "AttachStdin": false,
+      "AttachStdout": false,
+      "AttachStderr": false,
+      "ExposedPorts": {
+        "80/tcp": {}
+      },
+      "Tty": false,
+      "OpenStdin": false,
+      "StdinOnce": false,
+      "Env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "NGINX_VERSION=1.22.1",
+        "NJS_VERSION=0.7.7",
+        "PKG_RELEASE=1~bullseye"
+      ],
+      "Cmd": [
+        "nginx",
+        "-g",
+        "daemon off;"
+      ],
+      "Image": "sha256:a460039a6b1bdb0afcab77a014b68175f695701423e06460b006b16816c27e40",
+      "Volumes": null,
+      "WorkingDir": "",
+      "Entrypoint": [
+        "/docker-entrypoint.sh"
+      ],
+      "OnBuild": null,
+      "Labels": {
+        "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+      },
+      "StopSignal": "SIGQUIT"
+    },
+    "container": "c3eefb264c728c998de52a89d38b7a5c510d33bc13ba78174742fa1d72b14006",
+    "container_config": {
+      "Hostname": "c3eefb264c72",
+      "Domainname": "",
+      "User": "",
+      "AttachStdin": false,
+      "AttachStdout": false,
+      "AttachStderr": false,
+      "ExposedPorts": {
+        "80/tcp": {}
+      },
+      "Tty": false,
+      "OpenStdin": false,
+      "StdinOnce": false,
+      "Env": [
+        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "NGINX_VERSION=1.22.1",
+        "NJS_VERSION=0.7.7",
+        "PKG_RELEASE=1~bullseye"
+      ],
+      "Cmd": [
+        "/bin/sh",
+        "-c",
+        "#(nop) ",
+        "CMD [\"nginx\" \"-g\" \"daemon off;\"]"
+      ],
+      "Image": "sha256:a460039a6b1bdb0afcab77a014b68175f695701423e06460b006b16816c27e40",
+      "Volumes": null,
+      "WorkingDir": "",
+      "Entrypoint": [
+        "/docker-entrypoint.sh"
+      ],
+      "OnBuild": null,
+      "Labels": {
+        "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+      },
+      "StopSignal": "SIGQUIT"
+    },
+    "created": "2022-11-15T06:38:38.549679817Z",
+    "docker_version": "20.10.17",
+    "history": [
+      {
+        "created": "2022-11-15T01:41:20.421516034Z",
+        "created_by": "/bin/sh -c #(nop) ADD file:1dad2420090b3d6ef5df8d1f7f2878b22f8687b8dba008a63800f6c74b36dee9 in / "
+      },
+      {
+        "created": "2022-11-15T01:41:20.702331786Z",
+        "created_by": "/bin/sh -c #(nop)  CMD [\"bash\"]",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:37:39.770687911Z",
+        "created_by": "/bin/sh -c #(nop)  LABEL maintainer=NGINX Docker Maintainers <docker-maint@nginx.com>",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:23.266772416Z",
+        "created_by": "/bin/sh -c #(nop)  ENV NGINX_VERSION=1.22.1",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:23.347695035Z",
+        "created_by": "/bin/sh -c #(nop)  ENV NJS_VERSION=0.7.7",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:23.424839295Z",
+        "created_by": "/bin/sh -c #(nop)  ENV PKG_RELEASE=1~bullseye",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:37.798792282Z",
+        "created_by": "/bin/sh -c set -x     && addgroup --system --gid 101 nginx     && adduser --system --disabled-login --ingroup nginx --no-create-home --home /nonexistent --gecos \"nginx user\" --shell /bin/false --uid 101 nginx     && apt-get update     && apt-get install --no-install-recommends --no-install-suggests -y gnupg1 ca-certificates     &&     NGINX_GPGKEY=573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62;     found='';     for server in         hkp://keyserver.ubuntu.com:80         pgp.mit.edu     ; do         echo \"Fetching GPG key $NGINX_GPGKEY from $server\";         apt-key adv --keyserver \"$server\" --keyserver-options timeout=10 --recv-keys \"$NGINX_GPGKEY\" && found=yes && break;     done;     test -z \"$found\" && echo >&2 \"error: failed to fetch GPG key $NGINX_GPGKEY\" && exit 1;     apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/*     && dpkgArch=\"$(dpkg --print-architecture)\"     && nginxPackages=\"         nginx=${NGINX_VERSION}-${PKG_RELEASE}         nginx-module-xslt=${NGINX_VERSION}-${PKG_RELEASE}         nginx-module-geoip=${NGINX_VERSION}-${PKG_RELEASE}         nginx-module-image-filter=${NGINX_VERSION}-${PKG_RELEASE}         nginx-module-njs=${NGINX_VERSION}+${NJS_VERSION}-${PKG_RELEASE}     \"     && case \"$dpkgArch\" in         amd64|arm64)             echo \"deb https://nginx.org/packages/debian/ bullseye nginx\" >> /etc/apt/sources.list.d/nginx.list             && apt-get update             ;;         *)             echo \"deb-src https://nginx.org/packages/debian/ bullseye nginx\" >> /etc/apt/sources.list.d/nginx.list                         && tempDir=\"$(mktemp -d)\"             && chmod 777 \"$tempDir\"                         && savedAptMark=\"$(apt-mark showmanual)\"                         && apt-get update             && apt-get build-dep -y $nginxPackages             && (                 cd \"$tempDir\"                 && DEB_BUILD_OPTIONS=\"nocheck parallel=$(nproc)\"                     apt-get source --compile $nginxPackages             )                         && apt-mark showmanual | xargs apt-mark auto > /dev/null             && { [ -z \"$savedAptMark\" ] || apt-mark manual $savedAptMark; }                         && ls -lAFh \"$tempDir\"             && ( cd \"$tempDir\" && dpkg-scanpackages . > Packages )             && grep '^Package: ' \"$tempDir/Packages\"             && echo \"deb [ trusted=yes ] file://$tempDir ./\" > /etc/apt/sources.list.d/temp.list             && apt-get -o Acquire::GzipIndexes=false update             ;;     esac         && apt-get install --no-install-recommends --no-install-suggests -y                         $nginxPackages                         gettext-base                         curl     && apt-get remove --purge --auto-remove -y && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/nginx.list         && if [ -n \"$tempDir\" ]; then         apt-get purge -y --auto-remove         && rm -rf \"$tempDir\" /etc/apt/sources.list.d/temp.list;     fi     && ln -sf /dev/stdout /var/log/nginx/access.log     && ln -sf /dev/stderr /var/log/nginx/error.log     && mkdir /docker-entrypoint.d"
+      },
+      {
+        "created": "2022-11-15T06:38:37.99990403Z",
+        "created_by": "/bin/sh -c #(nop) COPY file:7b307b62e82255f040c9812421a30090bf9abf3685f27b02d77fcca99f997911 in / "
+      },
+      {
+        "created": "2022-11-15T06:38:38.082617405Z",
+        "created_by": "/bin/sh -c #(nop) COPY file:5c18272734349488bd0c94ec8d382c872c1a0a435cca13bd4671353d6021d2cb in /docker-entrypoint.d "
+      },
+      {
+        "created": "2022-11-15T06:38:38.163307333Z",
+        "created_by": "/bin/sh -c #(nop) COPY file:abbcbf84dc17ee4454b6b2e3cf914be88e02cf84d344ec45a5b31235379d722a in /docker-entrypoint.d "
+      },
+      {
+        "created": "2022-11-15T06:38:38.244278767Z",
+        "created_by": "/bin/sh -c #(nop) COPY file:e57eef017a414ca793499729d80a7b9075790c9a804f930f1417e56d506970cf in /docker-entrypoint.d "
+      },
+      {
+        "created": "2022-11-15T06:38:38.318812157Z",
+        "created_by": "/bin/sh -c #(nop)  ENTRYPOINT [\"/docker-entrypoint.sh\"]",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:38.396302968Z",
+        "created_by": "/bin/sh -c #(nop)  EXPOSE 80",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:38.475027377Z",
+        "created_by": "/bin/sh -c #(nop)  STOPSIGNAL SIGQUIT",
+        "empty_layer": true
+      },
+      {
+        "created": "2022-11-15T06:38:38.549679817Z",
+        "created_by": "/bin/sh -c #(nop)  CMD [\"nginx\" \"-g\" \"daemon off;\"]",
+        "empty_layer": true
+      }
+    ],
+    "os": "linux",
+    "rootfs": {
+      "type": "layers",
+      "diff_ids": [
+        "sha256:acef1b1c001e7f34ee6701a5bec3c73c5f0661ecdb6415b295a9aa426a5fdec0",
+        "sha256:08c2f88d6147521317757657ff973804ffb46f1a97fa8523fd43b802e3ceed4e",
+        "sha256:640d8bda94b9adc5c1c99fbbd87b2d08d3327dbf55f0d3a9d61170f5e9e6715e",
+        "sha256:1e9bfa96180fd1b6d5158bf81fa594072a79f38ffad384a4e2a1974a55fd8576",
+        "sha256:53400ee8ce8e3f318693d12cd3631951bf60dd87ed8cc7e25b8368cd4bc06b71",
+        "sha256:3a0d2fef9c2802a7392e631ead1df8530b2352ba3354c7adb96a30fce8b07a30"
+      ]
+    },
+    "variant": "v8"
+  }

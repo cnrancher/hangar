@@ -1,11 +1,9 @@
 package mirror
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"cnrancher.io/image-tools/image"
@@ -72,12 +70,6 @@ type MirrorOptions struct {
 	Tag         string
 	ArchList    []string
 }
-
-var (
-	dockerUsername = os.Getenv("DOCKER_USERNAME")
-	dockerPassword = os.Getenv("DOCKER_PASSWORD")
-	dockerRegistry = os.Getenv("DOCKER_REGISTRY")
-)
 
 func NewMirror(opts *MirrorOptions) *Mirror {
 	return &Mirror{
@@ -538,106 +530,7 @@ func (m *Mirror) updateDestManifest() error {
 	return nil
 }
 
-func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
-	if dockerUsername == "" || dockerPassword == "" {
-		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
-		// TODO: read username and password from stdin
-	}
-
-	if sourceRegOverride != "" {
-		logrus.Infof("Set source registry to [%s]", sourceRegOverride)
-	} else {
-		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
-	}
-
-	// Command line parameter is prior than environment variable
-	if destRegOverride == "" && dockerRegistry != "" {
-		destRegOverride = dockerRegistry
-	}
-
-	if destRegOverride != "" {
-		logrus.Infof("Set destination registry to [%s]", destRegOverride)
-	} else {
-		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
-	}
-
-	// execute docker login command
-	err := registry.DockerLogin(destRegOverride, dockerUsername, dockerPassword)
-	if err != nil {
-		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
-	}
-
-	var scanner *bufio.Scanner
-	var usingStdin bool
-	if fileName == "" {
-		// read line from stdin
-		scanner = bufio.NewScanner(os.Stdin)
-		usingStdin = true
-		logrus.Info("Reading '<SOURCE> <DESTINATION> <TAG>' from stdin")
-		logrus.Info("Use 'Ctrl+C' or 'Ctrl+D' to exit.")
-		fmt.Printf(">>> ")
-	} else {
-		readFile, err := os.Open(fileName)
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer readFile.Close()
-
-		scanner = bufio.NewScanner(readFile)
-		scanner.Split(bufio.ScanLines)
-	}
-
-	for scanner.Scan() {
-		l := scanner.Text()
-		// Ignore empty/comment line
-		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			continue
-		}
-
-		var v []string = make([]string, 0, 4)
-		for _, s := range strings.Split(l, " ") {
-			if s != "" {
-				v = append(v, s)
-			}
-		}
-		if len(v) != 3 {
-			logrus.Errorf("Invalid line format")
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			continue
-		}
-
-		var mirrorer Mirrorer = NewMirror(&MirrorOptions{
-			Source:      constructRegistry(v[0], sourceRegOverride),
-			Destination: constructRegistry(v[1], destRegOverride),
-			Tag:         v[2],
-			ArchList:    strings.Split(arches, ","),
-		})
-		logrus.Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
-			mirrorer.Source(), mirrorer.Destination(), mirrorer.Tag())
-
-		if err := mirrorer.Mirror(); err != nil {
-			logrus.Errorf("Failed to copy image [%s]", mirrorer.Source())
-			logrus.Error(err.Error())
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			continue
-		}
-		if usingStdin {
-			fmt.Printf(">>> ")
-		}
-	}
-	if usingStdin {
-		fmt.Println()
-	}
-}
-
-// constructRegistry will re-construct the image url:
+// ConstructRegistry will re-construct the image url:
 //
 // If `registryOverride` is empty string, example:
 // nginx --> docker.io/nginx (add docker.io prefix)
@@ -648,7 +541,7 @@ func MirrorImages(fileName, arches, sourceRegOverride, destRegOverride string) {
 // nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
 // reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
 // reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
-func constructRegistry(image, registryOverride string) string {
+func ConstructRegistry(image, registryOverride string) string {
 	s := strings.Split(image, "/")
 	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
 		if registryOverride != "" {
