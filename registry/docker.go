@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 
 	"cnrancher.io/image-tools/utils"
+	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,6 +51,7 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 	return token.(string), nil
 }
 
+// DockerLogin executes the `docker login <registry_url>` command
 func DockerLogin(url string, username string, passwd string) error {
 	// docker login ${DOCKER_REGISTRY} --username=${USERNAME} --password-stdin
 	if url == "" {
@@ -62,7 +65,6 @@ func DockerLogin(url string, username string, passwd string) error {
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
-	// Inspect the source image info
 	var stdout bytes.Buffer
 	cmd := exec.Command(
 		path,
@@ -82,30 +84,45 @@ func DockerLogin(url string, username string, passwd string) error {
 	return nil
 }
 
-func DockerManifestCreate(name string, values ...string) error {
-	logrus.Debug("Running docker manifest create...")
-	if values == nil {
-		return utils.ErrInvalidParameter
+// DockerBuildx executes 'docker buildx ...' command
+func DockerBuildx(args ...string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("DockerBuildx: %w", u.ErrInvalidParameter)
 	}
-	// Ensure docker installed
+
 	path, err := exec.LookPath("docker")
 	if err != nil {
 		return utils.ErrDockerNotFound
 	}
+	logrus.Debugf("found docker installed at: %v", path)
 
-	// Inspect the source image info
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	var args []string
-	args = append(args, "manifest", "create", name)
-	args = append(args, values...)
-	cmd := exec.Command(path, args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("DockerManifestCreate: \n%s\n%w",
-			stderr.String(), err)
+	var stdout *bytes.Buffer = new(bytes.Buffer)
+	// Check docker buildx installed or not
+	cmd := exec.Command(
+		path,
+		"buildx",
+		"--help",
+	)
+	cmd.Stdout = stdout
+	cmd.Stderr = stdout
+	if err := cmd.Run(); err != nil {
+		if strings.Contains(stdout.String(), "is not a docker command") {
+			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
+		}
+		return fmt.Errorf("docker buildx: \n%s\n%w", stdout.String(), err)
+	}
+
+	// Clear the stdout
+	buildxArgs := []string{"buildx"}
+	buildxArgs = append(buildxArgs, args...)
+	cmd = exec.Command(
+		path,
+		buildxArgs...,
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("docker buildx: \n%s\n%w", stdout.String(), err)
 	}
 
 	return nil

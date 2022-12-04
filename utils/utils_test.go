@@ -44,14 +44,14 @@ func TestJson(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	if f, ok := ReadJsonFloat64Val(testJson, "example_float"); !ok || !floatEqual(f, 1.23) {
-		t.Error("ReadJsonFloat64Val failed")
+	if f, ok := ReadJsonFloat64(testJson, "example_float"); !ok || !floatEqual(f, 1.23) {
+		t.Error("ReadJsonFloat64 failed")
 	}
-	if v, ok := ReadJsonIntVal(testJson, "example_int"); !ok || v != 123 {
-		t.Error("ReadJsonIntVal failed")
+	if v, ok := ReadJsonInt(testJson, "example_int"); !ok || v != 123 {
+		t.Error("ReadJsonInt failed")
 	}
-	if v, ok := ReadJsonStringVal(testJson, "example_string"); !ok || v != "abc" {
-		t.Error("ReadJsonStringVal failed")
+	if v, ok := ReadJsonString(testJson, "example_string"); !ok || v != "abc" {
+		t.Error("ReadJsonString failed")
 	}
 	if _, ok := ReadJsonSubObj(testJson, "example_nested_obj"); !ok {
 		t.Error("ReadJsonSubObj failed")

@@ -121,8 +121,6 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	}
 
 	// Inspect the source image info
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
 	var args []string
 	args = append(args, "copy", "--format=v2s2", "--override-arch="+arch)
 	if osType != "" {
@@ -131,19 +129,15 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	args = append(args, source, dest)
 	args = append(args, extraArgs...)
 	cmd := exec.Command(skopeoPath, args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("SkopeoCopyArchOS: \n%s\n%w",
-			stderr.String(), err)
+		return fmt.Errorf("skopeo copy failed")
 	}
-	skopeoOutput := stdout.String()
-	logrus.Debugf("skopeo copy output: %s", skopeoOutput)
-	if strings.Contains(skopeoOutput, "Usage:") {
-		return fmt.Errorf("SkopeoCopyArchOs: \n%s\n%w",
-			skopeoOutput, u.ErrInvalidParameter)
-	}
+	// if strings.Contains(skopeoOutput, "Usage:") {
+	// 	return fmt.Errorf("skopeo copy failed")
+	// }
 
 	return nil
 }

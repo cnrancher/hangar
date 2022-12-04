@@ -10,6 +10,12 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
+func TestMirrorerInterface(t *testing.T) {
+	mirror := NewMirror(&MirrorOptions{})
+	var mirrorer Mirrorer = mirror
+	_ = mirrorer
+}
+
 func TestConstructureRegistry(t *testing.T) {
 	s := constructRegistry("nginx", "")
 	if s != "docker.io/nginx" {

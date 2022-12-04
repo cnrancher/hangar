@@ -35,14 +35,13 @@ func main() {
 		if *mirrorDebug {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-		logrus.Debugln("mirrorFile: ", *mirrorFile)
-		logrus.Debugln("mirrorArch: ", *mirrorArch)
-		logrus.Debugln("sourceReg: ", *mirrorSourceReg)
-		logrus.Debugln("destReg: ", *mirrorDestReg)
-		mirror.MirrorImages(
-			*mirrorFile, *mirrorArch, *mirrorSourceReg,
-			*mirrorDestReg)
-	case "":
+		logrus.Debugf("mirrorFile: %s", *mirrorFile)
+		logrus.Debugf("mirrorArch: %s", *mirrorArch)
+		logrus.Debugf("sourceReg: %s", *mirrorSourceReg)
+		logrus.Debugf("destReg: %s", *mirrorDestReg)
+		mirror.MirrorImages(*mirrorFile, *mirrorArch, *mirrorSourceReg, *mirrorDestReg)
+	case "load": // TODO: load image from tar.gz tarball
+	case "save": // TODO: save image to tar.gz tarball with image manifest
 	default:
 		showHelp()
 		os.Exit(0)
@@ -50,7 +49,12 @@ func main() {
 }
 
 func showHelp() {
-	fmt.Printf("Usage:\n\t%s <subcommand> <parameters>\n", os.Args[0])
-	fmt.Printf("\t%s <subcommand> -h  -  get help info for subcommand\n", os.Args[0])
-	fmt.Printf("\nSubcommand available: mirror\n")
+	fmt.Printf("Usage:\t%s COMMAND [OPTIONS]\n", os.Args[0])
+	fmt.Println()
+	fmt.Printf("Run '%s COMMAND --help' for more information on a command.\n", os.Args[0])
+	fmt.Println()
+	fmt.Printf("Commands: \n")
+	fmt.Printf("  mirror \tMirror image from source registry to destination registry.\n")
+	fmt.Printf("  load \t\tWIP.\n")
+	fmt.Printf("  save \t\tWIP.\n")
 }
