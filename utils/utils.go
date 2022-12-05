@@ -26,6 +26,11 @@ const (
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 )
 
+var (
+	// worker number of mirrorer
+	MirrorerJobNum = 1
+)
+
 func ReadJsonString(j map[string]interface{}, k string) (string, bool) {
 	v, ok := j[k]
 	if !ok {

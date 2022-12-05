@@ -130,8 +130,14 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	args = append(args, source, dest)
 	args = append(args, extraArgs...)
 	cmd := exec.Command(skopeoPath, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	var stdout bytes.Buffer
+	if u.MirrorerJobNum == 1 {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stdout
+	}
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("skopeo copy failed")
@@ -139,6 +145,10 @@ func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) er
 	// if strings.Contains(skopeoOutput, "Usage:") {
 	// 	return fmt.Errorf("skopeo copy failed")
 	// }
+	if u.MirrorerJobNum > 1 {
+		fmt.Printf("%s => %s", source, dest)
+		fmt.Print(stdout.String())
+	}
 
 	return nil
 }

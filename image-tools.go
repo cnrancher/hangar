@@ -154,6 +154,7 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 	if !usingStdin {
 		logrus.Infof("Creating %d job workers", jobNum)
 	}
+	u.MirrorerJobNum = jobNum
 	mirrorChan := make(chan mirror.Mirrorer)
 	for i := 0; i < jobNum; i++ {
 		wg.Add(1)
