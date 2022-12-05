@@ -98,16 +98,18 @@ func DockerBuildx(args ...string) error {
 	}
 
 	// ensure docker-buildx is installed
-	checkBuildxInstalledParam := []string{"buildx", "--help"}
+	checkBuildxInstalledParam := []string{"buildx"}
 
-	out, err := execCommandFunc(path, checkBuildxInstalledParam...)
+	_, err = execCommandFunc(path, checkBuildxInstalledParam...)
 	if err != nil {
-		if strings.Contains(out, "is not a docker command") {
+		if strings.Contains(err.Error(), "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
 		}
 	}
 
-	if u.MirrorerJobNum == 1 {
+	if RunCommandFunc != nil {
+		execCommandFunc = RunCommandFunc
+	} else if u.MirrorerJobNum == 1 {
 		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
 		execCommandFunc = u.DefaultRunCommandFunc
@@ -116,7 +118,7 @@ func DockerBuildx(args ...string) error {
 	// Clear the stdout
 	buildxArgs := []string{"buildx"}
 	buildxArgs = append(buildxArgs, args...)
-	out, err = execCommandFunc(path, buildxArgs...)
+	out, err := execCommandFunc(path, buildxArgs...)
 	if err != nil {
 		return fmt.Errorf("docker buildx: %w", err)
 	}

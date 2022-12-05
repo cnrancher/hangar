@@ -12,10 +12,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Mirrorer interface for mirror the images from source registry to
+// Mirrorer interface is for mirror the images from source registry to
 // destination registry
 type Mirrorer interface {
-	// Mirror mirrors the image from source registry to destination registry
+	// StartMirror mirrors images from source registry to destination registry
 	StartMirror() error
 
 	// Source gets the source image
@@ -63,8 +63,10 @@ type Mirror struct {
 	tag               string
 	availableArchList []string
 
-	sourceManifest map[string]interface{}
-	destManifest   map[string]interface{}
+	sourceManifestStr string
+	destManifestStr   string
+	sourceManifest    map[string]interface{}
+	destManifest      map[string]interface{}
 
 	images []image.Imagerer
 
@@ -231,6 +233,17 @@ func (m *Mirror) DestinationDigests() []string {
 				if !ok {
 					return digests
 				}
+				platform, ok := manifest["platform"].(map[string]interface{})
+				if !ok {
+					return digests
+				}
+				arch, ok := platform["architecture"].(string)
+				if !ok {
+					return digests
+				}
+				if !m.HasArch(arch) {
+					continue
+				}
 				digest, ok := u.ReadJsonString(manifest, "digest")
 				if !ok {
 					return digests
@@ -239,11 +252,8 @@ func (m *Mirror) DestinationDigests() []string {
 			}
 			return digests
 		case u.MediaTypeManifestV2:
-			digest, ok := u.ReadJsonString(m.destManifest, "digest")
-			if !ok {
-				return digests
-			}
-			digests = append(digests, digest)
+			// dest mediaType is not manifest.list, return empty slice
+			return digests
 		}
 	}
 	return digests
@@ -294,6 +304,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 		Decode(&m.sourceManifest); err != nil {
 		return fmt.Errorf("decode source manifest json: %w", err)
 	}
+	m.sourceManifestStr = out
 
 	// Get destination manifest list
 	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.destination, m.tag)
@@ -302,6 +313,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 		// destination image not found, this error is expected
 		return nil
 	}
+	m.destManifestStr = out
 
 	if err = json.NewDecoder(strings.NewReader(out)).
 		Decode(&m.destManifest); err != nil {
@@ -344,7 +356,6 @@ func (m *Mirror) initImageListByListV2() error {
 	logrus.WithField("MID", m.mID).Debug("Start initImageListByListV2")
 	manifests, ok := u.ReadJsonSubArray(m.sourceManifest, "manifests")
 	if !ok {
-		// unable to read manifests list, return error of this image
 		return fmt.Errorf("reading manifests: %w", u.ErrReadJsonFailed)
 	}
 
@@ -408,7 +419,6 @@ func (m *Mirror) initImageListByV2() error {
 	var (
 		arch   string
 		osType string
-		config map[string]interface{}
 		digest string
 		ok     bool
 	)
@@ -421,14 +431,7 @@ func (m *Mirror) initImageListByV2() error {
 	}
 	osType, _ = u.ReadJsonString(sourceOciConfig, "os")
 
-	if config, ok = u.ReadJsonSubObj(m.sourceManifest, "config"); !ok {
-		return fmt.Errorf("initImageListByV2 read config: %w",
-			u.ErrReadJsonFailed)
-	}
-	if digest, ok = u.ReadJsonString(config, "digest"); !ok {
-		return fmt.Errorf("initImageListByV2 read digest: %w",
-			u.ErrReadJsonFailed)
-	}
+	digest = "sha256:" + u.Sha256Sum(m.sourceManifestStr)
 
 	if !slices.Contains(m.availableArchList, arch) {
 		logrus.WithField("MID", m.mID).

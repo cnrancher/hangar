@@ -30,11 +30,11 @@ func SelfCheck() error {
 	}
 
 	// ensure docker-buildx is installed
-	checkBuildxInstalledParam := []string{"buildx", "--help"}
+	checkBuildxInstalledParam := []string{"buildx"}
 
-	out, err := execCommandFunc(dockerPath, checkBuildxInstalledParam...)
+	_, err = execCommandFunc(dockerPath, checkBuildxInstalledParam...)
 	if err != nil {
-		if strings.Contains(out, "is not a docker command") {
+		if strings.Contains(err.Error(), "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
 		}
 	}

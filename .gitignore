@@ -1,4 +1,6 @@
 image-tools
 skopeo
 test.txt
+mirror-failed.txt
+*.out
 .vscode/

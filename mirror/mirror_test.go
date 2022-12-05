@@ -1,18 +1,19 @@
 package mirror
 
 import (
-	"bytes"
 	"embed"
-	"encoding/json"
+	"fmt"
 	"testing"
 
 	"cnrancher.io/image-tools/image"
+	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	TestS1V2FileName     = "test/s1v2.json"
+	TestS1V2RepoFileName = "test/s1v2-repo.json"
 	TestS2V2FileName     = "test/s2v2.json"
 	TestS2V2ListFileName = "test/s2v2-list.json"
 	TestS2V2OciFileName  = "test/s2v2-oci.json"
@@ -25,13 +26,16 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
+// StartMirror method should test manually,
+// this function can not be implemented in unit test
+
 func TestMirrorerInterface(t *testing.T) {
 	mirror := NewMirror(&MirrorOptions{})
 	var mirrorer Mirrorer = mirror
 	_ = mirrorer
 }
 
-func TestConstructureRegistry(t *testing.T) {
+func Test_ConstructRegistry(t *testing.T) {
 	s := ConstructRegistry("nginx", "")
 	if s != "docker.io/nginx" {
 		t.Error("value should be 'docker.io/nginx'")
@@ -107,8 +111,14 @@ func TestNewMirror(t *testing.T) {
 	if mirrorer.Failed() != 1 {
 		t.Error("Failed failed")
 	}
+	mirrorer.SetID(fmt.Sprintf("%02d", 1))
+	if mirrorer.ID() != "01" {
+		t.Error("SetID failed")
+	}
 }
 
+// TestS2V2 simulates the mirror operations when
+// source image mediaType is manifest.v2.
 func TestS2V2(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
@@ -116,53 +126,112 @@ func TestS2V2(t *testing.T) {
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
 	})
-	s2v2, err := testFs.ReadFile(TestS2V2FileName)
-	if err != nil {
-		t.Error("testFs.ReadFile failed")
-		return
-	}
-	err = json.NewDecoder(bytes.NewReader(s2v2)).Decode(&m.sourceManifest)
-	err = json.NewDecoder(bytes.NewReader(s2v2)).Decode(&m.destManifest)
-	if err != nil {
-		t.Error("Decode failed")
-		return
-	}
 	var mirrorer Mirrorer = m
 	_ = mirrorer
 
+	// test initSourceDestinationManifest, make both source manifest and dest
+	// manifest are schemaVersion V2, mediaType manifest.v2
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		// inspect func return S2V2 json manifest
+		s2v2, err := testFs.ReadFile(TestS2V2FileName)
+		return string(s2v2[:]), err
+	}
+	if err := m.initSourceDestinationManifest(); err != nil {
+		t.Error("initSourceDestinationManifest failed:", err.Error())
+	}
+	// test initImageListByV2, read the configuration of the source image
+	// to get the arch, os, calculate source manifest digest
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		// inspect func return S2V2 json manifest
+		s2v2, err := testFs.ReadFile(TestS2V2OciFileName)
+		return string(s2v2[:]), err
+	}
+	if err := m.initImageListByV2(); err != nil {
+		t.Error("initImageListByV2 failed:", err.Error())
+	}
+	// reset the override command function
+	registry.RunCommandFunc = nil
+
+	// test manifest schemaVersion
 	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
 		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
 		t.Error(err.Error())
 	}
+	// test manifest mediaType
 	if m, err := m.sourceManifestMediaType(); err != nil ||
 		m != u.MediaTypeManifestV2 {
 		t.Errorf("sourceManifestMediaType failed, mediaType: %v", m)
 		t.Error(err.Error())
 	}
 
-	// TODO: test initImageListByV2
-	// if err := m.initImageListByV2(); err != nil {
-	// 	t.Error("initImageListByV2 failed:", err.Error())
-	// }
+	// fake skopeo copy function
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		return "FAKE_OUTPUT", nil
+	}
+	for _, img := range m.images {
+		if err := img.Copy(); err != nil {
+			t.Error("img.Copy failed:", err.Error())
+			return
+		}
+		if !img.Copied() {
+			t.Error("img.Copied failed")
+			return
+		}
+	}
+	if m.Copied() != 1 {
+		t.Error("m.Copied should be 1")
+	}
+	// now the image status should be set to copied
+	// compare the source digests and dest digests
 
+	// source manifest mediaType is manifest.v2, should have one digest
+	list := m.SourceDigests()
+	if len(list) != 1 {
+		t.Error("SourceDigests failed")
+		return
+	}
+	// output should be the sha256sum of the source manifest
+	srcManifest, _ := testFs.ReadFile(TestS2V2FileName)
+	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
+	if list[0] != sourceSum {
+		t.Errorf("SourceDigests should be %s, but got %s", sourceSum, list[0])
+	}
+
+	// destination mediaType is manifest.v2, do not have digest list
+	// should get empty slice
+	if list := m.DestinationDigests(); len(list) != 0 {
+		t.Error("DestinationDigests failed")
+	}
+
+	// dest schemaVersion is 2, mediatype is manifest.v2
+	// should return false, (then create new manifest list for dest)
 	if m.compareSourceDestManifest() {
-		// dest schemaVersion is 2, mediatype is manifest.v2
-		// should return false
 		t.Error("compareSourceDestManifest failed")
 	}
+
+	// simulate the docker buildx operation
+	if err := m.updateDestManifest(); err != nil {
+		t.Error("updateDestManifest failed:", err.Error())
+	}
+	// now the mirror operation of s2v2 is finished
+
+	// if dest image does not exists, destManifest is nil
 	m.destManifest = nil
+	if list := m.DestinationDigests(); len(list) != 0 {
+		t.Error("DestinationDigests failed")
+	}
 	if m.compareSourceDestManifest() {
 		// dest manifest is nil
 		// should return false
 		t.Error("compareSourceDestManifest failed")
 	}
 
-	sourceDigests := m.SourceDigests()
-	if sourceDigests == nil || len(sourceDigests) != 0 {
-		t.Error("SourceDigests failed")
-	}
+	// Reset the override run command func
+	registry.RunCommandFunc = nil
 }
 
+// TestS2V2 simulates the mirror operations when
+// source image mediaType is manifest.list.v2.
 func TestS2V2List(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
@@ -170,17 +239,18 @@ func TestS2V2List(t *testing.T) {
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
 	})
-	s2v2List, err := testFs.ReadFile(TestS2V2ListFileName)
-	if err != nil {
-		t.Error("testFs.ReadFile failed")
-		return
+
+	// make both source manifest and dest manifest are schemaVersion V2,
+	// mediaType manifest.list.v2
+	testInspectFunc := func(path string, args ...string) (string, error) {
+		// inspect func return S2V2 json manifest.list
+		s2v2, err := testFs.ReadFile(TestS2V2ListFileName)
+		return string(s2v2[:]), err
 	}
-	err = json.NewDecoder(bytes.NewReader(s2v2List)).Decode(&m.sourceManifest)
-	err = json.NewDecoder(bytes.NewReader(s2v2List)).Decode(&m.destManifest)
-	if err != nil {
-		t.Error("Decode failed")
-		return
-	}
+	registry.RunCommandFunc = testInspectFunc
+	m.initSourceDestinationManifest()
+	registry.RunCommandFunc = nil
+
 	var mirrorer Mirrorer = m
 	_ = mirrorer
 
@@ -194,14 +264,53 @@ func TestS2V2List(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	// generate images from source manifest list
 	if err := m.initImageListByListV2(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
 
-	if m.compareSourceDestManifest() {
+	// simulate copy operation
+	// fake skopeo copy function
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		return "FAKE_OUTPUT", nil
+	}
+	for _, img := range m.images {
+		if err := img.Copy(); err != nil {
+			t.Error("img.Copy failed:", err.Error())
+			return
+		}
+		if !img.Copied() {
+			t.Error("img.Copied failed")
+			return
+		}
+	}
+	if m.Copied() != 2 {
+		t.Error("m.Copied should be 2")
+	}
+	// now the image status should be set to copied
+	// compare the source digests and dest digests
+
+	// source manifest mediaType is manifest.list.v2, should have multi-digests
+	srcDigests := m.SourceDigests()
+	if len(srcDigests) == 0 {
+		t.Error("SourceDigests failed")
+		return
+	}
+
+	// destination mediaType is manifest.list.v2, should have multi-digests
+	dstDigests := m.DestinationDigests()
+	if len(dstDigests) == 0 {
+		t.Error("DestinationDigests failed")
+	}
+	if len(srcDigests) != len(dstDigests) {
+		t.Error("the length of srcDigests and dstDigests should be same")
+	}
+
+	// source digests should equal to the dest digests
+	if !m.compareSourceDestManifest() {
 		// dest schemaVersion is 2, mediatype is manifest.list.v2
-		// source image is not copied to dest image
-		// should return false
+		// source image is copied to dest image
+		// should return true
 		t.Error("compareSourceDestManifest failed")
 	}
 
@@ -210,8 +319,13 @@ func TestS2V2List(t *testing.T) {
 		// should return false
 		t.Error("compareSourceDestManifest failed")
 	}
+
+	// Reset the override run command func
+	registry.RunCommandFunc = nil
 }
 
+// TestS1V2 simulates the mirror operations when
+// source image deprecated schemaVersion V1.
 func TestS1V2(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
@@ -219,16 +333,15 @@ func TestS1V2(t *testing.T) {
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
 	})
-	s1v2, err := testFs.ReadFile(TestS1V2FileName)
-	if err != nil {
-		t.Error("testFs.ReadFile failed")
-		return
+
+	// set source & dest manifest to same s1v2
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		// inspect func return S1V2 json manifest
+		s1v2, err := testFs.ReadFile(TestS1V2FileName)
+		return string(s1v2[:]), err
 	}
-	err = json.NewDecoder(bytes.NewReader(s1v2)).Decode(&m.sourceManifest)
-	err = json.NewDecoder(bytes.NewReader(s1v2)).Decode(&m.destManifest)
-	if err != nil {
-		t.Error("Decode failed")
-		return
+	if err := m.initSourceDestinationManifest(); err != nil {
+		t.Error("initSourceDestinationManifest:", err.Error())
 	}
 
 	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 1 {
@@ -240,13 +353,59 @@ func TestS1V2(t *testing.T) {
 		t.Errorf("sourceManifestMediaType failed, mediaType should be empty")
 	}
 
-	// if err := m.initImageListByV1(); err != nil {
-	// 	t.Error("initImageListByV2 failed:", err.Error())
-	// }
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		// inspect func return S1V2 json manifest
+		s1v2, err := testFs.ReadFile(TestS1V2RepoFileName)
+		return string(s1v2[:]), err
+	}
+	// Generate imager from source manifest
+	if err := m.initImageListByV1(); err != nil {
+		t.Error("initImageListByV2 failed:", err.Error())
+	}
+	registry.RunCommandFunc = nil
+
+	if m.ImageNum() != 1 {
+		t.Error("initImageListByV1 should only generate 1 image")
+		return
+	}
+
+	// simulate copy operation
+	// fake skopeo copy and skopeo inspect function
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		return "FAKE_OUTPUT", nil
+	}
+	for _, img := range m.images {
+		if err := img.Copy(); err != nil {
+			t.Error("img.Copy failed:", err.Error())
+			return
+		}
+		if !img.Copied() {
+			t.Error("img.Copied failed")
+			return
+		}
+	}
+	if m.Copied() != 1 {
+		t.Error("m.Copied should be 1")
+	}
+	// now the image status should be set to copied
+	// compare the source digests and dest digests
+
+	srcDigests := m.SourceDigests()
+	if len(srcDigests) != 1 {
+		t.Error("SourceDigests failed")
+		return
+	}
+	if srcDigests[0] != "sha256:"+u.Sha256Sum("FAKE_OUTPUT") {
+		t.Error("SourceDigests should be the sha256sum of 'FAKE_OUTPUT'")
+	}
+	// dest schemaVersion is 1, should return empty slice
+	dstDigests := m.DestinationDigests()
+	if len(dstDigests) != 0 {
+		t.Error("dstDigests failed")
+	}
 
 	if m.compareSourceDestManifest() {
-		// dest schemaVersion is 2, mediatype is manifest.list.v2
-		// source image is not copied to dest image
+		// dest schemaVersion is 1
 		// should return false
 		t.Error("compareSourceDestManifest failed")
 	}
@@ -256,11 +415,14 @@ func TestS1V2(t *testing.T) {
 		// should return false
 		t.Error("compareSourceDestManifest failed")
 	}
-}
 
-func TestSourceDigests(t *testing.T) {
-}
-
-func TestDestinationDigests(t *testing.T) {
-
+	// docker buildx
+	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+		return "", nil
+	}
+	// updateDestManifest
+	if err := m.updateDestManifest(); err != nil {
+		t.Error("updateDestManifest:", err.Error())
+	}
+	registry.RunCommandFunc = nil
 }
