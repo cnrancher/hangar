@@ -39,7 +39,7 @@ func init() {
 	logrus.SetFormatter(&nested.Formatter{
 		HideKeys:        false,
 		TimestampFormat: "15:04:05", // hour, time, sec only
-		FieldsOrder:     []string{"MID", "IID"},
+		FieldsOrder:     []string{"M_ID", "IMG_ID"},
 	})
 	logrus.SetOutput(os.Stdout)
 }
@@ -174,15 +174,15 @@ func MirrorImages() {
 		for m := range ch {
 			m.SetID(fmt.Sprintf("%02d", id))
 
-			logrus.WithField("MID", m.ID()).
+			logrus.WithField("M_ID", m.ID()).
 				Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
 					m.Source(), m.Destination(), m.Tag())
 
 			err := m.StartMirror()
 			if err != nil {
-				logrus.WithField("MID", m.ID()).
+				logrus.WithField("M_ID", m.ID()).
 					Errorf("Failed to copy image [%s]", m.Source())
-				logrus.WithField("MID", m.ID()).
+				logrus.WithField("M_ID", m.ID()).
 					Error("Mirror", err.Error())
 			}
 			if usingStdin {
@@ -190,7 +190,7 @@ func MirrorImages() {
 			}
 			if m.Failed() != 0 {
 				// if there are some images copy failed in this mirrorer
-				logrus.WithField("MID", m.ID()).
+				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to mirror: %s", m.Source())
 				writeFileMutex.Lock()
 				failedImageListFile.WriteString(

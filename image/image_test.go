@@ -12,6 +12,6 @@ func init() {
 
 func TestImagerInterface(t *testing.T) {
 	img := NewImage(&ImageOptions{})
-	var imagerer Imagerer = img
+	var imagerer Imager = img
 	_ = imagerer
 }

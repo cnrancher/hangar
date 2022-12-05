@@ -8,8 +8,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Imagerer interface is the specific image
-type Imagerer interface {
+// Imager interface is the specific image
+type Imager interface {
 	// Source gets the source image
 	Source() string
 
@@ -59,7 +59,7 @@ type Image struct {
 	sourceSchemaVersion int
 	sourceMediaType     string
 
-	// ID of the Imagerer
+	// ID of the Imager
 	iID string
 	// ID of the Mirrorer
 	mID string
@@ -188,9 +188,14 @@ func (img *Image) copyIfChanged() error {
 		srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
 		dstDockerImage = fmt.Sprintf("docker://%s:%s",
 			img.destination, img.CopiedTag())
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).
 			Infof("[%s] is schema v1, no need to compare", srcDockerImage)
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).
+			Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
 		args := []string{"--format=v2s2", "--override-arch=" + img.arch}
 		if img.os != "" {
 			args = append(args, "--override-os="+img.os)
@@ -217,7 +222,7 @@ func (img *Image) copyIfChanged() error {
 		// if source image not found, return error.
 		return fmt.Errorf("copyIfChanged failed inspect source image: %w", err)
 	}
-	// logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).
+	// logrus.WithFields(logrus.Fields{"M_ID": img.mID, "IMG_ID": img.iID}).
 	// 	Debug("sourceManifest: ", sourceManifest)
 
 	destManifest, err := registry.SkopeoInspect(dstDockerImage, "--raw")
@@ -225,7 +230,7 @@ func (img *Image) copyIfChanged() error {
 		// if destination image not found, set destManifestBuff to nil
 		destManifest = ""
 	}
-	// logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).
+	// logrus.WithFields(logrus.Fields{"M_ID": img.mID, "IMG_ID": img.iID}).
 	// 	Debug("destManifest: ", destManifest)
 
 	var srcManifestSum string
@@ -236,14 +241,28 @@ func (img *Image) copyIfChanged() error {
 	}
 	// compare the source manifest with the dest manifest
 	if srcManifestSum == dstManifestSum {
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("Unchanged: %s == %s", srcDockerImage, dstDockerImage)
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("  source digest: %s", srcManifestSum)
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("  destin digest: %s", dstManifestSum)
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).
+			Infof("Unchanged: %s == %s", srcDockerImage, dstDockerImage)
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).
+			Infof("source digest: %s", srcManifestSum)
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).Infof("destin digest: %s", dstManifestSum)
 		return nil
 	} else {
-		logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("Digest: %s => %s", srcManifestSum, dstManifestSum)
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.mID,
+			"IMG_ID": img.iID}).
+			Infof("Digest: %s => %s", srcManifestSum, dstManifestSum)
 	}
-	logrus.WithFields(logrus.Fields{"MID": img.mID, "IID": img.iID}).Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
+	logrus.WithFields(logrus.Fields{
+		"M_ID":   img.mID,
+		"IMG_ID": img.iID}).
+		Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
 	args := []string{"--format=v2s2", "--override-arch=" + img.arch}
 	if img.os != "" {
 		args = append(args, "--override-os="+img.os)
