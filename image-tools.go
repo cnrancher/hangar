@@ -135,7 +135,14 @@ func MirrorImages() {
 		scanner.Split(bufio.ScanLines)
 	}
 
-	// output copy failed image list into
+	// output copy failed image list into failed list txt
+	failedImageListFile, err := os.OpenFile(*mirrorFailedReg,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		logrus.Errorf("Failed to open file: %s", *mirrorFailedReg)
+		logrus.Fatal(err.Error())
+	}
+	defer failedImageListFile.Close()
 
 	if usingStdin && *mirrorJobsReg != 1 {
 		logrus.Warn("async mode not supported in stdin mode")
@@ -159,29 +166,39 @@ func MirrorImages() {
 	}
 	u.MirrorerJobNum = *mirrorJobsReg
 
+	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
 	worker := func(id int, ch chan mirror.Mirrorer) {
 		defer wg.Done()
-		for mirrorer := range ch {
-			mirrorer.SetID(fmt.Sprintf("%02d", id))
+		for m := range ch {
+			m.SetID(fmt.Sprintf("%02d", id))
 
-			logrus.WithField("MID", mirrorer.ID()).
+			logrus.WithField("MID", m.ID()).
 				Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
-					mirrorer.Source(), mirrorer.Destination(), mirrorer.Tag())
+					m.Source(), m.Destination(), m.Tag())
 
-			err := mirrorer.StartMirror()
+			err := m.StartMirror()
 			if err != nil {
-				logrus.WithField("MID", mirrorer.ID()).
-					Errorf("Failed to copy image [%s]", mirrorer.Source())
-				logrus.WithField("MID", mirrorer.ID()).
+				logrus.WithField("MID", m.ID()).
+					Errorf("Failed to copy image [%s]", m.Source())
+				logrus.WithField("MID", m.ID()).
 					Error("Mirror", err.Error())
 			}
 			if usingStdin {
 				fmt.Printf(">>> ")
 			}
-			if mirrorer.Failed() != 0 {
-				// TODO: there is some images copy failed in this mirrorer
+			if m.Failed() != 0 {
+				// if there are some images copy failed in this mirrorer
+				logrus.WithField("MID", m.ID()).
+					Errorf("Some images failed to mirror: %s", m.Source())
+				writeFileMutex.Lock()
+				failedImageListFile.WriteString(
+					fmt.Sprintf("%s %s %s\n",
+						m.Source(), m.Destination(), m.Tag()))
+				failedImageListFile.Sync()
+				writeFileMutex.Unlock()
+				// TODO: sort file
 			}
 		}
 	}
