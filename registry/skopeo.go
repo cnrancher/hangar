@@ -95,7 +95,7 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 
 	out, err := execCommandFunc(skopeoPath, param...)
 	if err != nil {
-		return "", fmt.Errorf("SkopeoInspect: %w", err)
+		return "", fmt.Errorf("SkopeoInspect %s:\n%w", img, err)
 	}
 
 	return out, nil
@@ -127,7 +127,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 
 	stdout, err := execCommandFunc(skopeoPath, params...)
 	if err != nil {
-		return fmt.Errorf("SkopeoCopy: %w", err)
+		return fmt.Errorf("SkopeoCopy %s => %s:\n%w", src, dst, err)
 	}
 	fmt.Print(stdout)
 

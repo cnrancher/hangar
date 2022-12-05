@@ -11,6 +11,8 @@ import (
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
+
+	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +23,12 @@ var (
 )
 
 func init() {
-
+	logrus.SetFormatter(&nested.Formatter{
+		HideKeys:        false,
+		TimestampFormat: "15:04:05", // hour, time, sec only
+		FieldsOrder:     []string{"MID", "IID"},
+	})
+	logrus.SetOutput(os.Stdout)
 }
 
 func main() {
@@ -120,21 +127,6 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		scanner.Split(bufio.ScanLines)
 	}
 
-	var wg sync.WaitGroup
-	// worker function for goroutine pool
-	worker := func(ch chan mirror.Mirrorer) {
-		defer wg.Done()
-		for mirrorer := range ch {
-			err := mirrorer.Mirror()
-			if err != nil {
-				logrus.Errorf("Failed to copy image [%s]", mirrorer.Source())
-				logrus.Error(err.Error())
-			}
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-		}
-	}
 	if usingStdin && jobNum != 1 {
 		logrus.Warn("async mode not supported in stdin mode")
 		logrus.Warn("change worker count back to 1")
@@ -156,10 +148,35 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		fmt.Printf(">>> ")
 	}
 	u.MirrorerJobNum = jobNum
+
+	var wg sync.WaitGroup
+	// worker function for goroutine pool
+	worker := func(id int, ch chan mirror.Mirrorer) {
+		defer wg.Done()
+		for mirrorer := range ch {
+			mirrorer.SetID(fmt.Sprintf("%02d", id))
+
+			logrus.WithField("MID", mirrorer.ID()).
+				Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
+					mirrorer.Source(), mirrorer.Destination(), mirrorer.Tag())
+
+			err := mirrorer.Mirror()
+			if err != nil {
+				logrus.Errorf("Failed to copy image [%s]", mirrorer.Source())
+				logrus.Error(err.Error())
+			}
+			if usingStdin {
+				fmt.Printf(">>> ")
+			}
+			if mirrorer.Failed() != 0 {
+				// TODO: there is some images copy failed in this mirrorer
+			}
+		}
+	}
 	mirrorChan := make(chan mirror.Mirrorer)
 	for i := 0; i < jobNum; i++ {
 		wg.Add(1)
-		go worker(mirrorChan)
+		go worker(i+1, mirrorChan)
 	}
 
 	for scanner.Scan() {
@@ -192,8 +209,6 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 			Tag:         v[2],
 			ArchList:    strings.Split(arches, ","),
 		})
-		logrus.Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
-			mirrorer.Source(), mirrorer.Destination(), mirrorer.Tag())
 
 		mirrorChan <- mirrorer
 
