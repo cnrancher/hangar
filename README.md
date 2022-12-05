@@ -1,10 +1,8 @@
-image-tools
-===========
+# image-tools
 
 Mirror multi-arch container images from public registry to your personal registry with manifest list support.
 
-Usage
------
+## Usage
 
 ```sh
 # go version
@@ -20,8 +18,28 @@ go build -o image-tools .
 ./image-tools mirror -h
 ```
 
-LICENSE
--------
+### Mirrorer
+
+```
+./image-tools mirror -h
+Usage of mirror:
+  -a string
+    	architecture list of images, seperate with ',' (default "amd64,arm64")
+  -d string
+    	override the destination registry
+  -debug
+    	enable the debug output
+  -f string
+    	image list file
+  -j int
+    	job number, async mode if larger than 1, maximun is 20 (default 1)
+  -o string
+    	file name of the mirror failed image list (default "mirror-failed.txt")
+  -s string
+    	override the source registry
+```
+
+## LICENSE
 
     Copyright 2022 SUSE Rancher
 
