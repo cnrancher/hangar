@@ -22,6 +22,19 @@ var (
 	dockerRegistry = os.Getenv("DOCKER_REGISTRY")
 )
 
+// mirror COMMAND reads file from image-list txt or stdin, then mirror images
+// from source repo to the destination repo
+var (
+	mirrorCmd       = flag.NewFlagSet("mirror", flag.ExitOnError)
+	mirrorFile      = mirrorCmd.String("f", "", "image list file")
+	mirrorArch      = mirrorCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	mirrorSourceReg = mirrorCmd.String("s", "", "override the source registry")
+	mirrorDestReg   = mirrorCmd.String("d", "", "override the destination registry")
+	mirrorFailedReg = mirrorCmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
+	mirrorDebug     = mirrorCmd.Bool("debug", false, "enable the debug output")
+	mirrorJobsReg   = mirrorCmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+)
+
 func init() {
 	logrus.SetFormatter(&nested.Formatter{
 		HideKeys:        false,
@@ -37,16 +50,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	// mirror subcmd reads file from image-list txt or stdin and mirror image
-	// from source repo to the destination repo
-	mirrorCmd := flag.NewFlagSet("mirror", flag.ExitOnError)
-	mirrorFile := mirrorCmd.String("f", "", "image list file")
-	mirrorArch := mirrorCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	mirrorSourceReg := mirrorCmd.String("s", "", "override the source registry")
-	mirrorDestReg := mirrorCmd.String("d", "", "override the destination registry")
-	mirrorJobsReg := mirrorCmd.Int("j", 1, "asynchronous mode if larger than 1, maximun is 20")
-	mirrorDebug := mirrorCmd.Bool("debug", false, "enable the debug output")
-
 	switch os.Args[1] {
 	case "mirror":
 		mirrorCmd.Parse(os.Args[2:])
@@ -58,8 +61,8 @@ func main() {
 		logrus.Debugf("sourceReg: %s", *mirrorSourceReg)
 		logrus.Debugf("destReg: %s", *mirrorDestReg)
 		logrus.Debugf("mirrorJobsReg: %v", *mirrorJobsReg)
-		MirrorImages(*mirrorFile, *mirrorArch, *mirrorSourceReg,
-			*mirrorDestReg, *mirrorJobsReg)
+		logrus.Debugf("mirrorFailedReg: %v", *mirrorFailedReg)
+		MirrorImages()
 	case "load": // TODO: load image from tar.gz tarball
 	case "save": // TODO: save image to tar.gz tarball with image manifest
 	default:
@@ -79,45 +82,50 @@ func showHelp() {
 	fmt.Printf("  save \t\tWIP.\n")
 }
 
-func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum int) {
+func MirrorImages() {
+	if err := registry.SelfCheck(); err != nil {
+		logrus.Error("registry self check failed.")
+		logrus.Fatal(err)
+	}
+
 	if dockerUsername == "" || dockerPassword == "" {
 		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
 		// TODO: read username and password from stdin
 	}
 
-	if srcRegOverride != "" {
-		logrus.Infof("Set source registry to [%s]", srcRegOverride)
+	if *mirrorSourceReg != "" {
+		logrus.Infof("Set source registry to [%s]", *mirrorSourceReg)
 	} else {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// Command line parameter is prior than environment variable
-	if dstRegOverride == "" && dockerRegistry != "" {
-		dstRegOverride = dockerRegistry
+	if *mirrorDestReg == "" && dockerRegistry != "" {
+		*mirrorDestReg = dockerRegistry
 	}
 
-	if dstRegOverride != "" {
-		logrus.Infof("Set destination registry to [%s]", dstRegOverride)
+	if *mirrorDestReg != "" {
+		logrus.Infof("Set destination registry to [%s]", *mirrorDestReg)
 	} else {
 		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(dstRegOverride, dockerUsername, dockerPassword)
+	err := registry.DockerLogin(*mirrorDestReg, dockerUsername, dockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 
 	var scanner *bufio.Scanner
 	var usingStdin bool
-	if file == "" {
+	if *mirrorFile == "" {
 		// read line from stdin
 		scanner = bufio.NewScanner(os.Stdin)
 		usingStdin = true
 		logrus.Info("Reading '<SOURCE> <DESTINATION> <TAG>' from stdin")
 		logrus.Info("Use 'Ctrl+C' or 'Ctrl+D' to exit.")
 	} else {
-		readFile, err := os.Open(file)
+		readFile, err := os.Open(*mirrorFile)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -127,27 +135,29 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		scanner.Split(bufio.ScanLines)
 	}
 
-	if usingStdin && jobNum != 1 {
+	// output copy failed image list into
+
+	if usingStdin && *mirrorJobsReg != 1 {
 		logrus.Warn("async mode not supported in stdin mode")
 		logrus.Warn("change worker count back to 1")
-		jobNum = 1
+		*mirrorJobsReg = 1
 	}
-	if jobNum > 20 {
+	if *mirrorJobsReg > 20 {
 		logrus.Warn("worker count should be <= 20")
 		logrus.Warn("change worker count to 20")
-		jobNum = 20
+		*mirrorJobsReg = 20
 	}
-	if jobNum < 1 {
+	if *mirrorJobsReg < 1 {
 		logrus.Warn("invalid worker count")
 		logrus.Warn("change worker count to 1")
-		jobNum = 20
+		*mirrorJobsReg = 20
 	}
 	if !usingStdin {
-		logrus.Infof("Creating %d job workers", jobNum)
+		logrus.Infof("Creating %d job workers", *mirrorJobsReg)
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.MirrorerJobNum = jobNum
+	u.MirrorerJobNum = *mirrorJobsReg
 
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
@@ -160,10 +170,12 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 				Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
 					mirrorer.Source(), mirrorer.Destination(), mirrorer.Tag())
 
-			err := mirrorer.Mirror()
+			err := mirrorer.StartMirror()
 			if err != nil {
-				logrus.Errorf("Failed to copy image [%s]", mirrorer.Source())
-				logrus.Error(err.Error())
+				logrus.WithField("MID", mirrorer.ID()).
+					Errorf("Failed to copy image [%s]", mirrorer.Source())
+				logrus.WithField("MID", mirrorer.ID()).
+					Error("Mirror", err.Error())
 			}
 			if usingStdin {
 				fmt.Printf(">>> ")
@@ -174,7 +186,7 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		}
 	}
 	mirrorChan := make(chan mirror.Mirrorer)
-	for i := 0; i < jobNum; i++ {
+	for i := 0; i < *mirrorJobsReg; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
@@ -204,10 +216,10 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		}
 
 		var mirrorer mirror.Mirrorer = mirror.NewMirror(&mirror.MirrorOptions{
-			Source:      mirror.ConstructRegistry(v[0], srcRegOverride),
-			Destination: mirror.ConstructRegistry(v[1], dstRegOverride),
+			Source:      mirror.ConstructRegistry(v[0], *mirrorSourceReg),
+			Destination: mirror.ConstructRegistry(v[1], *mirrorDestReg),
 			Tag:         v[2],
-			ArchList:    strings.Split(arches, ","),
+			ArchList:    strings.Split(*mirrorArch, ","),
 		})
 
 		mirrorChan <- mirrorer

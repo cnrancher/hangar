@@ -21,15 +21,17 @@ const (
 
 // EnsureSkopeoInstalled ensures the skopeo command is installed.
 // If the skopeo is not instqlled, download the binary to current dir.
-func EnsureSkopeoInstalled(path string) (string, error) {
-	if path, err := exec.LookPath("skopeo"); err == nil {
+func EnsureSkopeoInstalled(installPath string) (string, error) {
+	var path string
+	var err error
+	if path, err = exec.LookPath("skopeo"); err == nil {
 		logrus.Debugf("Found skopeo installed at: %v", path)
 		return path, nil
 	}
 
-	if _, err := os.Stat(filepath.Join(path, "skopeo")); err == nil {
+	if _, err = os.Stat(filepath.Join(installPath, "skopeo")); err == nil {
 		logrus.Debug("skopeo already downloaded.")
-		return filepath.Join(path, "skopeo"), nil
+		return filepath.Join(installPath, "skopeo"), nil
 	}
 
 	if runtime.GOOS != "linux" {
@@ -40,7 +42,7 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 
 	logrus.Info("skopeo not found, trying to download binary file.")
 	out, err := os.OpenFile(
-		filepath.Join(path, "skopeo"),
+		filepath.Join(installPath, "skopeo"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0755)
 	if err != nil {
@@ -69,7 +71,7 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 		return "", fmt.Errorf("InstallSkopeo: %w", err)
 	}
 
-	return filepath.Join(path, "skopeo"), nil
+	return filepath.Join(installPath, "skopeo"), nil
 }
 
 // InspectRaw function executs `skopeo inspect ${img}` command

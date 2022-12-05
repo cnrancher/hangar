@@ -10,7 +10,8 @@ import (
 // RunCmdFuncType defines the type of the function to execute command
 type RunCmdFuncType func(name string, args ...string) (string, error)
 
-// DefaultRunCommandFunc executes the command and returns the cmd stdout output
+// DefaultRunCommandFunc executes the command and returns the cmd output,
+// the output contains the stdout and stderr of the program
 func DefaultRunCommandFunc(cmdName string, args ...string) (string, error) {
 	// Inspect the source image info
 	cmd := exec.Command(cmdName, args...)

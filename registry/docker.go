@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"cnrancher.io/image-tools/utils"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -16,7 +15,7 @@ import (
 func GetLoginToken(url string, username string, passwd string) (string, error) {
 	// export DOCKER_TOKEN=$(curl -s -d @- -X POST -H "Content-Type: application/json" https://hub.docker.com/v2/users/login/ <<< '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' | jq -r '.token')
 	if url == "" {
-		url = utils.DockerLoginURL
+		url = u.DockerLoginURL
 	}
 
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
@@ -43,7 +42,7 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 
 	token, ok := res["token"]
 	if !ok {
-		return "", utils.ErrLoginFailed
+		return "", u.ErrLoginFailed
 	}
 	logrus.Debugf("Get token: %v...", token.(string)[:20])
 
@@ -54,13 +53,13 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 func DockerLogin(url string, username string, passwd string) error {
 	// docker login ${DOCKER_REGISTRY} --username=${USERNAME} --password-stdin
 	if url == "" {
-		url = utils.DockerHubRegistry
+		url = u.DockerHubRegistry
 	}
 	logrus.Infof("Logging in to %v", url)
 
 	path, err := exec.LookPath("docker")
 	if err != nil {
-		return utils.ErrDockerNotFound
+		return u.ErrDockerNotFound
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
@@ -87,15 +86,13 @@ func DockerLogin(url string, username string, passwd string) error {
 func DockerBuildx(args ...string) error {
 	path, err := exec.LookPath("docker")
 	if err != nil {
-		return utils.ErrDockerNotFound
+		return u.ErrDockerNotFound
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
 	var execCommandFunc u.RunCmdFuncType
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
-	} else if u.MirrorerJobNum == 1 {
-		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
 		execCommandFunc = u.DefaultRunCommandFunc
 	}
@@ -108,6 +105,12 @@ func DockerBuildx(args ...string) error {
 		if strings.Contains(out, "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
 		}
+	}
+
+	if u.MirrorerJobNum == 1 {
+		execCommandFunc = u.RunCommandStdoutFunc
+	} else {
+		execCommandFunc = u.DefaultRunCommandFunc
 	}
 
 	// Clear the stdout
