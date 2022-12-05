@@ -109,7 +109,6 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 		usingStdin = true
 		logrus.Info("Reading '<SOURCE> <DESTINATION> <TAG>' from stdin")
 		logrus.Info("Use 'Ctrl+C' or 'Ctrl+D' to exit.")
-		fmt.Printf(">>> ")
 	} else {
 		readFile, err := os.Open(file)
 		if err != nil {
@@ -153,6 +152,8 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 	}
 	if !usingStdin {
 		logrus.Infof("Creating %d job workers", jobNum)
+	} else {
+		fmt.Printf(">>> ")
 	}
 	u.MirrorerJobNum = jobNum
 	mirrorChan := make(chan mirror.Mirrorer)
@@ -196,9 +197,6 @@ func MirrorImages(file, arches, srcRegOverride, dstRegOverride string, jobNum in
 
 		mirrorChan <- mirrorer
 
-		if usingStdin {
-			fmt.Printf(">>> ")
-		}
 	}
 
 	close(mirrorChan)

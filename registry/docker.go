@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -84,46 +83,41 @@ func DockerLogin(url string, username string, passwd string) error {
 	return nil
 }
 
-// DockerBuildx executes 'docker buildx ...' command
+// DockerBuildx executes 'docker buildx args...' command
 func DockerBuildx(args ...string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("DockerBuildx: %w", u.ErrInvalidParameter)
-	}
-
 	path, err := exec.LookPath("docker")
 	if err != nil {
 		return utils.ErrDockerNotFound
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
-	var stdout *bytes.Buffer = new(bytes.Buffer)
-	// Check docker buildx installed or not
-	cmd := exec.Command(
-		path,
-		"buildx",
-		"--help",
-	)
-	cmd.Stdout = stdout
-	cmd.Stderr = stdout
-	if err := cmd.Run(); err != nil {
-		if strings.Contains(stdout.String(), "is not a docker command") {
+	var execCommandFunc u.RunCmdFuncType
+	if RunCommandFunc != nil {
+		execCommandFunc = RunCommandFunc
+	} else if u.MirrorerJobNum == 1 {
+		execCommandFunc = u.RunCommandStdoutFunc
+	} else {
+		execCommandFunc = u.DefaultRunCommandFunc
+	}
+
+	// ensure docker-buildx is installed
+	checkBuildxInstalledParam := []string{"buildx", "--help"}
+
+	out, err := execCommandFunc(path, checkBuildxInstalledParam...)
+	if err != nil {
+		if strings.Contains(out, "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
 		}
-		return fmt.Errorf("docker buildx: \n%s\n%w", stdout.String(), err)
 	}
 
 	// Clear the stdout
 	buildxArgs := []string{"buildx"}
 	buildxArgs = append(buildxArgs, args...)
-	cmd = exec.Command(
-		path,
-		buildxArgs...,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("docker buildx: \n%s\n%w", stdout.String(), err)
+	out, err = execCommandFunc(path, buildxArgs...)
+	if err != nil {
+		return fmt.Errorf("docker buildx: %w", err)
 	}
+	fmt.Print(out)
 
 	return nil
 }

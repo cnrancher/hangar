@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
@@ -74,81 +72,64 @@ func EnsureSkopeoInstalled(path string) (string, error) {
 	return filepath.Join(path, "skopeo"), nil
 }
 
-// InspectRaw function executs `skopeo inspect --raw ${img}` command
+// InspectRaw function executs `skopeo inspect ${img}` command
 // and return the output if execute successfully
-func SkopeoInspect(img string, extraArgs ...string) (*bytes.Buffer, error) {
-	logrus.Debugf("Running skopeo inspect [%s] %v", img, extraArgs)
+func SkopeoInspect(img string, args ...string) (string, error) {
+	logrus.Debugf("Running skopeo inspect [%s] %v", img, args)
 	// Ensure skopeo installed
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
-		return nil, fmt.Errorf("unable to locate skopeo path: %w", err)
+		return "", fmt.Errorf("unable to locate skopeo path: %w", err)
+	}
+
+	var execCommandFunc u.RunCmdFuncType
+	if RunCommandFunc != nil {
+		execCommandFunc = RunCommandFunc
+	} else {
+		execCommandFunc = u.DefaultRunCommandFunc
 	}
 
 	// Inspect the source image info
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	var args []string
-	args = append(args, "inspect", img)
-	args = append(args, extraArgs...)
-	cmd := exec.Command(skopeoPath, args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err = cmd.Run()
+	param := []string{"inspect", img}
+	param = append(param, args...)
+
+	out, err := execCommandFunc(skopeoPath, param...)
 	if err != nil {
-		return nil, fmt.Errorf("SkopeoInspect: \n%s\n%w",
-			stderr.String(), err)
-	}
-	skopeoOutput := stdout.String()
-	// logrus.Debugf("skopeo copy output: %s", skopeoOutput)
-	if strings.Contains(skopeoOutput, "Usage:") {
-		return nil, fmt.Errorf("SkopeoCopyArchOs: \n%s\n%w",
-			skopeoOutput, u.ErrInvalidParameter)
+		return "", fmt.Errorf("SkopeoInspect: %w", err)
 	}
 
-	return &stdout, nil
+	return out, nil
 }
 
-// SkopeoCopyArchOS
-// `skopeo copy --override-arch={ARCH} --override-os={OS}`;
-// You can add --override-variant={VARIANT} in `extraArgs`
-// the os parameter can be set to empty string,
-// extraArgs can be nil
-func SkopeoCopyArchOS(arch, osType, source, dest string, extraArgs ...string) error {
-	logrus.Debugf("Running skopeo copy arch[%s] os[%s] src[%s] dst[%s] %v",
-		arch, osType, source, dest, extraArgs)
+// SkopeoCopy execute the `skopeo copy ${source} ${destination} args...` cmd
+// You can add custom parameters in `args`
+func SkopeoCopy(src, dst string, args ...string) error {
+	logrus.Debugf("Running skopeo copy src[%s] dst[%s] %v", src, dst, args)
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
 		return fmt.Errorf("unable to locate skopeo path: %w", err)
 	}
 
-	// Inspect the source image info
-	var args []string
-	args = append(args, "copy", "--format=v2s2", "--override-arch="+arch)
-	if osType != "" {
-		args = append(args, "--override-os="+osType)
-	}
-	args = append(args, source, dest)
-	args = append(args, extraArgs...)
-	cmd := exec.Command(skopeoPath, args...)
-	var stdout bytes.Buffer
-	if u.MirrorerJobNum == 1 {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+	var execCommandFunc u.RunCmdFuncType
+	if RunCommandFunc != nil {
+		execCommandFunc = RunCommandFunc
+	} else if u.MirrorerJobNum == 1 {
+		// if not async mode, set command output to stdout
+		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stdout
+		// if in async mode, set command output to io.Writer instead of stdout
+		execCommandFunc = u.DefaultRunCommandFunc
 	}
-	err = cmd.Run()
+
+	// skopeo copy src dst args...
+	params := []string{"copy", src, dst}
+	params = append(params, args...)
+
+	stdout, err := execCommandFunc(skopeoPath, params...)
 	if err != nil {
-		return fmt.Errorf("skopeo copy failed")
+		return fmt.Errorf("SkopeoCopy: %w", err)
 	}
-	// if strings.Contains(skopeoOutput, "Usage:") {
-	// 	return fmt.Errorf("skopeo copy failed")
-	// }
-	if u.MirrorerJobNum > 1 {
-		fmt.Printf("%s => %s", source, dest)
-		fmt.Print(stdout.String())
-	}
+	fmt.Print(stdout)
 
 	return nil
 }

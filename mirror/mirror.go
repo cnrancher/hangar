@@ -1,7 +1,6 @@
 package mirror
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -256,28 +255,30 @@ func (m *Mirror) Failed() int {
 
 func (m *Mirror) initSourceDestinationManifest() error {
 	var err error
-	var buff *bytes.Buffer
+	var out string
 
 	// Get source manifest list
 	inspectSourceImage := fmt.Sprintf("docker://%s:%s", m.source, m.tag)
-	buff, err = registry.SkopeoInspect(inspectSourceImage, "--raw")
+	out, err = registry.SkopeoInspect(inspectSourceImage, "--raw")
 	if err != nil {
 		return fmt.Errorf("inspect source image failed: %w", err)
 	}
 
-	if err = json.NewDecoder(buff).Decode(&m.sourceManifest); err != nil {
+	if err = json.NewDecoder(strings.NewReader(out)).
+		Decode(&m.sourceManifest); err != nil {
 		return fmt.Errorf("decode source manifest json: %w", err)
 	}
 
 	// Get destination manifest list
 	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.destination, m.tag)
-	buff, err = registry.SkopeoInspect(inspectDestImage, "--raw")
+	out, err = registry.SkopeoInspect(inspectDestImage, "--raw")
 	if err != nil {
 		// destination image not found, this error is expected
 		return nil
 	}
 
-	if err = json.NewDecoder(buff).Decode(&m.destManifest); err != nil {
+	if err = json.NewDecoder(strings.NewReader(out)).
+		Decode(&m.destManifest); err != nil {
 		return fmt.Errorf("decode destination manifest json: %w", err)
 	}
 
@@ -371,7 +372,7 @@ func (m *Mirror) initImageListByListV2() error {
 
 func (m *Mirror) initImageListByV2() error {
 	sourceImage := fmt.Sprintf("docker://%s:%s", m.source, m.tag)
-	buff, err := registry.SkopeoInspect(sourceImage, "--raw", "--config")
+	out, err := registry.SkopeoInspect(sourceImage, "--raw", "--config")
 	if err != nil {
 		return fmt.Errorf("initImageListByV2: %w", err)
 	}
@@ -385,7 +386,7 @@ func (m *Mirror) initImageListByV2() error {
 	)
 
 	var sourceOciConfig map[string]interface{}
-	json.NewDecoder(buff).Decode(&sourceOciConfig)
+	json.NewDecoder(strings.NewReader(out)).Decode(&sourceOciConfig)
 	if arch, ok = u.ReadJsonString(sourceOciConfig, "architecture"); !ok {
 		return fmt.Errorf("initImageListByV2 read architecture: %w",
 			u.ErrReadJsonFailed)
@@ -431,12 +432,12 @@ func (m *Mirror) initImageListByV1() error {
 
 	sourceImage := fmt.Sprintf("docker://%s:%s", m.source, m.tag)
 	// `skopeo inspect docker://docker.io/<image>`
-	buff, err := registry.SkopeoInspect(sourceImage)
+	out, err := registry.SkopeoInspect(sourceImage)
 	if err != nil {
 		return fmt.Errorf("initImageListByV2: %w", err)
 	}
 	var sourceInfo map[string]interface{}
-	json.NewDecoder(buff).Decode(&sourceInfo)
+	json.NewDecoder(strings.NewReader(out)).Decode(&sourceInfo)
 
 	if arch, ok = u.ReadJsonString(m.sourceManifest, "architecture"); !ok {
 		return fmt.Errorf("read architecture failed: %w", u.ErrReadJsonFailed)

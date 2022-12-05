@@ -123,11 +123,11 @@ func (img *Image) Copy() error {
 		destImage := fmt.Sprintf("docker://%s:%s",
 			img.destination, img.CopiedTag())
 		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
-		buff, err := registry.SkopeoInspect(destImage, "--raw")
+		out, err := registry.SkopeoInspect(destImage, "--raw")
 		if err != nil {
 			return fmt.Errorf("Copy: %w", err)
 		}
-		digest := "sha256:" + u.Sha256Sum(buff.String())
+		digest := "sha256:" + u.Sha256Sum(out)
 		img.digest = digest
 	}
 
@@ -144,8 +144,10 @@ func (img *Image) CopiedTag() string {
 	case "amd64":
 		return fmt.Sprintf("%s-%s", img.tag, img.arch)
 	case "arm64":
+		// there is only one variant of arm64 is v8, so discard it
 		return fmt.Sprintf("%s-%s", img.tag, img.arch)
 	case "arm":
+		// arm has variant v5, v7, etc...
 		return fmt.Sprintf("%s-%s%s", img.tag, img.arch, img.variant)
 	default:
 		// other arch: s390x, ppc64...
@@ -165,8 +167,11 @@ func (img *Image) copyIfChanged() error {
 			img.destination, img.CopiedTag())
 		logrus.Infof("[%s] is schema v1, no need to compare", srcDockerImage)
 		logrus.Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
-		return registry.SkopeoCopyArchOS(
-			img.arch, img.os, srcDockerImage, dstDockerImage)
+		args := []string{"--format=v2s2", "--override-arch=" + img.arch}
+		if img.os != "" {
+			args = append(args, "--override-os="+img.os)
+		}
+		return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
 	}
 
 	switch img.sourceMediaType {
@@ -183,25 +188,25 @@ func (img *Image) copyIfChanged() error {
 		img.destination, img.CopiedTag())
 
 	// Inspect the source image info
-	sourceManifestBuff, err := registry.SkopeoInspect(srcDockerImage, "--raw")
+	sourceManifest, err := registry.SkopeoInspect(srcDockerImage, "--raw")
 	if err != nil {
 		// if source image not found, return error.
 		return fmt.Errorf("copyIfChanged failed inspect source image: %w", err)
 	}
 	// logrus.Debug("sourceManifest: ", sourceManifestBuff.String())
 
-	destManifestBuff, err := registry.SkopeoInspect(dstDockerImage, "--raw")
+	destManifest, err := registry.SkopeoInspect(dstDockerImage, "--raw")
 	if err != nil {
 		// if destination image not found, set destManifestBuff to nil
-		destManifestBuff = nil
+		destManifest = ""
 	}
 	// logrus.Debug("destManifest: ", destManifestBuff.String())
 
 	var srcManifestSum string
 	var dstManifestSum string = "<nil>"
-	srcManifestSum = "sha256:" + u.Sha256Sum(sourceManifestBuff.String())
-	if destManifestBuff != nil {
-		dstManifestSum = "sha256:" + u.Sha256Sum(destManifestBuff.String())
+	srcManifestSum = "sha256:" + u.Sha256Sum(sourceManifest)
+	if destManifest != "" {
+		dstManifestSum = "sha256:" + u.Sha256Sum(destManifest)
 	}
 	// compare the source manifest with the dest manifest
 	if srcManifestSum == dstManifestSum {
@@ -213,6 +218,9 @@ func (img *Image) copyIfChanged() error {
 		logrus.Infof("Digest: %s => %s", srcManifestSum, dstManifestSum)
 	}
 	logrus.Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
-	return registry.SkopeoCopyArchOS(
-		img.arch, img.os, srcDockerImage, dstDockerImage)
+	args := []string{"--format=v2s2", "--override-arch=" + img.arch}
+	if img.os != "" {
+		args = append(args, "--override-os="+img.os)
+	}
+	return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
 }
