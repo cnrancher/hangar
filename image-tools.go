@@ -184,11 +184,13 @@ func MirrorImages() {
 					Errorf("Failed to copy image [%s]", m.Source())
 				logrus.WithField("M_ID", m.ID()).
 					Error("Mirror", err.Error())
-			}
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			if m.Failed() != 0 {
+				writeFileMutex.Lock()
+				failedImageListFile.WriteString(
+					fmt.Sprintf("%s %s %s\n",
+						m.Source(), m.Destination(), m.Tag()))
+				failedImageListFile.Sync()
+				writeFileMutex.Unlock()
+			} else if m.Failed() != 0 {
 				// if there are some images copy failed in this mirrorer
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to mirror: %s", m.Source())
@@ -199,6 +201,9 @@ func MirrorImages() {
 				failedImageListFile.Sync()
 				writeFileMutex.Unlock()
 				// TODO: sort file
+			}
+			if usingStdin {
+				fmt.Printf(">>> ")
 			}
 		}
 	}

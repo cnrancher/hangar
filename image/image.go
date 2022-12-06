@@ -234,7 +234,7 @@ func (img *Image) copyIfChanged() error {
 	// 	Debug("destManifest: ", destManifest)
 
 	var srcManifestSum string
-	var dstManifestSum string = "<nil>"
+	var dstManifestSum string = "<NEW_IMAGE>"
 	srcManifestSum = "sha256:" + u.Sha256Sum(sourceManifest)
 	if destManifest != "" {
 		dstManifestSum = "sha256:" + u.Sha256Sum(destManifest)
