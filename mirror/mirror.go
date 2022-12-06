@@ -18,6 +18,12 @@ type Mirrorer interface {
 	// StartMirror mirrors images from source registry to destination registry
 	StartMirror() error
 
+	// StartSave saves images into local directory
+	StartSave() error
+
+	// StartLoad loads the images from local directory to dest repository
+	StartLoad() error
+
 	// Source gets the source image
 	// [registry.io/library/name]
 	Source() string
@@ -28,6 +34,9 @@ type Mirrorer interface {
 
 	// Tag gets the image tag
 	Tag() string
+
+	// Directory gets the directory to save/load
+	Directory() string
 
 	// HasArch checks the arch of this image should be copied or not
 	HasArch(string) bool
@@ -47,8 +56,11 @@ type Mirrorer interface {
 	// Copied method gets the number of copied images
 	Copied() int
 
-	// Failed method gets the number of images copy failed
-	Failed() int
+	// Saved
+	Saved() int
+
+	// Load
+	Loaded() int
 
 	// Set ID of the Mirrorer
 	SetID(string)
@@ -61,6 +73,7 @@ type Mirror struct {
 	source            string
 	destination       string
 	tag               string
+	directory         string
 	availableArchList []string
 
 	sourceManifestStr string
@@ -78,6 +91,7 @@ type MirrorOptions struct {
 	Source      string
 	Destination string
 	Tag         string
+	Directory   string
 	ArchList    []string
 }
 
@@ -86,60 +100,19 @@ func NewMirror(opts *MirrorOptions) *Mirror {
 		source:            opts.Source,
 		destination:       opts.Destination,
 		tag:               opts.Tag,
+		directory:         opts.Directory,
 		availableArchList: slices.Clone(opts.ArchList),
 	}
 }
 
 func (m *Mirror) StartMirror() error {
 	if m == nil {
-		return fmt.Errorf("Mirror: %w", u.ErrNilPointer)
+		return fmt.Errorf("StartMirror: %w", u.ErrNilPointer)
 	}
-
 	logrus.WithField("M_ID", m.mID).Debug("Start Mirror")
-	// Init source and destination manifest
-	if err := m.initSourceDestinationManifest(); err != nil {
-		return fmt.Errorf("Mirror: %w", err)
-	}
 
-	sourceSchemaVersion, err := m.sourceManifestSchemaVersion()
-	if err != nil {
-		return fmt.Errorf("Mirror: %w", err)
-	}
-	logrus.WithField("M_ID", m.mID).
-		Debugf("sourceSchemaVersion: %v", sourceSchemaVersion)
-
-	switch sourceSchemaVersion {
-	case 2:
-		sourceMediaType, err := m.sourceManifestMediaType()
-		if err != nil {
-			return fmt.Errorf("Mirror: %w", err)
-		}
-		logrus.WithField("M_ID", m.mID).
-			Debugf("sourceMediaType: %v", sourceMediaType)
-		switch sourceMediaType {
-		case u.MediaTypeManifestListV2:
-			logrus.WithField("M_ID", m.mID).
-				Infof("[%s:%s] is manifest.list.v2", m.source, m.tag)
-			if err := m.initImageListByListV2(); err != nil {
-				return fmt.Errorf("Mirror: %w", err)
-			}
-		case u.MediaTypeManifestV2:
-			logrus.WithField("M_ID", m.mID).
-				Infof("[%s:%s] is manifest.v2", m.source, m.tag)
-			if err := m.initImageListByV2(); err != nil {
-				return fmt.Errorf("Mirror: %w", err)
-			}
-		default:
-			return fmt.Errorf("Mirror: %w", u.ErrInvalidMediaType)
-		}
-	case 1:
-		logrus.WithField("M_ID", m.mID).
-			Infof("[%s:%s] is manifest.v1", m.source, m.tag)
-		if err := m.initImageListByV1(); err != nil {
-			return fmt.Errorf("Mirror: %w", err)
-		}
-	default:
-		return fmt.Errorf("Mirror: %w", u.ErrInvalidSchemaVersion)
+	if err := m.initImageList(); err != nil {
+		return fmt.Errorf("StartMirror: %w", err)
 	}
 
 	for _, img := range m.images {
@@ -167,6 +140,80 @@ func (m *Mirror) StartMirror() error {
 	return nil
 }
 
+func (m *Mirror) StartSave() error {
+	if m == nil {
+		return fmt.Errorf("StartMirror: %w", u.ErrNilPointer)
+	}
+
+	logrus.WithField("M_ID", m.mID).Debug("Start Save")
+	if err := m.initImageList(); err != nil {
+		return fmt.Errorf("StartSave: %w", err)
+	}
+
+	for _, img := range m.images {
+		if err := img.Save(); err != nil {
+			logrus.WithFields(logrus.Fields{"M_ID": m.mID}).Error(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (m *Mirror) StartLoad() error {
+	// TODO:
+	return nil
+}
+
+func (m *Mirror) initImageList() error {
+	// Init source and destination manifest
+	if err := m.initSourceDestinationManifest(); err != nil {
+		return fmt.Errorf("initImageList: %w", err)
+	}
+
+	sourceSchemaVersion, err := m.sourceManifestSchemaVersion()
+	if err != nil {
+		return fmt.Errorf("initImageList: %w", err)
+	}
+	logrus.WithField("M_ID", m.mID).
+		Debugf("sourceSchemaVersion: %v", sourceSchemaVersion)
+
+	switch sourceSchemaVersion {
+	case 2:
+		sourceMediaType, err := m.sourceManifestMediaType()
+		if err != nil {
+			return fmt.Errorf("initImageList: %w", err)
+		}
+		logrus.WithField("M_ID", m.mID).
+			Debugf("sourceMediaType: %v", sourceMediaType)
+		switch sourceMediaType {
+		case u.MediaTypeManifestListV2:
+			logrus.WithField("M_ID", m.mID).
+				Infof("[%s:%s] is manifest.list.v2", m.source, m.tag)
+			if err := m.initImageListByListV2(); err != nil {
+				return fmt.Errorf("initImageList: %w", err)
+			}
+		case u.MediaTypeManifestV2:
+			logrus.WithField("M_ID", m.mID).
+				Infof("[%s:%s] is manifest.v2", m.source, m.tag)
+			if err := m.initImageListByV2(); err != nil {
+				return fmt.Errorf("initImageList: %w", err)
+			}
+		default:
+			return fmt.Errorf("initImageList: %w", u.ErrInvalidMediaType)
+		}
+	case 1:
+		logrus.WithField("M_ID", m.mID).
+			Infof("[%s:%s] is manifest.v1", m.source, m.tag)
+		if err := m.initImageListByV1(); err != nil {
+			return fmt.Errorf("initImageList: %w", err)
+		}
+	default:
+		return fmt.Errorf("initImageList: %w", u.ErrInvalidSchemaVersion)
+	}
+
+	return nil
+}
+
 func (m *Mirror) Source() string {
 	return m.source
 }
@@ -177,6 +224,10 @@ func (m *Mirror) Destination() string {
 
 func (m *Mirror) Tag() string {
 	return m.tag
+}
+
+func (m *Mirror) Directory() string {
+	return m.directory
 }
 
 func (m *Mirror) HasArch(a string) bool {
@@ -271,11 +322,20 @@ func (m *Mirror) Copied() int {
 	return num
 }
 
-// Failed method gets the number of images copy failed
-func (m *Mirror) Failed() int {
+func (m *Mirror) Saved() int {
 	var num int = 0
 	for _, img := range m.images {
-		if !img.Copied() {
+		if img.Saved() {
+			num++
+		}
+	}
+	return num
+}
+
+func (m *Mirror) Loaded() int {
+	var num int = 0
+	for _, img := range m.images {
+		if img.Loaded() {
 			num++
 		}
 	}
@@ -307,6 +367,10 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	}
 	m.sourceManifestStr = out
 
+	// Skip inspect destination image if dest is empty string
+	if m.destination == "" {
+		return nil
+	}
 	// Get destination manifest list
 	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.destination, m.tag)
 	out, err = registry.SkopeoInspect(inspectDestImage, "--raw")
@@ -328,7 +392,7 @@ func (m *Mirror) sourceManifestSchemaVersion() (int, error) {
 	schemaFloat64, ok := m.sourceManifest["schemaVersion"].(float64)
 	if !ok {
 		return 0, fmt.Errorf(
-			"SourceManifestSchemaVersion read schemaVersion: %w",
+			"sourceManifestSchemaVersion read schemaVersion: %w",
 			u.ErrReadJsonFailed)
 	}
 	return int(schemaFloat64), nil
@@ -394,6 +458,7 @@ func (m *Mirror) initImageListByListV2() error {
 			Variant:             variant,
 			OS:                  osType,
 			Digest:              digest,
+			Directory:           m.directory,
 			SourceSchemaVersion: 2,
 			SourceMediaType:     u.MediaTypeManifestListV2,
 			MID:                 m.mID,
@@ -448,6 +513,7 @@ func (m *Mirror) initImageListByV2() error {
 		Variant:             "",
 		OS:                  osType,
 		Digest:              digest,
+		Directory:           m.directory,
 		SourceSchemaVersion: 2,
 		SourceMediaType:     u.MediaTypeManifestV2,
 		MID:                 m.mID,
@@ -494,6 +560,7 @@ func (m *Mirror) initImageListByV1() error {
 		Variant:             "",
 		OS:                  osType,
 		Digest:              "", // schemaVersion 1 does not have digest
+		Directory:           m.directory,
 		SourceSchemaVersion: 1,
 		SourceMediaType:     "", // schemaVersion 1 does not have mediaType
 		MID:                 m.mID,

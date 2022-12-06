@@ -108,8 +108,8 @@ func Test_NewMirror(t *testing.T) {
 	if mirrorer.Copied() != 0 {
 		t.Error("Copied failed")
 	}
-	if mirrorer.Failed() != 1 {
-		t.Error("Failed failed")
+	if mirrorer.ImageNum()-mirrorer.Copied() != 1 {
+		t.Error("CopyFailed failed")
 	}
 	mirrorer.SetID(fmt.Sprintf("%02d", 1))
 	if mirrorer.ID() != "01" {

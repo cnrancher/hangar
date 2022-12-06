@@ -2,6 +2,8 @@ package image
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -39,6 +41,16 @@ type Imager interface {
 	// the format should be: ${VERSION}-${ARCH}${VARIANT}
 	CopiedTag() string
 
+	// Save saves the image into local directory
+	Save() error
+
+	// Saved checks the image is saved or not
+	Saved() bool
+
+	Load() error
+
+	Loaded() bool
+
 	// SetID sets the ID of the Imager
 	SetID(string)
 
@@ -54,7 +66,11 @@ type Image struct {
 	variant     string
 	os          string
 	digest      string
-	copied      bool
+	directory   string
+
+	copied bool
+	saved  bool
+	loaded bool
 
 	sourceSchemaVersion int
 	sourceMediaType     string
@@ -73,6 +89,7 @@ type ImageOptions struct {
 	Variant     string
 	OS          string
 	Digest      string
+	Directory   string
 
 	SourceSchemaVersion int
 	SourceMediaType     string
@@ -89,6 +106,7 @@ func NewImage(opts *ImageOptions) *Image {
 		variant:             opts.Variant,
 		os:                  opts.OS,
 		digest:              opts.Digest,
+		directory:           opts.Directory,
 		sourceSchemaVersion: opts.SourceSchemaVersion,
 		sourceMediaType:     opts.SourceMediaType,
 		mID:                 opts.MID,
@@ -151,6 +169,97 @@ func (img *Image) Copy() error {
 
 func (img *Image) Copied() bool {
 	return img.copied
+}
+
+func (img *Image) Save() error {
+	if img.directory == "" {
+		return fmt.Errorf("Save: img.directory is empty")
+	}
+	if !filepath.IsAbs(img.directory) {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("Save: os.Getwd failed: %w", err)
+		}
+		img.directory = filepath.Join(currentDir, img.directory)
+	}
+	logrus.WithFields(logrus.Fields{
+		"M_ID":   img.mID,
+		"IMG_ID": img.iID}).
+		Infof("Save image directory: %s", img.directory)
+	info, err := os.Stat(img.directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(img.directory, 0755); err != nil {
+				return fmt.Errorf("Save: %w", err)
+			}
+		}
+		return fmt.Errorf("Save: %w", err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("Save: '%s' is not a directory", img.directory)
+	}
+
+	var sourceImage string
+	switch img.sourceSchemaVersion {
+	case 1:
+		sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
+	case 2:
+		switch img.sourceMediaType {
+		case u.MediaTypeManifestListV2:
+			// registry/repository@sha256:abcdef...
+			sourceImage = fmt.Sprintf("docker://%s@%s", img.source, img.digest)
+		case u.MediaTypeManifestV2:
+			// registry/repository:va.b.c
+			sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
+		default:
+			return fmt.Errorf("Save: %w", u.ErrInvalidMediaType)
+		}
+	default:
+		return fmt.Errorf("Save: %w", u.ErrInvalidSchemaVersion)
+	}
+	// get source image digest
+	out, err := registry.SkopeoInspect(sourceImage, "--raw")
+	if err != nil {
+		return fmt.Errorf("Save: skopeo inspect: %w", err)
+	}
+
+	img.directory = filepath.Join(img.directory, u.Sha256Sum(out))
+	if err := os.Mkdir(img.directory, 0755); err != nil {
+		return fmt.Errorf("Save: mkdir: %w", err)
+	}
+	if ok, err := u.IsDirEmpty(img.directory); !ok || err != nil {
+		if err != nil {
+			return fmt.Errorf("Save: failed to check dir is empty: %w", err)
+		}
+		return fmt.Errorf("Save: %s: %w", img.directory, u.ErrDirNotEmpty)
+	}
+
+	// skopeo copy docker://<source> dir://<local_dir>
+	destImageDir := fmt.Sprintf("dir://%s", img.directory)
+	args := []string{
+		"--format=v2s2",
+	}
+	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
+	if err != nil {
+		return fmt.Errorf("Save: skopeo copy :%w", err)
+	}
+	img.saved = true
+
+	return nil
+}
+
+func (img *Image) Saved() bool {
+	return img.saved
+}
+
+func (img *Image) Load() error {
+	panic("not implemented")
+	return nil
+}
+
+func (img *Image) Loaded() bool {
+	return img.loaded
 }
 
 func (img *Image) CopiedTag() string {

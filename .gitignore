@@ -1,6 +1,16 @@
+# binary files
 image-tools
 skopeo
+
+# image lists
 test.txt
 mirror-failed.txt
+save-failed.txt
+load-failed.txt
 *.out
-.vscode/
+
+# default save image directory
+/output/
+
+# vscode config
+/.vscode/

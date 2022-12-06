@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 )
 
 var (
@@ -17,6 +19,7 @@ var (
 	ErrInvalidSchemaVersion = errors.New("invalid schema version")
 	ErrNilPointer           = errors.New("nil pointer")
 	ErrDockerBuildxNotFound = errors.New("docker buildx not found")
+	ErrDirNotEmpty          = errors.New("directory is not empty")
 )
 
 const (
@@ -34,4 +37,21 @@ var (
 func Sha256Sum(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return fmt.Sprintf("%x", sum)
+}
+
+func IsDirEmpty(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// read in ONLY one file
+	_, err = f.Readdir(1)
+
+	// and if the file is EOF... well, the dir is empty.
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
 }
