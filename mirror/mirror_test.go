@@ -27,9 +27,9 @@ func init() {
 }
 
 // StartMirror method should test manually,
-// this function can not be implemented in unit test
+// this method can not be implemented in unit test
 
-func TestMirrorerInterface(t *testing.T) {
+func Test_MirrorerInterface(t *testing.T) {
 	mirror := NewMirror(&MirrorOptions{})
 	var mirrorer Mirrorer = mirror
 	_ = mirrorer
@@ -79,7 +79,7 @@ func Test_ConstructRegistry(t *testing.T) {
 	}
 }
 
-func TestNewMirror(t *testing.T) {
+func Test_NewMirror(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
 		Destination: "private.io/example",
@@ -117,9 +117,9 @@ func TestNewMirror(t *testing.T) {
 	}
 }
 
-// TestS2V2 simulates the mirror operations when
+// Test_S2V2 simulates the mirror operations when
 // source image mediaType is manifest.v2.
-func TestS2V2(t *testing.T) {
+func Test_S2V2(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
 		Destination: "private.io/example",
@@ -230,9 +230,9 @@ func TestS2V2(t *testing.T) {
 	registry.RunCommandFunc = nil
 }
 
-// TestS2V2 simulates the mirror operations when
+// Test_S2V2List simulates the mirror operations when
 // source image mediaType is manifest.list.v2.
-func TestS2V2List(t *testing.T) {
+func Test_S2V2List(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
 		Destination: "private.io/example",
@@ -324,9 +324,9 @@ func TestS2V2List(t *testing.T) {
 	registry.RunCommandFunc = nil
 }
 
-// TestS1V2 simulates the mirror operations when
+// Test_S1V2 simulates the mirror operations when
 // source image deprecated schemaVersion V1.
-func TestS1V2(t *testing.T) {
+func Test_S1V2(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
 		Destination: "private.io/example",

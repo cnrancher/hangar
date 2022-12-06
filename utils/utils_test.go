@@ -1,27 +1,35 @@
 package utils
 
 import (
-	"math"
 	"testing"
 )
 
-const (
-	exampleJson = `
-{
-	"example_string": "abc",
-	"example_float": 1.23,
-	"example_int": 123,
-	"example_nested_obj": {
-		"a": "a"
-	},
-	"example_array": [
-		{"a": "a"},{ "b": "b"}
-	]
-}`
-)
+func Test_DefaultRunCommandFunc(t *testing.T) {
+	args := []string{"HELLO_WORLD"}
+	if out, err := DefaultRunCommandFunc("echo", args...); err != nil || out != "HELLO_WORLD\n" {
+		t.Error("DefaultRunCommandFunc 1 failed")
+	}
+	args = nil
+	if out, err := DefaultRunCommandFunc("echo", args...); err != nil || out != "\n" {
+		t.Error("DefaultRunCommandFunc 2 failed")
+	}
+	if out, err := DefaultRunCommandFunc("UNKNOW_CMD", args...); err == nil || out != "" {
+		t.Error("DefaultRunCommandFunc 3 failed")
+	}
+}
 
-func floatEqual(a, b float64) bool {
-	return math.Abs(a-b) < 1e-9
+func Test_RunCommandStdoutFunc(t *testing.T) {
+	args := []string{"HELLO_WORLD"}
+	if out, err := RunCommandStdoutFunc("echo", args...); err != nil || out != "" {
+		t.Error("DefaultRunCommandFunc 1 failed")
+	}
+	args = nil
+	if out, err := RunCommandStdoutFunc("echo", args...); err != nil || out != "" {
+		t.Error("DefaultRunCommandFunc 2 failed")
+	}
+	if out, err := RunCommandStdoutFunc("UNKNOW_CMD", args...); err == nil || out != "" {
+		t.Error("DefaultRunCommandFunc 3 failed")
+	}
 }
 
 func TestSha256(t *testing.T) {
