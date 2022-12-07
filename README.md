@@ -4,6 +4,8 @@ Mirror multi-arch container images from public registry to your personal registr
 
 ## Usage
 
+> Simplified Chinese Usage Guide: [简体中文-使用文档](docs/README.md)
+
 ```sh
 # go version
 go version go1.19 linux/amd64
@@ -18,10 +20,12 @@ go build -o image-tools .
 ./image-tools mirror -h
 ```
 
-### Mirrorer
+### Mirror
 
-```
-./image-tools mirror -h
+`mirror` command copy images from source registry to the destination registry.
+
+```console
+$ ./image-tools mirror -h
 Usage of mirror:
   -a string
     	architecture list of images, seperate with ',' (default "amd64,arm64")
