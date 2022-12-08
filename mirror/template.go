@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"cnrancher.io/image-tools/image"
 	u "cnrancher.io/image-tools/utils"
@@ -88,7 +89,8 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 
 		for _, imgTemplate := range mTemplate.Images {
 			// Source is a directory
-			sourceImage := filepath.Join(directory, imgTemplate.Digest)
+			sourceImage := filepath.Join(directory,
+				strings.TrimLeft(imgTemplate.Digest, "sha256:"))
 			repo := ConstructRegistry(mTemplate.Source, destReg)
 			tag := image.CopiedTag(
 				mTemplate.Tag, imgTemplate.Arch, imgTemplate.Variant)

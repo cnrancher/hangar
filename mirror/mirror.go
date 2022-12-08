@@ -129,21 +129,21 @@ func (m *Mirror) StartMirror() error {
 		return fmt.Errorf("StartSave: mirrorer is not in MIRROR mode")
 	}
 	logrus.WithField("M_ID", m.mID).Debug("Start Mirror")
-
+	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
 		return fmt.Errorf("StartMirror: %w", err)
 	}
-
+	// Copy images
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			logrus.WithFields(logrus.Fields{"M_ID": m.mID}).Error(err.Error())
 		}
 	}
-
 	// If the source manifest list does not equal to the dest manifest list
 	if !m.compareSourceDestManifest() {
 		logrus.WithField("M_ID", m.mID).
 			Info("Creating dest manifest list...")
+		// Create a new dest manifest list
 		if err := m.updateDestManifest(); err != nil {
 			return fmt.Errorf("Mirror: %w", err)
 		}

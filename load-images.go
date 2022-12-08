@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"sync"
@@ -9,6 +10,15 @@ import (
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	loadCmd     = flag.NewFlagSet("load", flag.ExitOnError)
+	loadFile    = loadCmd.String("f", "", "saved tar.gz file")
+	loadDestReg = loadCmd.String("d", "", "override the destination registry")
+	loadFailed  = loadCmd.String("o", "load-failed.txt", "file name of the load failed image list")
+	loadDebug   = loadCmd.Bool("debug", false, "enable the debug output")
+	loadJobs    = loadCmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
 
 func LoadImages() {
@@ -43,7 +53,7 @@ func LoadImages() {
 	// TODO:
 	directory := *loadFile
 	if directory == "" {
-		directory = "output/"
+		directory = u.CacheImageDirectory
 	}
 
 	if directory, err = u.GetAbsPath(directory); err != nil {

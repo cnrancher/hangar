@@ -3,6 +3,7 @@ package image
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -17,7 +18,8 @@ func (img *Image) Save() error {
 	var err error
 	var ok bool
 
-	img.directory = filepath.Join(img.directory, img.digest)
+	img.directory = filepath.Join(
+		img.directory, strings.TrimLeft(img.digest, "sha256:"))
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.mID,
 		"IMG_ID": img.iID}).
@@ -34,25 +36,6 @@ func (img *Image) Save() error {
 		}
 		return fmt.Errorf("Save: %w", u.ErrDirNotEmpty)
 	}
-
-	// var sourceImage string
-	// switch img.sourceSchemaVersion {
-	// case 1:
-	// 	sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	// case 2:
-	// 	switch img.sourceMediaType {
-	// 	case u.MediaTypeManifestListV2:
-	// 		// registry/repository@sha256:abcdef...
-	// 		sourceImage = fmt.Sprintf("docker://%s@%s", img.source, img.digest)
-	// 	case u.MediaTypeManifestV2:
-	// 		// registry/repository:va.b.c
-	// 		sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	// 	default:
-	// 		return fmt.Errorf("Save: %w", u.ErrInvalidMediaType)
-	// 	}
-	// default:
-	// 	return fmt.Errorf("Save: %w", u.ErrInvalidSchemaVersion)
-	// }
 
 	// skopeo copy docker://<source> dir://<local_dir>
 	sourceImage := fmt.Sprintf("docker://%s", img.source)

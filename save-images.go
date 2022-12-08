@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,17 @@ import (
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	saveCmd       = flag.NewFlagSet("save", flag.ExitOnError)
+	saveFile      = saveCmd.String("f", "", "image list file")
+	saveArch      = saveCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	saveSourceReg = saveCmd.String("s", "", "override the source registry")
+	saveDestDir   = saveCmd.String("d", u.CacheImageDirectory, "specify the output directory")
+	saveFailed    = saveCmd.String("o", "save-failed.txt", "file name of the save failed image list")
+	saveDebug     = saveCmd.Bool("debug", false, "enable the debug output")
+	saveJobs      = saveCmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
 
 func SaveImages() {
@@ -29,6 +41,32 @@ func SaveImages() {
 	// Command line parameter is prior than environment variable
 	if *saveDestDir == "" {
 		logrus.Panic("destination dir not specified!")
+	}
+
+	// Check cache image directory
+	ok, err := u.IsDirEmpty(u.CacheImageDirectory)
+	if err != nil {
+		logrus.Panic(err)
+	}
+	if !ok {
+		logrus.Warnf("Cache folder: '%s' is not empty!", u.CacheImageDirectory)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("Delete it before start save image? [Yes/No] ")
+		for {
+			text, _ := reader.ReadString('\n')
+			if len(text) == 0 {
+				continue
+			}
+			if text[0] == 'Y' || text[0] == 'y' {
+				break
+			} else {
+				logrus.Fatalf("'%s': %v",
+					u.CacheImageDirectory, u.ErrDirNotEmpty)
+			}
+		}
+		if err := os.RemoveAll(u.CacheImageDirectory); err != nil {
+			logrus.Panic(err)
+		}
 	}
 
 	var scanner *bufio.Scanner
@@ -121,6 +159,10 @@ func SaveImages() {
 			mTemplate := m.GetSavedImageTemplate()
 			if mTemplate != nil {
 				savedImages = append(savedImages, *mTemplate)
+			}
+			if usingStdin {
+				u.SaveJson(savedImages,
+					filepath.Join(*saveDestDir, u.SavedImageListFile))
 			}
 			appendSliceMutex.Unlock()
 

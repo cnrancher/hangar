@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -11,6 +12,19 @@ import (
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
+)
+
+// mirror COMMAND reads file from image-list txt or stdin, then mirror images
+// from source repo to the destination repo
+var (
+	mirrorCmd       = flag.NewFlagSet("mirror", flag.ExitOnError)
+	mirrorFile      = mirrorCmd.String("f", "", "image list file")
+	mirrorArch      = mirrorCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	mirrorSourceReg = mirrorCmd.String("s", "", "override the source registry")
+	mirrorDestReg   = mirrorCmd.String("d", "", "override the destination registry")
+	mirrorFailed    = mirrorCmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
+	mirrorDebug     = mirrorCmd.Bool("debug", false, "enable the debug output")
+	mirrorJobs      = mirrorCmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
 )
 
 func MirrorImages() {

@@ -10,7 +10,7 @@ load-failed.txt
 *.out
 
 # default save image directory
-/output/
+/.saved-image-cache/
 
 # vscode config
 /.vscode/

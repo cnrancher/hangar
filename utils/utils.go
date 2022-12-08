@@ -30,6 +30,7 @@ const (
 	MediaTypeManifestListV2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 	SavedImageListFile      = "saved-images-list.json"
+	CacheImageDirectory     = ".saved-image-cache/"
 )
 
 var (
@@ -43,6 +44,17 @@ func Sha256Sum(s string) string {
 }
 
 func IsDirEmpty(name string) (bool, error) {
+	info, err := os.Stat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, fmt.Errorf("IsDirEmpty: %w", err)
+		}
+	} else if !info.IsDir() {
+		return false, fmt.Errorf("IsDirEmpty: '%s' is not a directory", name)
+	}
+
 	f, err := os.Open(name)
 	if err != nil {
 		return false, err
@@ -108,9 +120,14 @@ func EnsureDirExists(directory string) error {
 }
 
 func SaveJson(data interface{}, fileName string) error {
-	jsonBytes, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return fmt.Errorf("SaveJson: %w", err)
+	var jsonBytes []byte = []byte{}
+	var err error
+
+	if data != nil {
+		jsonBytes, err = json.MarshalIndent(data, "", "  ")
+		if err != nil {
+			return fmt.Errorf("SaveJson: %w", err)
+		}
 	}
 	fileName, err = GetAbsPath(fileName)
 	if err != nil {
