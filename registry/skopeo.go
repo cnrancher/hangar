@@ -20,7 +20,7 @@ const (
 )
 
 // EnsureSkopeoInstalled ensures the skopeo command is installed.
-// If the skopeo is not instqlled, download the binary to current dir.
+// If the skopeo is not installed, download the binary to current dir.
 func EnsureSkopeoInstalled(installPath string) (string, error) {
 	var path string
 	var err error

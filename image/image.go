@@ -1,14 +1,6 @@
 package image
 
-import (
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"cnrancher.io/image-tools/registry"
-	u "cnrancher.io/image-tools/utils"
-	"github.com/sirupsen/logrus"
-)
+import "fmt"
 
 // Imager interface is the specific image
 type Imager interface {
@@ -20,6 +12,9 @@ type Imager interface {
 
 	// Arch gets the architecture of the image
 	Arch() string
+
+	// Variant gets the variant of the image
+	Variant() string
 
 	// OS gets the OS of the image
 	OS() string
@@ -36,10 +31,6 @@ type Imager interface {
 
 	// Copied checks the image is copied or not
 	Copied() bool
-
-	// CopiedTag gets the tag of the copied image:
-	// the format should be: ${VERSION}-${ARCH}${VARIANT}
-	CopiedTag() string
 
 	// Save saves the image into local directory
 	Save() error
@@ -65,7 +56,7 @@ type Image struct {
 	arch        string
 	variant     string
 	os          string
-	digest      string
+	digest      string // digest is the source image manifest sha256sum
 	directory   string
 
 	copied bool
@@ -129,153 +120,16 @@ func (img *Image) OS() string {
 	return img.os
 }
 
+func (img *Image) Variant() string {
+	return img.variant
+}
+
 func (img *Image) Digest() string {
 	return img.digest
 }
 
 func (img *Image) SetDigest(d string) {
 	img.digest = d
-}
-
-func (img *Image) Copy() error {
-	if img == nil {
-		return u.ErrNilPointer
-	}
-
-	if img.source == "" || img.destination == "" || img.arch == "" {
-		return u.ErrInvalidParameter
-	}
-
-	if err := img.copyIfChanged(); err != nil {
-		return fmt.Errorf("Copy: %w", err)
-	}
-
-	if img.sourceSchemaVersion == 1 {
-		// get digests from copied dest image
-		destImage := fmt.Sprintf("docker://%s:%s",
-			img.destination, img.CopiedTag())
-		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
-		out, err := registry.SkopeoInspect(destImage, "--raw")
-		if err != nil {
-			return fmt.Errorf("Copy: %w", err)
-		}
-		digest := "sha256:" + u.Sha256Sum(out)
-		img.digest = digest
-	}
-
-	img.copied = true
-	return nil
-}
-
-func (img *Image) Copied() bool {
-	return img.copied
-}
-
-func (img *Image) Save() error {
-	if img.directory == "" {
-		return fmt.Errorf("Save: img.directory is empty")
-	}
-	if !filepath.IsAbs(img.directory) {
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("Save: os.Getwd failed: %w", err)
-		}
-		img.directory = filepath.Join(currentDir, img.directory)
-	}
-	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Infof("Save image directory: %s", img.directory)
-	info, err := os.Stat(img.directory)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Mkdir(img.directory, 0755); err != nil {
-				return fmt.Errorf("Save: %w", err)
-			}
-		}
-		return fmt.Errorf("Save: %w", err)
-	}
-
-	if !info.IsDir() {
-		return fmt.Errorf("Save: '%s' is not a directory", img.directory)
-	}
-
-	var sourceImage string
-	switch img.sourceSchemaVersion {
-	case 1:
-		sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	case 2:
-		switch img.sourceMediaType {
-		case u.MediaTypeManifestListV2:
-			// registry/repository@sha256:abcdef...
-			sourceImage = fmt.Sprintf("docker://%s@%s", img.source, img.digest)
-		case u.MediaTypeManifestV2:
-			// registry/repository:va.b.c
-			sourceImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-		default:
-			return fmt.Errorf("Save: %w", u.ErrInvalidMediaType)
-		}
-	default:
-		return fmt.Errorf("Save: %w", u.ErrInvalidSchemaVersion)
-	}
-	// get source image digest
-	out, err := registry.SkopeoInspect(sourceImage, "--raw")
-	if err != nil {
-		return fmt.Errorf("Save: skopeo inspect: %w", err)
-	}
-
-	img.directory = filepath.Join(img.directory, u.Sha256Sum(out))
-	if err := os.Mkdir(img.directory, 0755); err != nil {
-		return fmt.Errorf("Save: mkdir: %w", err)
-	}
-	if ok, err := u.IsDirEmpty(img.directory); !ok || err != nil {
-		if err != nil {
-			return fmt.Errorf("Save: failed to check dir is empty: %w", err)
-		}
-		return fmt.Errorf("Save: %s: %w", img.directory, u.ErrDirNotEmpty)
-	}
-
-	// skopeo copy docker://<source> dir://<local_dir>
-	destImageDir := fmt.Sprintf("dir://%s", img.directory)
-	args := []string{
-		"--format=v2s2",
-	}
-	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
-	if err != nil {
-		return fmt.Errorf("Save: skopeo copy :%w", err)
-	}
-	img.saved = true
-
-	return nil
-}
-
-func (img *Image) Saved() bool {
-	return img.saved
-}
-
-func (img *Image) Load() error {
-	panic("not implemented")
-	return nil
-}
-
-func (img *Image) Loaded() bool {
-	return img.loaded
-}
-
-func (img *Image) CopiedTag() string {
-	switch img.arch {
-	case "amd64":
-		return fmt.Sprintf("%s-%s", img.tag, img.arch)
-	case "arm64":
-		// there is only one variant of arm64 is v8, so discard it
-		return fmt.Sprintf("%s-%s", img.tag, img.arch)
-	case "arm":
-		// arm has variant v5, v7, etc...
-		return fmt.Sprintf("%s-%s%s", img.tag, img.arch, img.variant)
-	default:
-		// other arch: s390x, ppc64...
-		return fmt.Sprintf("%s-%s%s", img.tag, img.arch, img.variant)
-	}
 }
 
 func (img *Image) SetID(id string) {
@@ -287,94 +141,20 @@ func (img *Image) ID() string {
 	return img.iID
 }
 
-func (img *Image) copyIfChanged() error {
-	var (
-		srcDockerImage string
-		dstDockerImage string
-	)
-
-	if img.sourceSchemaVersion == 1 {
-		srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-		dstDockerImage = fmt.Sprintf("docker://%s:%s",
-			img.destination, img.CopiedTag())
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("[%s] is schema v1, no need to compare", srcDockerImage)
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
-		args := []string{"--format=v2s2", "--override-arch=" + img.arch}
-		if img.os != "" {
-			args = append(args, "--override-os="+img.os)
-		}
-		return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
+// CopiedTag gets the tag of the copied image,
+// the format should be: ${VERSION}-${ARCH}${VARIANT}
+func CopiedTag(tag, arch, variant string) string {
+	switch arch {
+	case "amd64":
+		return fmt.Sprintf("%s-%s", tag, arch)
+	case "arm64":
+		// there is only one variant of arm64 is v8, so discard it
+		return fmt.Sprintf("%s-%s", tag, arch)
+	case "arm":
+		// arm has variant v5, v7, etc...
+		return fmt.Sprintf("%s-%s%s", tag, arch, variant)
+	default:
+		// other arch: s390x, ppc64...
+		return fmt.Sprintf("%s-%s%s", tag, arch, variant)
 	}
-
-	switch img.sourceMediaType {
-	case u.MediaTypeManifestListV2:
-		// docker://registry/repository@sha256:abcdef...
-		srcDockerImage = fmt.Sprintf("docker://%s@%s", img.source, img.digest)
-	case u.MediaTypeManifestV2:
-		// docker://registry/repository:va.b.c
-		srcDockerImage = fmt.Sprintf("docker://%s:%s", img.source, img.tag)
-	}
-
-	// docker://registry/repository:${ORIGINAL_TAG}-${ARCH}${VARIANT}
-	dstDockerImage = fmt.Sprintf("docker://%s:%s",
-		img.destination, img.CopiedTag())
-
-	// Inspect the source image info
-	sourceManifest, err := registry.SkopeoInspect(srcDockerImage, "--raw")
-	if err != nil {
-		// if source image not found, return error.
-		return fmt.Errorf("copyIfChanged failed inspect source image: %w", err)
-	}
-	// logrus.WithFields(logrus.Fields{"M_ID": img.mID, "IMG_ID": img.iID}).
-	// 	Debug("sourceManifest: ", sourceManifest)
-
-	destManifest, err := registry.SkopeoInspect(dstDockerImage, "--raw")
-	if err != nil {
-		// if destination image not found, set destManifestBuff to nil
-		destManifest = ""
-	}
-	// logrus.WithFields(logrus.Fields{"M_ID": img.mID, "IMG_ID": img.iID}).
-	// 	Debug("destManifest: ", destManifest)
-
-	var srcManifestSum string
-	var dstManifestSum string = "<NEW_IMAGE>"
-	srcManifestSum = "sha256:" + u.Sha256Sum(sourceManifest)
-	if destManifest != "" {
-		dstManifestSum = "sha256:" + u.Sha256Sum(destManifest)
-	}
-	// compare the source manifest with the dest manifest
-	if srcManifestSum == dstManifestSum {
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("Unchanged: %s == %s", srcDockerImage, dstDockerImage)
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("source digest: %s", srcManifestSum)
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).Infof("destin digest: %s", dstManifestSum)
-		return nil
-	} else {
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("Digest: %s => %s", srcManifestSum, dstManifestSum)
-	}
-	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Infof("Copying: %s => %s", srcDockerImage, dstDockerImage)
-	args := []string{"--format=v2s2", "--override-arch=" + img.arch}
-	if img.os != "" {
-		args = append(args, "--override-os="+img.os)
-	}
-	return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
 }

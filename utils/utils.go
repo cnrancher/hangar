@@ -2,10 +2,12 @@ package utils
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -27,6 +29,7 @@ const (
 	DockerHubRegistry       = "docker.io"
 	MediaTypeManifestListV2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
+	SavedImageListFile      = "saved-images-list.json"
 )
 
 var (
@@ -54,4 +57,74 @@ func IsDirEmpty(name string) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+func AppendFileLine(fileName string, line string) error {
+	// If the file doesn't exist, create it, or append to the file
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("AppendFileLine: %w", err)
+	}
+	if _, err := f.Write([]byte(line)); err != nil {
+		f.Close() // ignore error; Write error takes precedence
+		return fmt.Errorf("AppendFileLine: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("AppendFileLine: %w", err)
+	}
+
+	return nil
+}
+
+func GetAbsPath(dir string) (string, error) {
+	if dir == "" {
+		return "", fmt.Errorf("GetAbsPath: dir is empty")
+	}
+	if !filepath.IsAbs(dir) {
+		currentDir, err := os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("StartSave: os.Getwd failed: %w", err)
+		}
+		dir = filepath.Join(currentDir, dir)
+		return dir, nil
+	}
+	return dir, nil
+}
+
+func EnsureDirExists(directory string) error {
+	info, err := os.Stat(directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(directory, 0755); err != nil {
+				return fmt.Errorf("StartSave: %w", err)
+			}
+		} else {
+			return fmt.Errorf("StartSave: %w", err)
+		}
+	} else if !info.IsDir() {
+		return fmt.Errorf("StartSave: '%s' is not a directory", directory)
+	}
+	return nil
+}
+
+func SaveJson(data interface{}, fileName string) error {
+	jsonBytes, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("SaveJson: %w", err)
+	}
+	fileName, err = GetAbsPath(fileName)
+	if err != nil {
+		return fmt.Errorf("SaveJson: %w", err)
+	}
+	savedImageFile, err := os.OpenFile(fileName,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("SaveJson: %w", err)
+	}
+	savedImageFile.Write(jsonBytes)
+	err = savedImageFile.Close()
+	if err != nil {
+		return fmt.Errorf("SaveJson: %w", err)
+	}
+	return nil
 }

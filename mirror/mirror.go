@@ -53,6 +53,9 @@ type Mirrorer interface {
 	// DestinationDigests gets the exists digest list of the destination image
 	DestinationDigests() []string
 
+	// GetSavedImageTemplate converts this mirrorer to *SavedMirrorTemplate
+	GetSavedImageTemplate() *SavedMirrorTemplate
+
 	// Copied method gets the number of copied images
 	Copied() int
 
@@ -67,6 +70,8 @@ type Mirrorer interface {
 
 	// ID gets the ID of the Mirrorer
 	ID() string
+
+	Mode() int
 }
 
 type Mirror struct {
@@ -85,6 +90,8 @@ type Mirror struct {
 
 	// ID of the mirrorer
 	mID string
+
+	mode int
 }
 
 type MirrorOptions struct {
@@ -93,7 +100,15 @@ type MirrorOptions struct {
 	Tag         string
 	Directory   string
 	ArchList    []string
+	Mode        int
 }
+
+const (
+	_ = iota + 0x10
+	MODE_MIRROR
+	MODE_LOAD
+	MODE_SAVE
+)
 
 func NewMirror(opts *MirrorOptions) *Mirror {
 	return &Mirror{
@@ -102,12 +117,16 @@ func NewMirror(opts *MirrorOptions) *Mirror {
 		tag:               opts.Tag,
 		directory:         opts.Directory,
 		availableArchList: slices.Clone(opts.ArchList),
+		mode:              opts.Mode,
 	}
 }
 
 func (m *Mirror) StartMirror() error {
 	if m == nil {
 		return fmt.Errorf("StartMirror: %w", u.ErrNilPointer)
+	}
+	if m.mode != MODE_MIRROR {
+		return fmt.Errorf("StartSave: mirrorer is not in MIRROR mode")
 	}
 	logrus.WithField("M_ID", m.mID).Debug("Start Mirror")
 
@@ -137,30 +156,6 @@ func (m *Mirror) StartMirror() error {
 		Infof("Successfully copied %s:%s => %s:%s.",
 			m.source, m.tag, m.destination, m.tag)
 
-	return nil
-}
-
-func (m *Mirror) StartSave() error {
-	if m == nil {
-		return fmt.Errorf("StartMirror: %w", u.ErrNilPointer)
-	}
-
-	logrus.WithField("M_ID", m.mID).Debug("Start Save")
-	if err := m.initImageList(); err != nil {
-		return fmt.Errorf("StartSave: %w", err)
-	}
-
-	for _, img := range m.images {
-		if err := img.Save(); err != nil {
-			logrus.WithFields(logrus.Fields{"M_ID": m.mID}).Error(err.Error())
-		}
-	}
-
-	return nil
-}
-
-func (m *Mirror) StartLoad() error {
-	// TODO:
 	return nil
 }
 
@@ -322,32 +317,16 @@ func (m *Mirror) Copied() int {
 	return num
 }
 
-func (m *Mirror) Saved() int {
-	var num int = 0
-	for _, img := range m.images {
-		if img.Saved() {
-			num++
-		}
-	}
-	return num
-}
-
-func (m *Mirror) Loaded() int {
-	var num int = 0
-	for _, img := range m.images {
-		if img.Loaded() {
-			num++
-		}
-	}
-	return num
-}
-
 func (m *Mirror) SetID(id string) {
 	m.mID = id
 }
 
 func (m *Mirror) ID() string {
 	return m.mID
+}
+
+func (m *Mirror) Mode() int {
+	return m.mode
 }
 
 func (m *Mirror) initSourceDestinationManifest() error {
@@ -367,10 +346,11 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	}
 	m.sourceManifestStr = out
 
-	// Skip inspect destination image if dest is empty string
-	if m.destination == "" {
+	// Skip inspect destination image if not in mirror mode
+	if m.mode != MODE_MIRROR {
 		return nil
 	}
+
 	// Get destination manifest list
 	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.destination, m.tag)
 	out, err = registry.SkopeoInspect(inspectDestImage, "--raw")
@@ -386,25 +366,6 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	}
 
 	return nil
-}
-
-func (m *Mirror) sourceManifestSchemaVersion() (int, error) {
-	schemaFloat64, ok := m.sourceManifest["schemaVersion"].(float64)
-	if !ok {
-		return 0, fmt.Errorf(
-			"sourceManifestSchemaVersion read schemaVersion: %w",
-			u.ErrReadJsonFailed)
-	}
-	return int(schemaFloat64), nil
-}
-
-func (m *Mirror) sourceManifestMediaType() (string, error) {
-	mediaType, ok := m.sourceManifest["mediaType"].(string)
-	if !ok {
-		return "", fmt.Errorf("SourceManifestMediaType read mediaType: %w",
-			u.ErrReadJsonFailed)
-	}
-	return mediaType, nil
 }
 
 func (m *Mirror) initImageListByListV2() error {
@@ -449,16 +410,20 @@ func (m *Mirror) initImageListByListV2() error {
 		logrus.WithField("M_ID", m.mID).Debugf("arch: %s", arch)
 		osType, _ = platform["os"].(string)
 
+		sourceImage := fmt.Sprintf("%s@%s", m.source, digest)
+		destImage := fmt.Sprintf("%s:%s",
+			m.destination, image.CopiedTag(m.tag, arch, variant))
 		// create a new image object and append it into image list
 		image := image.NewImage(&image.ImageOptions{
-			Source:              m.source,
-			Destination:         m.destination,
-			Tag:                 m.tag,
-			Arch:                arch,
-			Variant:             variant,
-			OS:                  osType,
-			Digest:              digest,
-			Directory:           m.directory,
+			Source:      sourceImage,
+			Destination: destImage,
+			Tag:         m.tag,
+			Arch:        arch,
+			Variant:     variant,
+			OS:          osType,
+			Digest:      digest,
+			Directory:   m.directory,
+
 			SourceSchemaVersion: 2,
 			SourceMediaType:     u.MediaTypeManifestListV2,
 			MID:                 m.mID,
@@ -483,10 +448,11 @@ func (m *Mirror) initImageListByV2() error {
 	}
 
 	var (
-		arch   string
-		osType string
-		digest string
-		ok     bool
+		arch    string
+		osType  string
+		digest  string
+		variant string
+		ok      bool
 	)
 
 	var sourceOciConfig map[string]interface{}
@@ -496,6 +462,7 @@ func (m *Mirror) initImageListByV2() error {
 			u.ErrReadJsonFailed)
 	}
 	osType, _ = sourceOciConfig["os"].(string)
+	variant, _ = sourceOciConfig["variant"].(string)
 
 	digest = "sha256:" + u.Sha256Sum(m.sourceManifestStr)
 
@@ -504,13 +471,16 @@ func (m *Mirror) initImageListByV2() error {
 			Debugf("skip copy image %s arch %s", m.source, arch)
 	}
 
+	sourceImage = fmt.Sprintf("%s:%s", m.source, m.tag)
+	destImage := fmt.Sprintf("%s:%s",
+		m.destination, image.CopiedTag(m.tag, arch, variant))
 	// create a new image object and append it into image list
 	image := image.NewImage(&image.ImageOptions{
-		Source:              m.source,
-		Destination:         m.destination,
+		Source:              sourceImage,
+		Destination:         destImage,
 		Tag:                 m.tag,
 		Arch:                arch,
-		Variant:             "",
+		Variant:             variant,
 		OS:                  osType,
 		Digest:              digest,
 		Directory:           m.directory,
@@ -551,15 +521,22 @@ func (m *Mirror) initImageListByV1() error {
 		return fmt.Errorf("read Os failed: %w", u.ErrReadJsonFailed)
 	}
 
+	// Calculate sha256sum of source manifest
+	digest := u.Sha256Sum(m.sourceManifestStr)
+
+	sourceImage = fmt.Sprintf("%s:%s", m.source, m.tag)
+	// schemaV1 does not have variant
+	destImage := fmt.Sprintf("%s:%s",
+		m.destination, image.CopiedTag(m.tag, arch, ""))
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
-		Source:              m.source,
-		Destination:         m.destination,
+		Source:              sourceImage,
+		Destination:         destImage,
 		Tag:                 m.tag,
 		Arch:                arch,
 		Variant:             "",
 		OS:                  osType,
-		Digest:              "", // schemaVersion 1 does not have digest
+		Digest:              digest,
 		Directory:           m.directory,
 		SourceSchemaVersion: 1,
 		SourceMediaType:     "", // schemaVersion 1 does not have mediaType
@@ -568,6 +545,25 @@ func (m *Mirror) initImageListByV1() error {
 	m.AppendImage(img)
 
 	return nil
+}
+
+func (m *Mirror) sourceManifestSchemaVersion() (int, error) {
+	schemaFloat64, ok := m.sourceManifest["schemaVersion"].(float64)
+	if !ok {
+		return 0, fmt.Errorf(
+			"sourceManifestSchemaVersion read schemaVersion: %w",
+			u.ErrReadJsonFailed)
+	}
+	return int(schemaFloat64), nil
+}
+
+func (m *Mirror) sourceManifestMediaType() (string, error) {
+	mediaType, ok := m.sourceManifest["mediaType"].(string)
+	if !ok {
+		return "", fmt.Errorf("SourceManifestMediaType read mediaType: %w",
+			u.ErrReadJsonFailed)
+	}
+	return mediaType, nil
 }
 
 func (m *Mirror) compareSourceDestManifest() bool {
@@ -628,11 +624,10 @@ func (m *Mirror) updateDestManifest() error {
 	}
 
 	for _, img := range m.images {
-		if !img.Copied() {
+		if !img.Copied() && !img.Loaded() {
 			continue
 		}
-		copiedImage := fmt.Sprintf("%s:%s", img.Destination(), img.CopiedTag())
-		args = append(args, copiedImage)
+		args = append(args, img.Destination())
 	}
 
 	// docker buildx imagetools create --tag=registry/repository:tag <images>
