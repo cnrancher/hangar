@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 var (
@@ -146,31 +145,4 @@ func SaveJson(data interface{}, fileName string) error {
 		return fmt.Errorf("SaveJson: %w", err)
 	}
 	return nil
-}
-
-// GetRepositoryName gets the repository name of the image.
-// Repository name example:
-// nginx -> nginx;
-// library/nginx -> library/nginx;
-// docker.io/nginx -> nginx;
-// docker.io/library/nginx -> library/nginx;
-// localhost/nginx -> nginx;
-// localhost/library/nginx -> library/nginx
-func GetRepositoryName(src string) (string, error) {
-	v := strings.Split(src, "/")
-	switch len(v) {
-	case 1:
-		return src, nil
-	case 2:
-		if strings.ContainsAny(v[0], ":.") || v[0] == "localhost" {
-			return v[1], nil
-		} else {
-			return src, nil
-		}
-	case 3:
-		if strings.ContainsAny(v[0], ":.") || v[0] == "localhost" {
-			return strings.Join(v[1:], "/"), nil
-		}
-	}
-	return "", errors.New("invalid format")
 }

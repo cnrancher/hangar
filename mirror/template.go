@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"cnrancher.io/image-tools/image"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
+
+type SavedListTemplate struct {
+	List      []SavedMirrorTemplate
+	Version   string
+	SavedTime string
+}
 
 type SavedMirrorTemplate struct {
 	Source   string
@@ -23,7 +30,19 @@ type SavedImagesTemplate struct {
 	Arch    string
 	OS      string
 	Variant string
-	Digest  string
+	Folder  string
+}
+
+func NewSavedListTemplate() *SavedListTemplate {
+	return &SavedListTemplate{
+		List:      nil,
+		Version:   u.VERSION,
+		SavedTime: time.Now().Format(time.RFC3339),
+	}
+}
+
+func (s *SavedListTemplate) Append(mT *SavedMirrorTemplate) {
+	s.List = append(s.List, *mT)
 }
 
 func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
@@ -46,7 +65,7 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 			Arch:    img.Arch(),
 			OS:      img.OS(),
 			Variant: img.Variant(),
-			Digest:  img.Digest(),
+			Folder:  img.SavedFolder(),
 		}
 		mT.Images = append(mT.Images, iT)
 	}
@@ -65,18 +84,20 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 	}
 	logrus.Debugf("LoadSavedTemplates from dir: %v", directory)
 
-	savedMirrorList := []SavedMirrorTemplate{}
+	savedList := SavedListTemplate{}
 	f, err := os.Open(filepath.Join(directory, u.SavedImageListFile))
 	if err != nil {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
 	}
-	err = json.NewDecoder(f).Decode(&savedMirrorList)
+	err = json.NewDecoder(f).Decode(&savedList)
 	if err != nil {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
 	}
 
+	// TODO: Compare version
+
 	var mirrorerList []Mirrorer
-	for _, mT := range savedMirrorList {
+	for _, mT := range savedList.List {
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
 			Destination: ConstructRegistry(mT.Source, destReg),
@@ -89,8 +110,7 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 		for _, iT := range mT.Images {
 			copiedTag := image.CopiedTag(mT.Tag, iT.OS, iT.Arch, iT.Variant)
 			// Source is a directory
-			srcImage := fmt.Sprintf("%s:%s", mT.Source, copiedTag)
-			srcImageDir := filepath.Join(directory, u.Sha256Sum(srcImage))
+			srcImageDir := filepath.Join(directory, iT.Folder)
 			// Destination is the dest registry
 			repo := ConstructRegistry(mT.Source, destReg)
 			destImage := fmt.Sprintf("%s:%s", repo, copiedTag)
@@ -98,12 +118,12 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 				Source:      srcImageDir,
 				Destination: destImage,
 				// Directory is the decompressed folder path
-				Directory: directory,
-				Tag:       mT.Tag,
-				Arch:      iT.Arch,
-				Variant:   iT.Variant,
-				OS:        iT.OS,
-				Digest:    iT.Digest,
+				Directory:   directory,
+				Tag:         mT.Tag,
+				Arch:        iT.Arch,
+				Variant:     iT.Variant,
+				OS:          iT.OS,
+				SavedFolder: iT.Folder,
 
 				// saved image manifest is already converted to v2s2
 				SourceSchemaVersion: 2,

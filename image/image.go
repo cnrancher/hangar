@@ -23,6 +23,12 @@ type Imager interface {
 	// return empty string if not set
 	Digest() string
 
+	// Directory gets the absolute directory of the image
+	Directory() string
+
+	// SavedFolder gets the saved folder name of the image
+	SavedFolder() string
+
 	// SetDigest sets the digest of the image
 	SetDigest(string)
 
@@ -56,8 +62,16 @@ type Image struct {
 	arch        string
 	variant     string
 	os          string
-	digest      string // digest is the source image manifest sha256sum
-	directory   string
+
+	// digest is the source image manifest sha256sum
+	digest string
+
+	// directory is the absolute path to save the image
+	directory string
+
+	// savedFolder is the folder name of the saved image
+	// folder name format is: sha256sum( SOURCE:CopiedTag() )
+	savedFolder string
 
 	copied bool
 	saved  bool
@@ -81,6 +95,7 @@ type ImageOptions struct {
 	OS          string
 	Digest      string
 	Directory   string
+	SavedFolder string
 
 	SourceSchemaVersion int
 	SourceMediaType     string
@@ -98,6 +113,7 @@ func NewImage(opts *ImageOptions) *Image {
 		os:                  opts.OS,
 		digest:              opts.Digest,
 		directory:           opts.Directory,
+		savedFolder:         opts.SavedFolder,
 		sourceSchemaVersion: opts.SourceSchemaVersion,
 		sourceMediaType:     opts.SourceMediaType,
 		mID:                 opts.MID,
@@ -126,6 +142,14 @@ func (img *Image) Variant() string {
 
 func (img *Image) Digest() string {
 	return img.digest
+}
+
+func (img *Image) Directory() string {
+	return img.directory
+}
+
+func (img *Image) SavedFolder() string {
+	return img.savedFolder
 }
 
 func (img *Image) SetDigest(d string) {

@@ -125,9 +125,9 @@ func SaveImages() {
 	}
 	u.MirrorerJobNum = *saveJobs
 
-	var savedImages []mirror.SavedMirrorTemplate
+	savedTemplate := mirror.NewSavedListTemplate()
 	var writeFileMutex sync.Mutex
-	var appendSliceMutex sync.Mutex
+	var appendListMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
 	worker := func(id int, ch chan mirror.Mirrorer) {
@@ -161,16 +161,13 @@ func SaveImages() {
 				writeFileMutex.Unlock()
 				// TODO: sort file
 			}
-			appendSliceMutex.Lock()
-			mTemplate := m.GetSavedImageTemplate()
-			if mTemplate != nil {
-				savedImages = append(savedImages, *mTemplate)
-			}
+			appendListMutex.Lock()
+			savedTemplate.Append(m.GetSavedImageTemplate())
 			if usingStdin {
-				u.SaveJson(savedImages,
+				u.SaveJson(savedTemplate,
 					filepath.Join(*saveDestDir, u.SavedImageListFile))
 			}
-			appendSliceMutex.Unlock()
+			appendListMutex.Unlock()
 
 			if usingStdin {
 				fmt.Printf(">>> ")
@@ -228,7 +225,7 @@ func SaveImages() {
 	wg.Wait()
 
 	// Write saved image json
-	u.SaveJson(savedImages, filepath.Join(*saveDestDir, u.SavedImageListFile))
+	u.SaveJson(savedTemplate, filepath.Join(*saveDestDir, u.SavedImageListFile))
 	// TODO: create tar.gz tarball
 
 	if usingStdin {

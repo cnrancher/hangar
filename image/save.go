@@ -19,7 +19,12 @@ func (img *Image) Save() error {
 
 	destImage := fmt.Sprintf("%s:%s",
 		img.source, CopiedTag(img.tag, img.os, img.arch, img.variant))
-	img.directory = filepath.Join(img.directory, u.Sha256Sum(destImage))
+	img.savedFolder = u.Sha256Sum(destImage)
+	img.directory = filepath.Join(img.directory, img.savedFolder)
+	logrus.WithFields(logrus.Fields{
+		"M_ID":   img.mID,
+		"IMG_ID": img.iID}).
+		Debugf("SavedFolder: sha256sum(%s)", img.savedFolder)
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.mID,
 		"IMG_ID": img.iID}).

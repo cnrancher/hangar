@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	u "cnrancher.io/image-tools/utils"
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 )
@@ -65,6 +66,8 @@ func main() {
 		logrus.Debugf("loadDebug: %v", *loadDebug)
 		logrus.Debugf("loadJobs: %v", *loadJobs)
 		LoadImages()
+	case "version":
+		showVersion()
 	default:
 		showHelp()
 		os.Exit(0)
@@ -80,4 +83,9 @@ func showHelp() {
 	fmt.Printf("  mirror \tMirror image from source registry to destination registry.\n")
 	fmt.Printf("  load \t\tLoad image from saved tar.gz file.\n")
 	fmt.Printf("  save \t\tSave image from source registry to tar.gz file.\n")
+	fmt.Printf("  version \tShow version.\n")
+}
+
+func showVersion() {
+	fmt.Printf("%s v%s\n", os.Args[0], u.VERSION)
 }

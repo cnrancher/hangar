@@ -9,19 +9,16 @@ import (
 )
 
 func (img *Image) Load() error {
-	if img.directory == "" {
-		return fmt.Errorf("Load: directory is empty")
-	}
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.mID,
 		"IMG_ID": img.iID}).
-		Infof("Load image directory: %s", img.directory)
-	info, err := os.Stat(img.directory)
+		Infof("Load image directory: %s", img.source)
+	info, err := os.Stat(img.source)
 	if err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}
 	if !info.IsDir() {
-		return fmt.Errorf("Load: '%s' is not directory", img.directory)
+		return fmt.Errorf("Load: '%s' is not directory", img.source)
 	}
 
 	sourceImage := fmt.Sprintf("dir:/%s", img.source)
