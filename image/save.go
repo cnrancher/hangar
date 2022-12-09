@@ -3,7 +3,6 @@ package image
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -18,8 +17,9 @@ func (img *Image) Save() error {
 	var err error
 	var ok bool
 
-	img.directory = filepath.Join(
-		img.directory, strings.TrimLeft(img.digest, "sha256:"))
+	destImage := fmt.Sprintf("%s:%s",
+		img.source, CopiedTag(img.tag, img.os, img.arch, img.variant))
+	img.directory = filepath.Join(img.directory, u.Sha256Sum(destImage))
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.mID,
 		"IMG_ID": img.iID}).
@@ -39,18 +39,23 @@ func (img *Image) Save() error {
 
 	// skopeo copy docker://<source> dir://<local_dir>
 	sourceImage := fmt.Sprintf("docker://%s", img.source)
-	destImage := fmt.Sprintf("dir:/%s", img.directory)
+	destImageDir := fmt.Sprintf("dir:/%s", img.directory)
 
 	// Convert image manifest schemaVersion to v2, mediaType to 'manifest.v2'
 	// when saving image to local dir.
-	args := []string{"--format=v2s2", "--override-arch=" + img.arch}
+	args := []string{
+		"--format=v2s2",
+		"--override-arch=" + img.arch,
+		"--dest-compress", // compress image in local dir
+		"--dest-compress-format=gzip",
+	}
 	if img.os != "" {
 		args = append(args, "--override-os="+img.os)
 	}
 	if img.variant != "" {
 		args = append(args, "--override-variant="+img.arch)
 	}
-	err = registry.SkopeoCopy(sourceImage, destImage, args...)
+	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
 	if err != nil {
 		return fmt.Errorf("Save: skopeo copy :%w", err)
 	}

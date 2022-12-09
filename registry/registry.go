@@ -15,11 +15,25 @@ import (
 var RunCommandFunc u.RunCmdFuncType = nil
 
 // SelfCheck checks the registry related commands is installed or not
-func SelfCheck() error {
-	// check docker
+func SelfCheckSkopeo() error {
+	// ensure skopeo is installed
+	skopeoPath, err := EnsureSkopeoInstalled("")
+	if err != nil {
+		return fmt.Errorf("SelfCheckSkopeo: %w", err)
+	}
+	if strings.HasPrefix(skopeoPath, "/") {
+		logrus.Debug("skopeo is a system application")
+	} else {
+		logrus.Debug("skopeo is at current folder as a executable binary file")
+	}
+
+	return nil
+}
+
+func SelfCheckBuildX() error {
 	dockerPath, err := exec.LookPath("docker")
 	if err != nil {
-		return fmt.Errorf("SelfCheck: %w", u.ErrDockerNotFound)
+		return fmt.Errorf("SelfCheckBuildX: %w", u.ErrDockerNotFound)
 	}
 
 	var execCommandFunc u.RunCmdFuncType
@@ -35,19 +49,18 @@ func SelfCheck() error {
 	_, err = execCommandFunc(dockerPath, checkBuildxInstalledParam...)
 	if err != nil {
 		if strings.Contains(err.Error(), "is not a docker command") {
-			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
+			return fmt.Errorf("SelfCheckBuildX: %w", u.ErrDockerBuildxNotFound)
 		}
 	}
 
-	// ensure skopeo is installed
-	skopeoPath, err := EnsureSkopeoInstalled("")
+	return nil
+}
+
+func SelfCheckDocker() error {
+	// check docker
+	_, err := exec.LookPath("docker")
 	if err != nil {
-		return fmt.Errorf("EnsureSkopeoInstalled: %w", err)
-	}
-	if strings.HasPrefix(skopeoPath, "/") {
-		logrus.Debug("skopeo is a system application")
-	} else {
-		logrus.Debug("skopeo is at current folder as a executable binary file")
+		return fmt.Errorf("SelfCheckDocker: %w", u.ErrDockerNotFound)
 	}
 
 	return nil

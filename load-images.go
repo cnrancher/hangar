@@ -27,7 +27,7 @@ func LoadImages() {
 		// TODO: read username and password from stdin
 	}
 
-	if err := registry.SelfCheck(); err != nil {
+	if err := registry.SelfCheckBuildX(); err != nil {
 		logrus.Error("registry self check failed.")
 		logrus.Fatal(err)
 	}

@@ -29,6 +29,10 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 		return path, nil
 	}
 
+	installPath, err = u.GetAbsPath(installPath)
+	if err != nil {
+		return "", fmt.Errorf("EnsureSkopeoInstalled: %w", err)
+	}
 	if _, err = os.Stat(filepath.Join(installPath, "skopeo")); err == nil {
 		logrus.Debug("skopeo already downloaded.")
 		return filepath.Join(installPath, "skopeo"), nil
@@ -46,7 +50,7 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0755)
 	if err != nil {
-		return "", fmt.Errorf("InstallSkopeo: %w", err)
+		return "", fmt.Errorf("EnsureSkopeoInstalled: %w", err)
 	}
 	defer out.Close()
 
@@ -93,6 +97,12 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 
 	// Inspect the source image info
 	param := []string{"inspect", img}
+	// default policy: permissive policy that allows anything.
+	args = append(
+		args,
+		"--insecure-policy",
+		"--tls-verify=false",
+	)
 	param = append(param, args...)
 
 	out, err := execCommandFunc(skopeoPath, param...)
@@ -125,13 +135,18 @@ func SkopeoCopy(src, dst string, args ...string) error {
 
 	// skopeo copy src dst args...
 	params := []string{"copy", src, dst}
+	// default policy: permissive policy that allows anything.
+	args = append(
+		args,
+		"--insecure-policy",
+		"--src-tls-verify=false",
+		"--dest-tls-verify=false",
+	)
 	params = append(params, args...)
 
-	stdout, err := execCommandFunc(skopeoPath, params...)
-	if err != nil {
+	if _, err = execCommandFunc(skopeoPath, params...); err != nil {
 		return fmt.Errorf("SkopeoCopy %s => %s:\n%w", src, dst, err)
 	}
-	fmt.Print(stdout)
 
 	return nil
 }

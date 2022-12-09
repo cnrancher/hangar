@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -47,7 +48,8 @@ func IsDirEmpty(name string) (bool, error) {
 	info, err := os.Stat(name)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			// if dir does not exist, return true
+			return true, nil
 		} else {
 			return false, fmt.Errorf("IsDirEmpty: %w", err)
 		}
@@ -90,7 +92,7 @@ func AppendFileLine(fileName string, line string) error {
 
 func GetAbsPath(dir string) (string, error) {
 	if dir == "" {
-		return "", fmt.Errorf("GetAbsPath: dir is empty")
+		dir = "."
 	}
 	if !filepath.IsAbs(dir) {
 		currentDir, err := os.Getwd()
@@ -144,4 +146,31 @@ func SaveJson(data interface{}, fileName string) error {
 		return fmt.Errorf("SaveJson: %w", err)
 	}
 	return nil
+}
+
+// GetRepositoryName gets the repository name of the image.
+// Repository name example:
+// nginx -> nginx;
+// library/nginx -> library/nginx;
+// docker.io/nginx -> nginx;
+// docker.io/library/nginx -> library/nginx;
+// localhost/nginx -> nginx;
+// localhost/library/nginx -> library/nginx
+func GetRepositoryName(src string) (string, error) {
+	v := strings.Split(src, "/")
+	switch len(v) {
+	case 1:
+		return src, nil
+	case 2:
+		if strings.ContainsAny(v[0], ":.") || v[0] == "localhost" {
+			return v[1], nil
+		} else {
+			return src, nil
+		}
+	case 3:
+		if strings.ContainsAny(v[0], ":.") || v[0] == "localhost" {
+			return strings.Join(v[1:], "/"), nil
+		}
+	}
+	return "", errors.New("invalid format")
 }

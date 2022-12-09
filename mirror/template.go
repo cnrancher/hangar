@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"cnrancher.io/image-tools/image"
 	u "cnrancher.io/image-tools/utils"
@@ -32,30 +31,30 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 		return nil
 	}
 
-	mTemplate := SavedMirrorTemplate{
+	mT := SavedMirrorTemplate{
 		Source:   m.source,
 		Tag:      m.tag,
 		ArchList: nil,
 		Images:   nil,
 	}
 	for _, img := range m.images {
-		if mTemplate.ArchList == nil ||
-			!slices.Contains(mTemplate.ArchList, img.Arch()) {
-			mTemplate.ArchList = append(mTemplate.ArchList, img.Arch())
+		if mT.ArchList == nil ||
+			!slices.Contains(mT.ArchList, img.Arch()) {
+			mT.ArchList = append(mT.ArchList, img.Arch())
 		}
-		imgTemplate := SavedImagesTemplate{
+		iT := SavedImagesTemplate{
 			Arch:    img.Arch(),
 			OS:      img.OS(),
 			Variant: img.Variant(),
 			Digest:  img.Digest(),
 		}
-		mTemplate.Images = append(mTemplate.Images, imgTemplate)
+		mT.Images = append(mT.Images, iT)
 	}
-	if len(mTemplate.ArchList) == 0 {
+	if len(mT.ArchList) == 0 {
 		return nil
 	}
 
-	return &mTemplate
+	return &mT
 }
 
 // LoadSavedTemplates loads the saved json templates to Mirrorer slice
@@ -77,35 +76,34 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 	}
 
 	var mirrorerList []Mirrorer
-	for _, mTemplate := range savedMirrorList {
+	for _, mT := range savedMirrorList {
 		m := NewMirror(&MirrorOptions{
-			Source:      mTemplate.Source,
-			Destination: ConstructRegistry(mTemplate.Source, destReg),
+			Source:      mT.Source,
+			Destination: ConstructRegistry(mT.Source, destReg),
 			Directory:   directory,
-			Tag:         mTemplate.Tag,
-			ArchList:    mTemplate.ArchList,
+			Tag:         mT.Tag,
+			ArchList:    mT.ArchList,
 			Mode:        MODE_LOAD,
 		})
 
-		for _, imgTemplate := range mTemplate.Images {
+		for _, iT := range mT.Images {
+			copiedTag := image.CopiedTag(mT.Tag, iT.OS, iT.Arch, iT.Variant)
 			// Source is a directory
-			sourceImage := filepath.Join(directory,
-				strings.TrimLeft(imgTemplate.Digest, "sha256:"))
-			repo := ConstructRegistry(mTemplate.Source, destReg)
-			tag := image.CopiedTag(
-				mTemplate.Tag, imgTemplate.Arch, imgTemplate.Variant)
+			srcImage := fmt.Sprintf("%s:%s", mT.Source, copiedTag)
+			srcImageDir := filepath.Join(directory, u.Sha256Sum(srcImage))
 			// Destination is the dest registry
-			destImage := fmt.Sprintf("%s:%s", repo, tag)
+			repo := ConstructRegistry(mT.Source, destReg)
+			destImage := fmt.Sprintf("%s:%s", repo, copiedTag)
 			img := image.NewImage(&image.ImageOptions{
-				Source:      sourceImage,
+				Source:      srcImageDir,
 				Destination: destImage,
 				// Directory is the decompressed folder path
 				Directory: directory,
-				Tag:       mTemplate.Tag,
-				Arch:      imgTemplate.Arch,
-				Variant:   imgTemplate.Variant,
-				OS:        imgTemplate.OS,
-				Digest:    imgTemplate.Digest,
+				Tag:       mT.Tag,
+				Arch:      iT.Arch,
+				Variant:   iT.Variant,
+				OS:        iT.OS,
+				Digest:    iT.Digest,
 
 				// saved image manifest is already converted to v2s2
 				SourceSchemaVersion: 2,

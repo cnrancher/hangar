@@ -412,7 +412,7 @@ func (m *Mirror) initImageListByListV2() error {
 
 		sourceImage := fmt.Sprintf("%s@%s", m.source, digest)
 		destImage := fmt.Sprintf("%s:%s",
-			m.destination, image.CopiedTag(m.tag, arch, variant))
+			m.destination, image.CopiedTag(m.tag, osType, arch, variant))
 		// create a new image object and append it into image list
 		image := image.NewImage(&image.ImageOptions{
 			Source:      sourceImage,
@@ -473,7 +473,7 @@ func (m *Mirror) initImageListByV2() error {
 
 	sourceImage = fmt.Sprintf("%s:%s", m.source, m.tag)
 	destImage := fmt.Sprintf("%s:%s",
-		m.destination, image.CopiedTag(m.tag, arch, variant))
+		m.destination, image.CopiedTag(m.tag, osType, arch, variant))
 	// create a new image object and append it into image list
 	image := image.NewImage(&image.ImageOptions{
 		Source:              sourceImage,
@@ -527,7 +527,7 @@ func (m *Mirror) initImageListByV1() error {
 	sourceImage = fmt.Sprintf("%s:%s", m.source, m.tag)
 	// schemaV1 does not have variant
 	destImage := fmt.Sprintf("%s:%s",
-		m.destination, image.CopiedTag(m.tag, arch, ""))
+		m.destination, image.CopiedTag(m.tag, osType, arch, ""))
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
 		Source:              sourceImage,

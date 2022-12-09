@@ -28,8 +28,11 @@ var (
 )
 
 func MirrorImages() {
-	if err := registry.SelfCheck(); err != nil {
-		logrus.Error("registry self check failed.")
+	if err := registry.SelfCheckSkopeo(); err != nil {
+		logrus.Error("registry self check skopeo failed.")
+		logrus.Fatal(err)
+	} else if err = registry.SelfCheckBuildX(); err != nil {
+		logrus.Error("registry self check buildx failed.")
 		logrus.Fatal(err)
 	}
 

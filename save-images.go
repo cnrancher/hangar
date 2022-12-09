@@ -27,8 +27,11 @@ var (
 )
 
 func SaveImages() {
-	if err := registry.SelfCheck(); err != nil {
-		logrus.Error("registry self check failed.")
+	if err := registry.SelfCheckSkopeo(); err != nil {
+		logrus.Error("registry self check skopeo failed.")
+		logrus.Fatal(err)
+	} else if err = registry.SelfCheckDocker(); err != nil {
+		logrus.Error("registry self check docker failed.")
 		logrus.Fatal(err)
 	}
 
@@ -67,6 +70,9 @@ func SaveImages() {
 		if err := os.RemoveAll(u.CacheImageDirectory); err != nil {
 			logrus.Panic(err)
 		}
+	}
+	if err = u.EnsureDirExists(u.CacheImageDirectory); err != nil {
+		logrus.Panic(err)
 	}
 
 	var scanner *bufio.Scanner
@@ -137,7 +143,7 @@ func SaveImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Failed to save image [%s]", m.Source())
 				logrus.WithField("M_ID", m.ID()).
-					Error("Mirror", err.Error())
+					Error(err.Error())
 				writeFileMutex.Lock()
 				failedImageListFile.WriteString(
 					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
@@ -172,7 +178,7 @@ func SaveImages() {
 		}
 	}
 	mirrorChan := make(chan mirror.Mirrorer)
-	for i := 0; i < *mirrorJobs; i++ {
+	for i := 0; i < *saveJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
@@ -186,6 +192,10 @@ func SaveImages() {
 				fmt.Printf(">>> ")
 			}
 			continue
+		}
+		// if image name does not have tag, add 'latest'
+		if !strings.Contains(l, ":") {
+			l = l + ":latest"
 		}
 
 		var v []string = make([]string, 0)

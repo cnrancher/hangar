@@ -5,15 +5,18 @@ WORKINGDIR=$(pwd)
 
 files=(
     "image-tools"
+    "skopeo"
     "mirror-failed.txt"
     "load-failed.txt"
     "save-failed.txt"
-    "output/"
+    ".saved-image-cache/"
 )
 
 for f in ${files[@]}; do
-    echo "Delete: $f"
-    rm -r $WORKINGDIR/$f &> /dev/null
+    if [ -e "$f" ]; then
+        echo "Delete: $f"
+        rm -r $WORKINGDIR/$f &> /dev/null
+    fi
 done
 
 exit 0

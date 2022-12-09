@@ -143,18 +143,36 @@ func (img *Image) ID() string {
 
 // CopiedTag gets the tag of the copied image,
 // the format should be: ${VERSION}-${ARCH}${VARIANT}
-func CopiedTag(tag, arch, variant string) string {
+//
+// If the OS is not linux, such as windows, darwin, etc
+// the format should be: ${VERSION}-${OS}-${ARCH}${VARIANT}
+func CopiedTag(tag, OS, arch, variant string) string {
+	var (
+		prefix string // ${VERSION}-${OS} or // ${VERSION} only if linux
+		suffix string // ${ARCH}${VARIANT} (variant can be empty)
+	)
+	switch OS {
+	case "":
+		prefix = fmt.Sprintf("%s", tag)
+	case "linux":
+		prefix = fmt.Sprintf("%s", tag)
+	default:
+		prefix = fmt.Sprintf("%s-%s", tag, OS)
+	}
+
 	switch arch {
 	case "amd64":
-		return fmt.Sprintf("%s-%s", tag, arch)
+		suffix = fmt.Sprintf("%s", arch)
 	case "arm64":
 		// there is only one variant of arm64 is v8, so discard it
-		return fmt.Sprintf("%s-%s", tag, arch)
+		return fmt.Sprintf("%s", arch)
 	case "arm":
 		// arm has variant v5, v7, etc...
-		return fmt.Sprintf("%s-%s%s", tag, arch, variant)
+		return fmt.Sprintf("%s%s", arch, variant)
 	default:
 		// other arch: s390x, ppc64...
-		return fmt.Sprintf("%s-%s%s", tag, arch, variant)
+		return fmt.Sprintf("%s%s", arch, variant)
 	}
+
+	return fmt.Sprintf("%s-%s", prefix, suffix)
 }
