@@ -1,4 +1,4 @@
-package main
+package loader
 
 import (
 	"flag"
@@ -13,18 +13,20 @@ import (
 )
 
 var (
-	loadCmd     = flag.NewFlagSet("load", flag.ExitOnError)
-	loadFile    = loadCmd.String("f", "", "saved tar.gz file")
-	loadDestReg = loadCmd.String("d", "", "override the destination registry")
-	loadFailed  = loadCmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	loadDebug   = loadCmd.Bool("debug", false, "enable the debug output")
-	loadJobs    = loadCmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	CMD        = flag.NewFlagSet("load", flag.ExitOnError)
+	cmdFile    = CMD.String("f", "", "saved tar.gz file")
+	cmdDestReg = CMD.String("d", "", "override the destination registry")
+	cmdFailed  = CMD.String("o", "load-failed.txt", "file name of the load failed image list")
+	cmdDebug   = CMD.Bool("debug", false, "enable the debug output")
+	cmdJobs    = CMD.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
 
 func LoadImages() {
-	if dockerUsername == "" || dockerPassword == "" {
+	if *cmdDebug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	if u.DockerUsername == "" || u.DockerPassword == "" {
 		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
-		// TODO: read username and password from stdin
 	}
 
 	if err := registry.SelfCheckBuildX(); err != nil {
@@ -33,25 +35,25 @@ func LoadImages() {
 	}
 
 	// Command line parameter is prior than environment variable
-	if *loadDestReg == "" && dockerRegistry != "" {
-		*loadDestReg = dockerRegistry
+	if *cmdDestReg == "" && u.DockerRegistry != "" {
+		*cmdDestReg = u.DockerRegistry
 	}
 
-	if *loadDestReg != "" {
-		logrus.Infof("Set destination registry to [%s]", *loadDestReg)
+	if *cmdDestReg != "" {
+		logrus.Infof("Set destination registry to [%s]", *cmdDestReg)
 	} else {
 		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(*loadDestReg, dockerUsername, dockerPassword)
+	err := registry.DockerLogin(*cmdDestReg, u.DockerUsername, u.DockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 
 	// TODO: decompress tar.gz tarball
 	// TODO:
-	directory := *loadFile
+	directory := *cmdFile
 	if directory == "" {
 		directory = u.CacheImageDirectory
 	}
@@ -68,11 +70,11 @@ func LoadImages() {
 		logrus.Fatalf("'%s' is not a directory", directory)
 	}
 
-	u.CheckWorkerNum(false, loadJobs)
-	logrus.Infof("Creating %d job workers", *loadJobs)
-	u.MirrorerJobNum = *loadJobs
+	u.CheckWorkerNum(false, cmdJobs)
+	logrus.Infof("Creating %d job workers", *cmdJobs)
+	u.MirrorerJobNum = *cmdJobs
 
-	u.DeleteIfExist(*loadFailed)
+	u.DeleteIfExist(*cmdFailed)
 	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
@@ -91,7 +93,7 @@ func LoadImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Error("Mirror", err.Error())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*loadFailed,
+				u.AppendFileLine(*cmdFailed,
 					fmt.Sprintf("%s:%s\n", m.Destination(), m.Tag()))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Loaded() != 0 {
@@ -99,19 +101,19 @@ func LoadImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to load: %s", m.Source())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*loadFailed,
+				u.AppendFileLine(*cmdFailed,
 					fmt.Sprintf("%s:%s\n", m.Destination(), m.Tag()))
 				writeFileMutex.Unlock()
 			}
 		}
 	}
 	mirrorerChan := make(chan mirror.Mirrorer)
-	for i := 0; i < *loadJobs; i++ {
+	for i := 0; i < *cmdJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorerChan)
 	}
 
-	mirrorerList, err := mirror.LoadSavedTemplates(directory, *loadDestReg)
+	mirrorerList, err := mirror.LoadSavedTemplates(directory, *cmdDestReg)
 	if err != nil {
 		logrus.Fatal(err)
 	}

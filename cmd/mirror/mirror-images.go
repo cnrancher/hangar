@@ -1,4 +1,4 @@
-package main
+package mirrorer
 
 import (
 	"bufio"
@@ -17,17 +17,20 @@ import (
 // mirror COMMAND reads file from image-list txt or stdin, then mirror images
 // from source repo to the destination repo
 var (
-	mirrorCmd       = flag.NewFlagSet("mirror", flag.ExitOnError)
-	mirrorFile      = mirrorCmd.String("f", "", "image list file")
-	mirrorArch      = mirrorCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	mirrorSourceReg = mirrorCmd.String("s", "", "override the source registry")
-	mirrorDestReg   = mirrorCmd.String("d", "", "override the destination registry")
-	mirrorFailed    = mirrorCmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
-	mirrorDebug     = mirrorCmd.Bool("debug", false, "enable the debug output")
-	mirrorJobs      = mirrorCmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+	CMD          = flag.NewFlagSet("mirror", flag.ExitOnError)
+	cmdFile      = CMD.String("f", "", "image list file")
+	cmdArch      = CMD.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdSourceReg = CMD.String("s", "", "override the source registry")
+	cmdDestReg   = CMD.String("d", "", "override the destination registry")
+	cmdFailed    = CMD.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
+	cmdDebug     = CMD.Bool("debug", false, "enable the debug output")
+	cmdJobs      = CMD.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
 )
 
 func MirrorImages() {
+	if *cmdDebug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	if err := registry.SelfCheckSkopeo(); err != nil {
 		logrus.Error("registry self check skopeo failed.")
 		logrus.Fatal(err)
@@ -36,44 +39,43 @@ func MirrorImages() {
 		logrus.Fatal(err)
 	}
 
-	if dockerUsername == "" || dockerPassword == "" {
+	if u.DockerUsername == "" || u.DockerPassword == "" {
 		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
-		// TODO: read username and password from stdin
 	}
 
-	if *mirrorSourceReg != "" {
-		logrus.Infof("Set source registry to [%s]", *mirrorSourceReg)
+	if *cmdSourceReg != "" {
+		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
 	} else {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// Command line parameter is prior than environment variable
-	if *mirrorDestReg == "" && dockerRegistry != "" {
-		*mirrorDestReg = dockerRegistry
+	if *cmdDestReg == "" && u.DockerRegistry != "" {
+		*cmdDestReg = u.DockerRegistry
 	}
 
-	if *mirrorDestReg != "" {
-		logrus.Infof("Set destination registry to [%s]", *mirrorDestReg)
+	if *cmdDestReg != "" {
+		logrus.Infof("Set destination registry to [%s]", *cmdDestReg)
 	} else {
 		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(*mirrorDestReg, dockerUsername, dockerPassword)
+	err := registry.DockerLogin(*cmdDestReg, u.DockerUsername, u.DockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 
 	var scanner *bufio.Scanner
 	var usingStdin bool
-	if *mirrorFile == "" {
+	if *cmdFile == "" {
 		// read line from stdin
 		scanner = bufio.NewScanner(os.Stdin)
 		usingStdin = true
 		logrus.Info("Reading '<SOURCE> <DESTINATION> <TAG>' from stdin")
 		logrus.Info("Use 'Ctrl+C' or 'Ctrl+D' to exit.")
 	} else {
-		readFile, err := os.Open(*mirrorFile)
+		readFile, err := os.Open(*cmdFile)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -83,15 +85,15 @@ func MirrorImages() {
 		scanner.Split(bufio.ScanLines)
 	}
 
-	u.CheckWorkerNum(usingStdin, mirrorJobs)
+	u.CheckWorkerNum(usingStdin, cmdJobs)
 	if !usingStdin {
-		logrus.Infof("Creating %d job workers", *mirrorJobs)
+		logrus.Infof("Creating %d job workers", *cmdJobs)
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.MirrorerJobNum = *mirrorJobs
+	u.MirrorerJobNum = *cmdJobs
 
-	u.DeleteIfExist(*mirrorFailed)
+	u.DeleteIfExist(*cmdFailed)
 	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
@@ -111,7 +113,7 @@ func MirrorImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Error("Mirror", err.Error())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*mirrorFailed, fmt.Sprintf("%s %s %s",
+				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
 					m.Source(), m.Destination(), m.Tag()))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Copied() != 0 {
@@ -119,7 +121,7 @@ func MirrorImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to mirror: %s", m.Source())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*mirrorFailed, fmt.Sprintf("%s %s %s",
+				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
 					m.Source(), m.Destination(), m.Tag()))
 				writeFileMutex.Unlock()
 			}
@@ -129,7 +131,7 @@ func MirrorImages() {
 		}
 	}
 	mirrorChan := make(chan mirror.Mirrorer)
-	for i := 0; i < *mirrorJobs; i++ {
+	for i := 0; i < *cmdJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
@@ -161,10 +163,10 @@ func MirrorImages() {
 		}
 
 		var mirrorer mirror.Mirrorer = mirror.NewMirror(&mirror.MirrorOptions{
-			Source:      mirror.ConstructRegistry(v[0], *mirrorSourceReg),
-			Destination: mirror.ConstructRegistry(v[1], *mirrorDestReg),
+			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
+			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
-			ArchList:    strings.Split(*mirrorArch, ","),
+			ArchList:    strings.Split(*cmdArch, ","),
 			Mode:        mirror.MODE_MIRROR,
 		})
 

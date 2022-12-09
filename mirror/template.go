@@ -100,7 +100,7 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 	for _, mT := range savedList.List {
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
-			Destination: ConstructRegistry(mT.Source, destReg),
+			Destination: u.ConstructRegistry(mT.Source, destReg),
 			Directory:   directory,
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
@@ -112,7 +112,7 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 			// Source is a directory
 			srcImageDir := filepath.Join(directory, iT.Folder)
 			// Destination is the dest registry
-			repo := ConstructRegistry(mT.Source, destReg)
+			repo := u.ConstructRegistry(mT.Source, destReg)
 			destImage := fmt.Sprintf("%s:%s", repo, copiedTag)
 			img := image.NewImage(&image.ImageOptions{
 				Source:      srcImageDir,

@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	loadCMD "cnrancher.io/image-tools/cmd/load"
+	mirrorCMD "cnrancher.io/image-tools/cmd/mirror"
+	saveCMD "cnrancher.io/image-tools/cmd/save"
 	u "cnrancher.io/image-tools/utils"
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	dockerUsername = os.Getenv("DOCKER_USERNAME")
-	dockerPassword = os.Getenv("DOCKER_PASSWORD")
-	dockerRegistry = os.Getenv("DOCKER_REGISTRY")
 )
 
 func init() {
@@ -32,40 +29,14 @@ func main() {
 
 	switch os.Args[1] {
 	case "mirror":
-		mirrorCmd.Parse(os.Args[2:])
-		if *mirrorDebug {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		logrus.Debugf("saveFile: %s", *saveFile)
-		logrus.Debugf("saveArch: %s", *saveArch)
-		logrus.Debugf("sourceReg: %s", *mirrorSourceReg)
-		logrus.Debugf("destReg: %s", *mirrorDestReg)
-		logrus.Debugf("mirrorJobs: %v", *mirrorJobs)
-		logrus.Debugf("mirrorFailed: %v", *mirrorFailed)
-		MirrorImages()
+		mirrorCMD.CMD.Parse(os.Args[2:])
+		mirrorCMD.MirrorImages()
 	case "save":
-		saveCmd.Parse(os.Args[2:])
-		if *saveDebug {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		logrus.Debugf("mirrorFile: %s", *mirrorFile)
-		logrus.Debugf("mirrorArch: %s", *mirrorArch)
-		logrus.Debugf("saveSourceReg: %s", *saveSourceReg)
-		logrus.Debugf("saveDestDir: %s", *saveDestDir)
-		logrus.Debugf("saveFailed: %v", *saveFailed)
-		logrus.Debugf("saveJobs: %v", *saveJobs)
-		SaveImages()
+		saveCMD.CMD.Parse(os.Args[2:])
+		saveCMD.SaveImages()
 	case "load":
-		loadCmd.Parse(os.Args[2:])
-		if *loadDebug {
-			logrus.SetLevel(logrus.DebugLevel)
-		}
-		logrus.Debugf("loadFile: %v", *loadFile)
-		logrus.Debugf("loadDestReg: %v", *loadDestReg)
-		logrus.Debugf("loadFailed: %v", *loadFailed)
-		logrus.Debugf("loadDebug: %v", *loadDebug)
-		logrus.Debugf("loadJobs: %v", *loadJobs)
-		LoadImages()
+		loadCMD.CMD.Parse(os.Args[2:])
+		loadCMD.LoadImages()
 	case "version":
 		showVersion()
 	default:

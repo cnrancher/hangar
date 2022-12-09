@@ -636,31 +636,3 @@ func (m *Mirror) updateDestManifest() error {
 	}
 	return nil
 }
-
-// ConstructRegistry will re-construct the image url:
-//
-// If `registryOverride` is empty string, example:
-// nginx --> docker.io/nginx (add docker.io prefix)
-// reg.io/nginx --> reg.io/nginx (nothing changed)
-// reg.io/user/nginx --> reg.io/user/nginx (nothing changed)
-//
-// If `registryOverride` set, example:
-// nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
-// reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
-// reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
-func ConstructRegistry(image, registryOverride string) string {
-	s := strings.Split(image, "/")
-	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
-		if registryOverride != "" {
-			s[0] = registryOverride
-		}
-	} else {
-		if registryOverride != "" {
-			s = append([]string{registryOverride}, s...)
-		} else {
-			s = append([]string{u.DockerHubRegistry}, s...)
-		}
-	}
-
-	return strings.Join(s, "/")
-}

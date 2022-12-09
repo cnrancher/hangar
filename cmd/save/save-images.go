@@ -1,4 +1,4 @@
-package main
+package saver
 
 import (
 	"bufio"
@@ -16,17 +16,20 @@ import (
 )
 
 var (
-	saveCmd       = flag.NewFlagSet("save", flag.ExitOnError)
-	saveFile      = saveCmd.String("f", "", "image list file")
-	saveArch      = saveCmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	saveSourceReg = saveCmd.String("s", "", "override the source registry")
-	saveDestDir   = saveCmd.String("d", u.CacheImageDirectory, "specify the output directory")
-	saveFailed    = saveCmd.String("o", "save-failed.txt", "file name of the save failed image list")
-	saveDebug     = saveCmd.Bool("debug", false, "enable the debug output")
-	saveJobs      = saveCmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	CMD          = flag.NewFlagSet("save", flag.ExitOnError)
+	cmdFile      = CMD.String("f", "", "image list file")
+	cmdArch      = CMD.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdSourceReg = CMD.String("s", "", "override the source registry")
+	cmdDestDir   = CMD.String("d", u.CacheImageDirectory, "specify the output directory")
+	cmdFailed    = CMD.String("o", "save-failed.txt", "file name of the save failed image list")
+	cmdDebug     = CMD.Bool("debug", false, "enable the debug output")
+	cmdJobs      = CMD.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
 
 func SaveImages() {
+	if *cmdDebug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	if err := registry.SelfCheckSkopeo(); err != nil {
 		logrus.Error("registry self check skopeo failed.")
 		logrus.Fatal(err)
@@ -35,14 +38,14 @@ func SaveImages() {
 		logrus.Fatal(err)
 	}
 
-	if *saveSourceReg != "" {
-		logrus.Infof("Set source registry to [%s]", *saveSourceReg)
+	if *cmdSourceReg != "" {
+		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
 	} else {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
 	// Command line parameter is prior than environment variable
-	if *saveDestDir == "" {
+	if *cmdDestDir == "" {
 		logrus.Panic("destination dir not specified!")
 	}
 
@@ -77,14 +80,14 @@ func SaveImages() {
 
 	var scanner *bufio.Scanner
 	var usingStdin bool
-	if *saveFile == "" {
+	if *cmdFile == "" {
 		// read line from stdin
 		scanner = bufio.NewScanner(os.Stdin)
 		usingStdin = true
 		logrus.Info("Reading '<SOURCE>:<TAG>' from stdin")
 		logrus.Info("Use 'Ctrl+D' to exit.")
 	} else {
-		readFile, err := os.Open(*saveFile)
+		readFile, err := os.Open(*cmdFile)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -94,15 +97,15 @@ func SaveImages() {
 		scanner.Split(bufio.ScanLines)
 	}
 
-	u.CheckWorkerNum(usingStdin, saveJobs)
+	u.CheckWorkerNum(usingStdin, cmdJobs)
 	if !usingStdin {
-		logrus.Infof("Creating %d job workers", *saveJobs)
+		logrus.Infof("Creating %d job workers", *cmdJobs)
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.MirrorerJobNum = *saveJobs
+	u.MirrorerJobNum = *cmdJobs
 
-	u.DeleteIfExist(*saveFailed)
+	u.DeleteIfExist(*cmdFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
 	var writeFileMutex sync.Mutex
 	var appendListMutex sync.Mutex
@@ -123,7 +126,7 @@ func SaveImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Error(err.Error())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*saveFailed,
+				u.AppendFileLine(*cmdFailed,
 					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Saved() != 0 {
@@ -131,7 +134,7 @@ func SaveImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to save: %s", m.Source())
 				writeFileMutex.Lock()
-				u.AppendFileLine(*saveFailed,
+				u.AppendFileLine(*cmdFailed,
 					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
 				writeFileMutex.Unlock()
 			}
@@ -139,7 +142,7 @@ func SaveImages() {
 			savedTemplate.Append(m.GetSavedImageTemplate())
 			if usingStdin {
 				u.SaveJson(savedTemplate,
-					filepath.Join(*saveDestDir, u.SavedImageListFile))
+					filepath.Join(*cmdDestDir, u.SavedImageListFile))
 			}
 			appendListMutex.Unlock()
 
@@ -149,7 +152,7 @@ func SaveImages() {
 		}
 	}
 	mirrorChan := make(chan mirror.Mirrorer)
-	for i := 0; i < *saveJobs; i++ {
+	for i := 0; i < *cmdJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
@@ -186,10 +189,10 @@ func SaveImages() {
 		}
 
 		var mirrorer mirror.Mirrorer = mirror.NewMirror(&mirror.MirrorOptions{
-			Source:    mirror.ConstructRegistry(v[0], *saveSourceReg),
+			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:       v[1],
-			Directory: *saveDestDir,
-			ArchList:  strings.Split(*saveArch, ","),
+			Directory: *cmdDestDir,
+			ArchList:  strings.Split(*cmdArch, ","),
 			Mode:      mirror.MODE_SAVE,
 		})
 
@@ -199,7 +202,7 @@ func SaveImages() {
 	wg.Wait()
 
 	// Write saved image json
-	u.SaveJson(savedTemplate, filepath.Join(*saveDestDir, u.SavedImageListFile))
+	u.SaveJson(savedTemplate, filepath.Join(*cmdDestDir, u.SavedImageListFile))
 	// TODO: create tar.gz tarball
 
 	if usingStdin {
