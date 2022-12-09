@@ -51,8 +51,14 @@ type Imager interface {
 	// SetID sets the ID of the Imager
 	SetID(string)
 
+	// SetMID sets the Mirrorer ID
+	SetMID(string)
+
 	// ID gets the ID of the Imager
 	ID() string
+
+	// MID gets the Mirrorer ID of the Imager
+	MID() string
 }
 
 type Image struct {
@@ -161,8 +167,16 @@ func (img *Image) SetID(id string) {
 	img.iID = id
 }
 
+func (img *Image) SetMID(id string) {
+	img.mID = id
+}
+
 func (img *Image) ID() string {
 	return img.iID
+}
+
+func (img *Image) MID() string {
+	return img.mID
 }
 
 // CopiedTag gets the tag of the copied image,
@@ -177,25 +191,25 @@ func CopiedTag(tag, OS, arch, variant string) string {
 	)
 	switch OS {
 	case "":
-		prefix = fmt.Sprintf("%s", tag)
+		prefix = tag
 	case "linux":
-		prefix = fmt.Sprintf("%s", tag)
+		prefix = tag
 	default:
 		prefix = fmt.Sprintf("%s-%s", tag, OS)
 	}
 
 	switch arch {
 	case "amd64":
-		suffix = fmt.Sprintf("%s", arch)
+		suffix = arch
 	case "arm64":
 		// there is only one variant of arm64 is v8, so discard it
-		return fmt.Sprintf("%s", arch)
+		suffix = arch
 	case "arm":
 		// arm has variant v5, v7, etc...
-		return fmt.Sprintf("%s%s", arch, variant)
+		suffix = fmt.Sprintf("%s%s", arch, variant)
 	default:
 		// other arch: s390x, ppc64...
-		return fmt.Sprintf("%s%s", arch, variant)
+		suffix = fmt.Sprintf("%s%s", arch, variant)
 	}
 
 	return fmt.Sprintf("%s-%s", prefix, suffix)

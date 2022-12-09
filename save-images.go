@@ -67,7 +67,7 @@ func SaveImages() {
 					u.CacheImageDirectory, u.ErrDirNotEmpty)
 			}
 		}
-		if err := os.RemoveAll(u.CacheImageDirectory); err != nil {
+		if err := u.DeleteIfExist(u.CacheImageDirectory); err != nil {
 			logrus.Panic(err)
 		}
 	}
@@ -94,30 +94,7 @@ func SaveImages() {
 		scanner.Split(bufio.ScanLines)
 	}
 
-	// output copy failed image list into failed list txt
-	failedImageListFile, err := os.OpenFile(*saveFailed,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		logrus.Errorf("Failed to open file: %s", *saveFailed)
-		logrus.Fatal(err.Error())
-	}
-	defer failedImageListFile.Close()
-
-	if usingStdin && *saveJobs != 1 {
-		logrus.Warn("async mode not supported in stdin mode")
-		logrus.Warn("change worker count back to 1")
-		*saveJobs = 1
-	}
-	if *saveJobs > 20 {
-		logrus.Warn("worker count should be <= 20")
-		logrus.Warn("change worker count to 20")
-		*saveJobs = 20
-	}
-	if *saveJobs < 1 {
-		logrus.Warn("invalid worker count")
-		logrus.Warn("change worker count to 1")
-		*saveJobs = 20
-	}
+	u.CheckWorkerNum(usingStdin, saveJobs)
 	if !usingStdin {
 		logrus.Infof("Creating %d job workers", *saveJobs)
 	} else {
@@ -125,6 +102,7 @@ func SaveImages() {
 	}
 	u.MirrorerJobNum = *saveJobs
 
+	u.DeleteIfExist(*saveFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
 	var writeFileMutex sync.Mutex
 	var appendListMutex sync.Mutex
@@ -145,21 +123,17 @@ func SaveImages() {
 				logrus.WithField("M_ID", m.ID()).
 					Error(err.Error())
 				writeFileMutex.Lock()
-				failedImageListFile.WriteString(
+				u.AppendFileLine(*saveFailed,
 					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
-				failedImageListFile.Sync()
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Saved() != 0 {
 				// if there are some images save failed in this mirrorer
 				logrus.WithField("M_ID", m.ID()).
 					Errorf("Some images failed to save: %s", m.Source())
 				writeFileMutex.Lock()
-				failedImageListFile.WriteString(
-					fmt.Sprintf("%s:%s\n",
-						m.Source(), m.Tag()))
-				failedImageListFile.Sync()
+				u.AppendFileLine(*saveFailed,
+					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
 				writeFileMutex.Unlock()
-				// TODO: sort file
 			}
 			appendListMutex.Lock()
 			savedTemplate.Append(m.GetSavedImageTemplate())

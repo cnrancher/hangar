@@ -83,21 +83,7 @@ func MirrorImages() {
 		scanner.Split(bufio.ScanLines)
 	}
 
-	if usingStdin && *mirrorJobs != 1 {
-		logrus.Warn("async mode not supported in stdin mode")
-		logrus.Warn("change worker count back to 1")
-		*mirrorJobs = 1
-	}
-	if *mirrorJobs > 20 {
-		logrus.Warn("worker count should be <= 20")
-		logrus.Warn("change worker count to 20")
-		*mirrorJobs = 20
-	}
-	if *mirrorJobs < 1 {
-		logrus.Warn("invalid worker count")
-		logrus.Warn("change worker count to 1")
-		*mirrorJobs = 20
-	}
+	u.CheckWorkerNum(usingStdin, mirrorJobs)
 	if !usingStdin {
 		logrus.Infof("Creating %d job workers", *mirrorJobs)
 	} else {
@@ -105,6 +91,7 @@ func MirrorImages() {
 	}
 	u.MirrorerJobNum = *mirrorJobs
 
+	u.DeleteIfExist(*mirrorFailed)
 	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
@@ -182,7 +169,6 @@ func MirrorImages() {
 		})
 
 		mirrorChan <- mirrorer
-
 	}
 
 	close(mirrorChan)

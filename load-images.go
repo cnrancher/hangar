@@ -68,18 +68,11 @@ func LoadImages() {
 		logrus.Fatalf("'%s' is not a directory", directory)
 	}
 
-	if *loadJobs > 20 {
-		logrus.Warn("worker count should be <= 20")
-		logrus.Warn("change worker count to 20")
-		*loadJobs = 20
-	} else if *loadJobs < 1 {
-		logrus.Warn("invalid worker count")
-		logrus.Warn("change worker count to 1")
-		*loadJobs = 20
-	}
+	u.CheckWorkerNum(false, loadJobs)
 	logrus.Infof("Creating %d job workers", *loadJobs)
 	u.MirrorerJobNum = *loadJobs
 
+	u.DeleteIfExist(*loadFailed)
 	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
@@ -113,7 +106,7 @@ func LoadImages() {
 		}
 	}
 	mirrorerChan := make(chan mirror.Mirrorer)
-	for i := 0; i < *mirrorJobs; i++ {
+	for i := 0; i < *loadJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorerChan)
 	}

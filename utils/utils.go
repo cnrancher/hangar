@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -31,6 +33,8 @@ const (
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 	SavedImageListFile      = "saved-images-list.json"
 	CacheImageDirectory     = ".saved-image-cache/"
+	MAX_WORKER_NUM          = 20
+	MIN_WORKER_NUM          = 1
 )
 
 var (
@@ -120,6 +124,23 @@ func EnsureDirExists(directory string) error {
 	return nil
 }
 
+func DeleteIfExist(name string) error {
+	_, err := os.Stat(name)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// if does not exist, return
+			return nil
+		} else {
+			return fmt.Errorf("DeleteIfExist: %w", err)
+		}
+	}
+
+	if err := os.RemoveAll(name); err != nil {
+		return fmt.Errorf("DeleteIfExist: %s", err)
+	}
+	return nil
+}
+
 func SaveJson(data interface{}, fileName string) error {
 	var jsonBytes []byte = []byte{}
 	var err error
@@ -145,4 +166,26 @@ func SaveJson(data interface{}, fileName string) error {
 		return fmt.Errorf("SaveJson: %w", err)
 	}
 	return nil
+}
+
+// If using stdin, the worker num should be 1,
+// if not using stdin, worker num should >= 1 && <= 20.
+func CheckWorkerNum(usingStdin bool, num *int) {
+	if usingStdin {
+		if *num != 1 {
+			logrus.Warn("Async mode not supported in stdin mode")
+			logrus.Warn("Set jobs num back to 1")
+			*num = 1
+		}
+	} else {
+		if *num > 20 {
+			logrus.Warn("Worker count should be <= 20")
+			logrus.Warn("Change worker count to 20")
+			*num = 20
+		} else if *num < 1 {
+			logrus.Warn("Invalid worker count")
+			logrus.Warn("Change worker count to 1")
+			*num = 1
+		}
+	}
 }

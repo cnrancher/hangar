@@ -14,6 +14,7 @@ func (m *Mirror) StartLoad() error {
 		return fmt.Errorf("StartSave: mirrorer is not in LOAD mode")
 	}
 	for _, img := range m.images {
+		img.SetMID(m.mID)
 		if err := img.Load(); err != nil {
 			return fmt.Errorf("StartLoad: %w", err)
 		}
@@ -26,8 +27,7 @@ func (m *Mirror) StartLoad() error {
 	}
 
 	logrus.WithField("M_ID", m.mID).
-		Infof("Successfully loaded %s:%s.",
-			m.destination, m.tag)
+		Infof("Successfully loaded %s:%s.", m.destination, m.tag)
 
 	return nil
 }
