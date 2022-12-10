@@ -17,15 +17,19 @@ import (
 // mirror COMMAND reads file from image-list txt or stdin, then mirror images
 // from source repo to the destination repo
 var (
-	CMD          = flag.NewFlagSet("mirror", flag.ExitOnError)
-	cmdFile      = CMD.String("f", "", "image list file")
-	cmdArch      = CMD.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	cmdSourceReg = CMD.String("s", "", "override the source registry")
-	cmdDestReg   = CMD.String("d", "", "override the destination registry")
-	cmdFailed    = CMD.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
-	cmdDebug     = CMD.Bool("debug", false, "enable the debug output")
-	cmdJobs      = CMD.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+	cmd          = flag.NewFlagSet("mirror", flag.ExitOnError)
+	cmdFile      = cmd.String("f", "", "image list file")
+	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdSourceReg = cmd.String("s", "", "override the source registry")
+	cmdDestReg   = cmd.String("d", "", "override the destination registry")
+	cmdFailed    = cmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
+	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
 )
+
+func Parse(args []string) {
+	cmd.Parse(args)
+}
 
 func MirrorImages() {
 	if *cmdDebug {
@@ -39,10 +43,6 @@ func MirrorImages() {
 		logrus.Fatal(err)
 	}
 
-	if u.DockerUsername == "" || u.DockerPassword == "" {
-		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
-	}
-
 	if *cmdSourceReg != "" {
 		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
 	} else {
@@ -50,8 +50,8 @@ func MirrorImages() {
 	}
 
 	// Command line parameter is prior than environment variable
-	if *cmdDestReg == "" && u.DockerRegistry != "" {
-		*cmdDestReg = u.DockerRegistry
+	if *cmdDestReg == "" && u.EnvDockerRegistry != "" {
+		*cmdDestReg = u.EnvDockerRegistry
 	}
 
 	if *cmdDestReg != "" {
@@ -61,7 +61,8 @@ func MirrorImages() {
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(*cmdDestReg, u.DockerUsername, u.DockerPassword)
+	err := registry.DockerLogin(
+		*cmdDestReg, u.EnvDockerUsername, u.EnvDockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}

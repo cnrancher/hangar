@@ -13,20 +13,21 @@ import (
 )
 
 var (
-	CMD        = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdFile    = CMD.String("f", "", "saved tar.gz file")
-	cmdDestReg = CMD.String("d", "", "override the destination registry")
-	cmdFailed  = CMD.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdDebug   = CMD.Bool("debug", false, "enable the debug output")
-	cmdJobs    = CMD.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	cmd        = flag.NewFlagSet("load", flag.ExitOnError)
+	cmdFile    = cmd.String("f", "", "saved tar.gz file")
+	cmdDestReg = cmd.String("d", "", "override the destination registry")
+	cmdFailed  = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
+	cmdDebug   = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs    = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
+
+func Parse(args []string) {
+	cmd.Parse(args)
+}
 
 func LoadImages() {
 	if *cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
-	}
-	if u.DockerUsername == "" || u.DockerPassword == "" {
-		logrus.Fatal("DOCKER_USERNAME, DOCKER_PASSWORD environment not set")
 	}
 
 	if err := registry.SelfCheckBuildX(); err != nil {
@@ -35,8 +36,8 @@ func LoadImages() {
 	}
 
 	// Command line parameter is prior than environment variable
-	if *cmdDestReg == "" && u.DockerRegistry != "" {
-		*cmdDestReg = u.DockerRegistry
+	if *cmdDestReg == "" && u.EnvDockerRegistry != "" {
+		*cmdDestReg = u.EnvDockerRegistry
 	}
 
 	if *cmdDestReg != "" {
@@ -46,7 +47,8 @@ func LoadImages() {
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(*cmdDestReg, u.DockerUsername, u.DockerPassword)
+	err := registry.DockerLogin(
+		*cmdDestReg, u.EnvDockerUsername, u.EnvDockerPassword)
 	if err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}

@@ -3,6 +3,7 @@ package mirror
 import (
 	"embed"
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"cnrancher.io/image-tools/image"
@@ -23,7 +24,7 @@ const (
 var testFs embed.FS
 
 func init() {
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetOutput(ioutil.Discard)
 }
 
 // StartMirror method should test manually,
@@ -35,58 +36,14 @@ func Test_MirrorerInterface(t *testing.T) {
 	_ = mirrorer
 }
 
-/**
-func Test_ConstructRegistry(t *testing.T) {
-	s := u.ConstructRegistry("nginx", "")
-	if s != "docker.io/nginx" {
-		t.Error("value should be 'docker.io/nginx'")
-	}
-
-	s = ConstructRegistry("docker.io/nginx", "")
-	if s != "docker.io/nginx" {
-		t.Error("value should be 'docker.io/nginx'")
-	}
-
-	s = ConstructRegistry("localhost/nginx", "")
-	if s != "localhost/nginx" {
-		t.Error("value should be 'localhost/nginx'")
-	}
-
-	s = ConstructRegistry("custom.io/nginx", "")
-	if s != "custom.io/nginx" {
-		t.Error("value should be 'custom.io/nginx'")
-	}
-
-	dstReg := "private.io"
-
-	s = ConstructRegistry("nginx", dstReg)
-	if s != dstReg+"/nginx" {
-		t.Errorf("value should be '%s'", dstReg+"/nginx")
-	}
-
-	s = ConstructRegistry("docker.io/nginx", dstReg)
-	if s != dstReg+"/nginx" {
-		t.Errorf("value should be '%s'", dstReg+"/nginx")
-	}
-
-	s = ConstructRegistry("localhost/nginx", dstReg)
-	if s != dstReg+"/nginx" {
-		t.Errorf("value should be '%s'", dstReg+"/nginx")
-	}
-
-	s = ConstructRegistry("custom.io/nginx", dstReg)
-	if s != dstReg+"/nginx" {
-		t.Errorf("value should be '%s'", dstReg+"/nginx")
-	}
-}
-*/
-
 func Test_NewMirror(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
+		Directory:   ".saved-cache",
 		ArchList:    []string{"amd64", "arm64"},
+		Mode:        MODE_MIRROR,
 	})
 	var mirrorer Mirrorer = m
 
@@ -99,8 +56,14 @@ func Test_NewMirror(t *testing.T) {
 	if mirrorer.Tag() != "v1.0.0" {
 		t.Error("Tag failed")
 	}
+	if mirrorer.Directory() != ".saved-cache" {
+		t.Error("Directory failed")
+	}
 	if !mirrorer.HasArch("amd64") || mirrorer.HasArch("s390x") {
 		t.Error("HasArch failed")
+	}
+	if mirrorer.Mode() != MODE_MIRROR {
+		t.Error("Mode failed")
 	}
 	img := image.NewImage(&image.ImageOptions{})
 	mirrorer.AppendImage(img)
@@ -127,6 +90,7 @@ func Test_S2V2(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		Mode:        MODE_MIRROR,
 	})
 	var mirrorer Mirrorer = m
 	_ = mirrorer
@@ -168,7 +132,7 @@ func Test_S2V2(t *testing.T) {
 
 	// fake skopeo copy function
 	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "FAKE_OUTPUT", nil
+		return "FAKE_OUTPUT\n", nil
 	}
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
@@ -240,6 +204,7 @@ func Test_S2V2List(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		Mode:        MODE_MIRROR,
 	})
 
 	// make both source manifest and dest manifest are schemaVersion V2,
@@ -250,7 +215,9 @@ func Test_S2V2List(t *testing.T) {
 		return string(s2v2[:]), err
 	}
 	registry.RunCommandFunc = testInspectFunc
-	m.initSourceDestinationManifest()
+	if err := m.initSourceDestinationManifest(); err != nil {
+		t.Error("initSourceDestinationManifest failed:", err.Error())
+	}
 	registry.RunCommandFunc = nil
 
 	var mirrorer Mirrorer = m
@@ -334,6 +301,7 @@ func Test_S1V2(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		Mode:        MODE_MIRROR,
 	})
 
 	// set source & dest manifest to same s1v2

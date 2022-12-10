@@ -29,13 +29,13 @@ func main() {
 
 	switch os.Args[1] {
 	case "mirror":
-		mirrorCMD.CMD.Parse(os.Args[2:])
+		mirrorCMD.Parse(os.Args[2:])
 		mirrorCMD.MirrorImages()
 	case "save":
-		saveCMD.CMD.Parse(os.Args[2:])
+		saveCMD.Parse(os.Args[2:])
 		saveCMD.SaveImages()
 	case "load":
-		loadCMD.CMD.Parse(os.Args[2:])
+		loadCMD.Parse(os.Args[2:])
 		loadCMD.LoadImages()
 	case "version":
 		showVersion()

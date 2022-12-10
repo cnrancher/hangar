@@ -3,10 +3,14 @@ package mirror
 import (
 	"fmt"
 
+	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
 func (m *Mirror) StartLoad() error {
+	if m == nil {
+		return fmt.Errorf("StartLoad: %w", u.ErrNilPointer)
+	}
 	if m.directory == "" {
 		return fmt.Errorf("StartLoad: directory is empty string")
 	}

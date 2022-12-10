@@ -30,10 +30,6 @@ func (img *Image) Save() error {
 		"IMG_ID": img.iID}).
 		Infof("Save image directory: %s", img.directory)
 
-	// Ensure dir exists
-	if err = u.EnsureDirExists(img.directory); err != nil {
-		return fmt.Errorf("Save: %w", err)
-	}
 	// Ensure dir empty
 	if ok, err = u.IsDirEmpty(img.directory); !ok {
 		if err != nil {

@@ -63,6 +63,14 @@ func DockerLogin(url string, username string, passwd string) error {
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
+	if username == "" || passwd == "" {
+		// read username and password from stdin
+		username, passwd, err = u.ReadUsernamePasswd()
+		if err != nil {
+			return fmt.Errorf("DockerLogin: %w", err)
+		}
+	}
+
 	var stdout bytes.Buffer
 	cmd := exec.Command(
 		path,

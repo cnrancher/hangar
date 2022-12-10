@@ -16,15 +16,19 @@ import (
 )
 
 var (
-	CMD          = flag.NewFlagSet("save", flag.ExitOnError)
-	cmdFile      = CMD.String("f", "", "image list file")
-	cmdArch      = CMD.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	cmdSourceReg = CMD.String("s", "", "override the source registry")
-	cmdDestDir   = CMD.String("d", u.CacheImageDirectory, "specify the output directory")
-	cmdFailed    = CMD.String("o", "save-failed.txt", "file name of the save failed image list")
-	cmdDebug     = CMD.Bool("debug", false, "enable the debug output")
-	cmdJobs      = CMD.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	cmd          = flag.NewFlagSet("save", flag.ExitOnError)
+	cmdFile      = cmd.String("f", "", "image list file")
+	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdSourceReg = cmd.String("s", "", "override the source registry")
+	cmdDestDir   = cmd.String("d", u.CacheImageDirectory, "specify the output directory")
+	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")
+	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
+
+func Parse(args []string) {
+	cmd.Parse(args)
+}
 
 func SaveImages() {
 	if *cmdDebug {

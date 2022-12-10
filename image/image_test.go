@@ -2,6 +2,7 @@ package image
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 func init() {
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetOutput(ioutil.Discard)
 }
 
 func TestImagerInterface(t *testing.T) {
@@ -29,6 +30,8 @@ func Test_NewImage(t *testing.T) {
 		Variant:             "v8",
 		OS:                  "linux",
 		Digest:              "sha256:" + u.Sha256Sum("ABC"),
+		Directory:           "test",
+		SavedFolder:         u.Sha256Sum("library/hello-world"),
 		SourceSchemaVersion: 2,
 		SourceMediaType:     u.MediaTypeManifestV2,
 		MID:                 fmt.Sprintf("%02d", 1),
@@ -43,28 +46,6 @@ func Test_NewImage(t *testing.T) {
 	if a := imager.Arch(); a != "arm64" {
 		t.Error("Arch failed")
 	}
-	// variant v8 of arm64 is discared
-	/**
-	if d := imager.CopiedTag(); d != "v1.0.0-arm64" {
-		t.Error("CopiedTag failed")
-	}
-	var img *Image = imager.(*Image)
-	img.arch = "arm"
-	img.variant = "v7"
-	if d := imager.CopiedTag(); d != "v1.0.0-armv7" {
-		t.Error("CopiedTag failed")
-	}
-	img.arch = "s390x"
-	img.variant = ""
-	if d := imager.CopiedTag(); d != "v1.0.0-s390x" {
-		t.Error("CopiedTag failed")
-	}
-	img.arch = "amd64"
-	img.variant = ""
-	if d := imager.CopiedTag(); d != "v1.0.0-amd64" {
-		t.Error("CopiedTag failed")
-	}
-	*/
 	if o := imager.OS(); o != "linux" {
 		t.Error("OS failed")
 	}
@@ -75,6 +56,12 @@ func Test_NewImage(t *testing.T) {
 	if d := imager.Digest(); d != "sha256:"+u.Sha256Sum("XYZ") {
 		t.Error("SetDigest failed")
 	}
+	if imager.Directory() != "test" {
+		t.Error("Directory failed")
+	}
+	if imager.SavedFolder() != u.Sha256Sum("library/hello-world") {
+		t.Error("SavedFolder failed")
+	}
 	imager.SetID("01")
 	if i := imager.ID(); i != "01" {
 		t.Error("SetID failed")
@@ -82,6 +69,10 @@ func Test_NewImage(t *testing.T) {
 	imager.SetID("02")
 	if i := imager.ID(); i != "02" {
 		t.Error("SetID failed")
+	}
+	imager.SetMID("03")
+	if imager.MID() != "03" {
+		t.Error("SetMID failed")
 	}
 }
 
@@ -166,6 +157,70 @@ func Test_Copy(t *testing.T) {
 	}
 	if !imagerListV2.Copied() {
 		t.Error("Copy failed")
+	}
+	registry.RunCommandFunc = nil
+}
+
+func Test_CopiedTag(t *testing.T) {
+	if CopiedTag("1", "linux", "amd64", "") != "1-amd64" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "linux", "arm64", "v8") != "1-arm64" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "linux", "arm", "v7") != "1-armv7" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "linux", "s390x", "") != "1-s390x" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "darwin", "amd64", "") != "1-darwin-amd64" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "darwin", "arm64", "v8") != "1-darwin-arm64" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "windows", "amd64", "") != "1-windows-amd64" {
+		t.Error("CopiedTag failed")
+	}
+	if CopiedTag("1", "windows", "arm64", "v8") != "1-windows-arm64" {
+		t.Error("CopiedTag failed")
+	}
+}
+
+func Test_Load(t *testing.T) {
+	img := Image{
+		source:      ".", // source is a directory
+		destination: "priv.io/library/nginx",
+	}
+	// fake skopeo copy function
+	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
+		return "", nil
+	}
+	if err := img.Load(); err != nil {
+		t.Fatal(err)
+	}
+	if !img.Loaded() {
+		t.Error("load failed")
+	}
+	registry.RunCommandFunc = nil
+}
+
+func Test_Save(t *testing.T) {
+	img := Image{
+		source:      "priv.io/library/nginx",
+		destination: ".", // dest is a directory
+		directory:   ".",
+	}
+	// fake skopeo copy function
+	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
+		return "", nil
+	}
+	if err := img.Save(); err != nil {
+		t.Fatal(err)
+	}
+	if !img.Saved() {
+		t.Error("load failed")
 	}
 	registry.RunCommandFunc = nil
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -9,14 +10,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/term"
 )
 
 var (
-	DockerUsername = os.Getenv("DOCKER_USERNAME")
-	DockerPassword = os.Getenv("DOCKER_PASSWORD")
-	DockerRegistry = os.Getenv("DOCKER_REGISTRY")
+	EnvDockerUsername = os.Getenv("DOCKER_USERNAME")
+	EnvDockerPassword = os.Getenv("DOCKER_PASSWORD")
+	EnvDockerRegistry = os.Getenv("DOCKER_REGISTRY")
 )
 
 var (
@@ -185,14 +188,14 @@ func CheckWorkerNum(usingStdin bool, num *int) {
 			*num = 1
 		}
 	} else {
-		if *num > 20 {
+		if *num > MAX_WORKER_NUM {
 			logrus.Warn("Worker count should be <= 20")
 			logrus.Warn("Change worker count to 20")
-			*num = 20
-		} else if *num < 1 {
+			*num = MAX_WORKER_NUM
+		} else if *num < MIN_WORKER_NUM {
 			logrus.Warn("Invalid worker count")
 			logrus.Warn("Change worker count to 1")
-			*num = 1
+			*num = MIN_WORKER_NUM
 		}
 	}
 }
@@ -223,4 +226,23 @@ func ConstructRegistry(image, registryOverride string) string {
 	}
 
 	return strings.Join(s, "/")
+}
+
+func ReadUsernamePasswd() (username, passwd string, err error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Username: ")
+	username, err = reader.ReadString('\n')
+	if err != nil {
+		return "", "", err
+	}
+
+	fmt.Print("Password: ")
+	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", "", err
+	}
+
+	password := string(bytePassword)
+	return strings.TrimSpace(username), strings.TrimSpace(password), nil
 }
