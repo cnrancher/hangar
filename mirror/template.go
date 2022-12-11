@@ -35,13 +35,16 @@ type SavedImagesTemplate struct {
 
 func NewSavedListTemplate() *SavedListTemplate {
 	return &SavedListTemplate{
-		List:      nil,
+		List:      make([]SavedMirrorTemplate, 0),
 		Version:   u.VERSION,
 		SavedTime: time.Now().Format(time.RFC3339),
 	}
 }
 
 func (s *SavedListTemplate) Append(mT *SavedMirrorTemplate) {
+	if mT == nil {
+		return
+	}
 	s.List = append(s.List, *mT)
 }
 
@@ -53,8 +56,8 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 	mT := SavedMirrorTemplate{
 		Source:   m.Source,
 		Tag:      m.Tag,
-		ArchList: nil,
-		Images:   nil,
+		ArchList: make([]string, 0),
+		Images:   make([]SavedImagesTemplate, 0),
 	}
 	for _, img := range m.images {
 		if mT.ArchList == nil ||

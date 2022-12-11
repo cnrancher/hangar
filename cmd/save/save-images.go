@@ -135,14 +135,16 @@ func SaveImages() {
 				u.AppendFileLine(*cmdFailed,
 					fmt.Sprintf("%s:%s\n", m.Source, m.Tag))
 				writeFileMutex.Unlock()
+			} else {
+				// if image saved successfully
+				appendListMutex.Lock()
+				savedTemplate.Append(m.GetSavedImageTemplate())
+				if usingStdin {
+					u.SaveJson(savedTemplate,
+						filepath.Join(*cmdDestDir, u.SavedImageListFile))
+				}
+				appendListMutex.Unlock()
 			}
-			appendListMutex.Lock()
-			savedTemplate.Append(m.GetSavedImageTemplate())
-			if usingStdin {
-				u.SaveJson(savedTemplate,
-					filepath.Join(*cmdDestDir, u.SavedImageListFile))
-			}
-			appendListMutex.Unlock()
 
 			if usingStdin {
 				fmt.Printf(">>> ")

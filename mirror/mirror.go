@@ -161,6 +161,9 @@ func (m *Mirror) ImageNum() int {
 }
 
 func (m *Mirror) AppendImage(img *image.Image) {
+	if img == nil {
+		return
+	}
 	img.IID = m.ImageNum() + 1
 	m.images = append(m.images, img)
 }
