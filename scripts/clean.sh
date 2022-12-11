@@ -9,7 +9,6 @@ files=(
     "mirror-failed.txt"
     "load-failed.txt"
     "save-failed.txt"
-    ".saved-image-cache/"
 )
 
 for f in ${files[@]}; do

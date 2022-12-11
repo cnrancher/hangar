@@ -1,10 +1,17 @@
 package utils
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 )
+
+func init() {
+	logrus.SetOutput(ioutil.Discard)
+}
 
 func Test_DefaultRunCommandFunc(t *testing.T) {
 	args := []string{"HELLO_WORLD"}
