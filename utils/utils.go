@@ -42,7 +42,7 @@ const (
 	MediaTypeManifestListV2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 	SavedImageListFile      = "saved-images-list.json"
-	CacheImageDirectory     = ".saved-image-cache/"
+	CacheImageDirectory     = "saved-image-cache"
 	MAX_WORKER_NUM          = 20
 	MIN_WORKER_NUM          = 1
 )
@@ -242,6 +242,7 @@ func ReadUsernamePasswd() (username, passwd string, err error) {
 	if err != nil {
 		return "", "", err
 	}
+	fmt.Println()
 
 	password := string(bytePassword)
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
