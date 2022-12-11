@@ -203,7 +203,10 @@ func SaveImages() {
 	wg.Wait()
 
 	// Write saved image json
-	u.SaveJson(savedTemplate, filepath.Join(*cmdDestDir, u.SavedImageListFile))
+	if len(savedTemplate.List) > 0 {
+		dir := filepath.Join(*cmdDestDir, u.SavedImageListFile)
+		u.SaveJson(savedTemplate, dir)
+	}
 	// TODO: create tar.gz tarball
 
 	if usingStdin {
