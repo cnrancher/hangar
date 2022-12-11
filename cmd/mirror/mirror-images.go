@@ -92,38 +92,32 @@ func MirrorImages() {
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.MirrorerJobNum = *cmdJobs
+	u.WorkerNum = *cmdJobs
 
 	u.DeleteIfExist(*cmdFailed)
 	var writeFileMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
-	worker := func(id int, ch chan mirror.Mirrorer) {
+	worker := func(id int, ch chan *mirror.Mirror) {
 		defer wg.Done()
 		for m := range ch {
-			m.SetID(fmt.Sprintf("%02d", id))
-
-			logrus.WithField("M_ID", m.ID()).
-				Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
-					m.Source(), m.Destination(), m.Tag())
-
 			err := m.StartMirror()
 			if err != nil {
-				logrus.WithField("M_ID", m.ID()).
-					Errorf("Failed to copy image [%s]", m.Source())
-				logrus.WithField("M_ID", m.ID()).
+				logrus.WithField("M_ID", m.MID).
+					Errorf("Failed to copy image [%s]", m.Source)
+				logrus.WithField("M_ID", m.MID).
 					Error("Mirror", err.Error())
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
-					m.Source(), m.Destination(), m.Tag()))
+					m.Source, m.Destination, m.Tag))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Copied() != 0 {
 				// if there are some images copy failed in this mirrorer
-				logrus.WithField("M_ID", m.ID()).
-					Errorf("Some images failed to mirror: %s", m.Source())
+				logrus.WithField("M_ID", m.MID).
+					Errorf("Some images failed to mirror: %s", m.Source)
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
-					m.Source(), m.Destination(), m.Tag()))
+					m.Source, m.Destination, m.Tag))
 				writeFileMutex.Unlock()
 			}
 			if usingStdin {
@@ -131,12 +125,13 @@ func MirrorImages() {
 			}
 		}
 	}
-	mirrorChan := make(chan mirror.Mirrorer)
+	mirrorChan := make(chan *mirror.Mirror)
 	for i := 0; i < *cmdJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
 
+	var num int = 0
 	for scanner.Scan() {
 		l := scanner.Text()
 		// Ignore empty/comment line
@@ -163,15 +158,15 @@ func MirrorImages() {
 			continue
 		}
 
-		var mirrorer mirror.Mirrorer = mirror.NewMirror(&mirror.MirrorOptions{
+		num++
+		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
 			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
 			ArchList:    strings.Split(*cmdArch, ","),
 			Mode:        mirror.MODE_MIRROR,
+			ID:          num,
 		})
-
-		mirrorChan <- mirrorer
 	}
 
 	close(mirrorChan)

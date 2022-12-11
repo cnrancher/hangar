@@ -10,28 +10,28 @@ import (
 )
 
 func (img *Image) Save() error {
-	if img.directory == "" {
-		return fmt.Errorf("Save: img.directory is empty")
+	if img.Directory == "" {
+		return fmt.Errorf("Save: img.Directory is empty")
 	}
 
 	var err error
 	var ok bool
 
 	destImage := fmt.Sprintf("%s:%s",
-		img.source, CopiedTag(img.tag, img.os, img.arch, img.variant))
-	img.savedFolder = u.Sha256Sum(destImage)
-	img.directory = filepath.Join(img.directory, img.savedFolder)
+		img.Source, CopiedTag(img.Tag, img.OS, img.Arch, img.Variant))
+	img.SavedFolder = u.Sha256Sum(destImage)
+	img.Directory = filepath.Join(img.Directory, img.SavedFolder)
 	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Debugf("SavedFolder: sha256sum(%s)", img.savedFolder)
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Debugf("SavedFolder: sha256sum(%s)", img.SavedFolder)
 	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Infof("Save image directory: %s", img.directory)
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Infof("Save image Directory: %s", img.Directory)
 
 	// Ensure dir empty
-	if ok, err = u.IsDirEmpty(img.directory); !ok {
+	if ok, err = u.IsDirEmpty(img.Directory); !ok {
 		if err != nil {
 			return fmt.Errorf("Save: check dir is empty: %w", err)
 		}
@@ -39,32 +39,28 @@ func (img *Image) Save() error {
 	}
 
 	// skopeo copy docker://<source> dir://<local_dir>
-	sourceImage := fmt.Sprintf("docker://%s", img.source)
-	destImageDir := fmt.Sprintf("dir:/%s", img.directory)
+	sourceImage := fmt.Sprintf("docker://%s", img.Source)
+	destImageDir := fmt.Sprintf("dir:/%s", img.Directory)
 
 	// Convert image manifest schemaVersion to v2, mediaType to 'manifest.v2'
 	// when saving image to local dir.
 	args := []string{
 		"--format=v2s2",
-		"--override-arch=" + img.arch,
+		"--override-arch=" + img.Arch,
 		"--dest-compress", // compress image in local dir
 		"--dest-compress-format=gzip",
 	}
-	if img.os != "" {
-		args = append(args, "--override-os="+img.os)
+	if img.OS != "" {
+		args = append(args, "--override-os="+img.OS)
 	}
-	if img.variant != "" {
-		args = append(args, "--override-variant="+img.arch)
+	if img.Variant != "" {
+		args = append(args, "--override-variant="+img.Arch)
 	}
 	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
 	if err != nil {
 		return fmt.Errorf("Save: skopeo copy :%w", err)
 	}
-	img.saved = true
+	img.Saved = true
 
 	return nil
-}
-
-func (img *Image) Saved() bool {
-	return img.saved
 }

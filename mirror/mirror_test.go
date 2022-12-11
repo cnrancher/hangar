@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"embed"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -30,12 +29,6 @@ func init() {
 // StartMirror method should test manually,
 // this method can not be implemented in unit test
 
-func Test_MirrorerInterface(t *testing.T) {
-	mirror := NewMirror(&MirrorOptions{})
-	var mirrorer Mirrorer = mirror
-	_ = mirrorer
-}
-
 func Test_NewMirror(t *testing.T) {
 	m := NewMirror(&MirrorOptions{
 		Source:      "registry.io/example",
@@ -45,40 +38,35 @@ func Test_NewMirror(t *testing.T) {
 		ArchList:    []string{"amd64", "arm64"},
 		Mode:        MODE_MIRROR,
 	})
-	var mirrorer Mirrorer = m
 
-	if mirrorer.Source() != "registry.io/example" {
+	if m.Source != "registry.io/example" {
 		t.Error("Source failed")
 	}
-	if mirrorer.Destination() != "private.io/example" {
+	if m.Destination != "private.io/example" {
 		t.Error("Destination failed")
 	}
-	if mirrorer.Tag() != "v1.0.0" {
+	if m.Tag != "v1.0.0" {
 		t.Error("Tag failed")
 	}
-	if mirrorer.Directory() != ".saved-cache" {
+	if m.Directory != ".saved-cache" {
 		t.Error("Directory failed")
 	}
-	if !mirrorer.HasArch("amd64") || mirrorer.HasArch("s390x") {
+	if !m.HasArch("amd64") || m.HasArch("s390x") {
 		t.Error("HasArch failed")
 	}
-	if mirrorer.Mode() != MODE_MIRROR {
+	if m.Mode != MODE_MIRROR {
 		t.Error("Mode failed")
 	}
 	img := image.NewImage(&image.ImageOptions{})
-	mirrorer.AppendImage(img)
-	if mirrorer.ImageNum() != 1 {
+	m.AppendImage(img)
+	if m.ImageNum() != 1 {
 		t.Error("AppendImage failed")
 	}
-	if mirrorer.Copied() != 0 {
+	if m.Copied() != 0 {
 		t.Error("Copied failed")
 	}
-	if mirrorer.ImageNum()-mirrorer.Copied() != 1 {
+	if m.ImageNum()-m.Copied() != 1 {
 		t.Error("CopyFailed failed")
-	}
-	mirrorer.SetID(fmt.Sprintf("%02d", 1))
-	if mirrorer.ID() != "01" {
-		t.Error("SetID failed")
 	}
 }
 
@@ -92,8 +80,6 @@ func Test_S2V2(t *testing.T) {
 		ArchList:    []string{"amd64", "arm64"},
 		Mode:        MODE_MIRROR,
 	})
-	var mirrorer Mirrorer = m
-	_ = mirrorer
 
 	// test initSourceDestinationManifest, make both source manifest and dest
 	// manifest are schemaVersion V2, mediaType manifest.v2
@@ -139,7 +125,7 @@ func Test_S2V2(t *testing.T) {
 			t.Error("img.Copy failed:", err.Error())
 			return
 		}
-		if !img.Copied() {
+		if !img.Copied {
 			t.Error("img.Copied failed")
 			return
 		}
@@ -220,9 +206,6 @@ func Test_S2V2List(t *testing.T) {
 	}
 	registry.RunCommandFunc = nil
 
-	var mirrorer Mirrorer = m
-	_ = mirrorer
-
 	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
 		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
 		t.Error(err.Error())
@@ -248,7 +231,7 @@ func Test_S2V2List(t *testing.T) {
 			t.Error("img.Copy failed:", err.Error())
 			return
 		}
-		if !img.Copied() {
+		if !img.Copied {
 			t.Error("img.Copied failed")
 			return
 		}
@@ -349,7 +332,7 @@ func Test_S1V2(t *testing.T) {
 			t.Error("img.Copy failed:", err.Error())
 			return
 		}
-		if !img.Copied() {
+		if !img.Copied {
 			t.Error("img.Copied failed")
 			return
 		}

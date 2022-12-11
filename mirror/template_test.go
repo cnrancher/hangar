@@ -70,22 +70,22 @@ func Test_GetSavedImageTemplate(t *testing.T) {
 }
 
 func Test_LoadSavedTemplates(t *testing.T) {
-	mirrorer, err := LoadSavedTemplates("test/", "custom.io")
+	mList, err := LoadSavedTemplates("test/", "custom.io")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range mirrorer {
-		if m.Source() != "harbor2.hxstarrys.me/library/nginx" {
+	for _, m := range mList {
+		if m.Source != "harbor2.hxstarrys.me/library/nginx" {
 			t.Error("Source failed")
 		}
 		if !m.HasArch("amd64") || !m.HasArch("arm64") {
 			t.Error("HasArch failed")
 		}
-		if m.Mode() != MODE_LOAD {
+		if m.Mode != MODE_LOAD {
 			t.Error("Mode failed")
 		}
 		// the directory is converted to absolute path
-		if !strings.HasSuffix(m.Directory(), "test") {
+		if !strings.HasSuffix(m.Directory, "test") {
 			t.Error("Directory failed")
 		}
 		if m.ImageNum() != 2 {

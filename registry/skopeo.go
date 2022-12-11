@@ -125,7 +125,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 	var execCommandFunc u.RunCmdFuncType
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
-	} else if u.MirrorerJobNum == 1 {
+	} else if u.WorkerNum == 1 {
 		// if not async mode, set command output to stdout
 		execCommandFunc = u.RunCommandStdoutFunc
 	} else {

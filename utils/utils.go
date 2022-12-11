@@ -49,7 +49,7 @@ const (
 
 var (
 	// worker number of mirrorer
-	MirrorerJobNum = 1
+	WorkerNum = 1
 )
 
 func Sha256Sum(s string) string {

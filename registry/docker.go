@@ -117,7 +117,7 @@ func DockerBuildx(args ...string) error {
 
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
-	} else if u.MirrorerJobNum == 1 {
+	} else if u.WorkerNum == 1 {
 		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
 		execCommandFunc = u.DefaultRunCommandFunc

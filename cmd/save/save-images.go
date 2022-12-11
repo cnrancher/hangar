@@ -107,7 +107,7 @@ func SaveImages() {
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.MirrorerJobNum = *cmdJobs
+	u.WorkerNum = *cmdJobs
 
 	u.DeleteIfExist(*cmdFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
@@ -115,31 +115,25 @@ func SaveImages() {
 	var appendListMutex sync.Mutex
 	var wg sync.WaitGroup
 	// worker function for goroutine pool
-	worker := func(id int, ch chan mirror.Mirrorer) {
+	worker := func(id int, ch chan *mirror.Mirror) {
 		defer wg.Done()
 		for m := range ch {
-			m.SetID(fmt.Sprintf("%02d", id))
-
-			logrus.WithField("M_ID", m.ID()).
-				Infof("SOURCE: [%v] TAG: [%v]", m.Source(), m.Tag())
-
-			err := m.StartSave()
-			if err != nil {
-				logrus.WithField("M_ID", m.ID()).
-					Errorf("Failed to save image [%s]", m.Source())
-				logrus.WithField("M_ID", m.ID()).
+			if err := m.StartSave(); err != nil {
+				logrus.WithField("M_ID", m.MID).
+					Errorf("Failed to save image [%s]", m.Source)
+				logrus.WithField("M_ID", m.MID).
 					Error(err.Error())
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
+					fmt.Sprintf("%s:%s\n", m.Source, m.Tag))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Saved() != 0 {
 				// if there are some images save failed in this mirrorer
-				logrus.WithField("M_ID", m.ID()).
-					Errorf("Some images failed to save: %s", m.Source())
+				logrus.WithField("M_ID", m.MID).
+					Errorf("Some images failed to save: %s", m.Source)
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Source(), m.Tag()))
+					fmt.Sprintf("%s:%s\n", m.Source, m.Tag))
 				writeFileMutex.Unlock()
 			}
 			appendListMutex.Lock()
@@ -155,12 +149,13 @@ func SaveImages() {
 			}
 		}
 	}
-	mirrorChan := make(chan mirror.Mirrorer)
+	mirrorChan := make(chan *mirror.Mirror)
 	for i := 0; i < *cmdJobs; i++ {
 		wg.Add(1)
 		go worker(i+1, mirrorChan)
 	}
 
+	var num int = 0
 	for scanner.Scan() {
 		l := scanner.Text()
 		l = strings.TrimSpace(l)
@@ -192,15 +187,15 @@ func SaveImages() {
 			continue
 		}
 
-		var mirrorer mirror.Mirrorer = mirror.NewMirror(&mirror.MirrorOptions{
+		num++
+		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
 			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:       v[1],
 			Directory: *cmdDestDir,
 			ArchList:  strings.Split(*cmdArch, ","),
 			Mode:      mirror.MODE_SAVE,
+			ID:        num,
 		})
-
-		mirrorChan <- mirrorer
 	}
 	close(mirrorChan)
 	wg.Wait()

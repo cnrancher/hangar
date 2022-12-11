@@ -46,26 +46,26 @@ func (s *SavedListTemplate) Append(mT *SavedMirrorTemplate) {
 }
 
 func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
-	if m.mode != MODE_SAVE {
+	if m.Mode != MODE_SAVE {
 		return nil
 	}
 
 	mT := SavedMirrorTemplate{
-		Source:   m.source,
-		Tag:      m.tag,
+		Source:   m.Source,
+		Tag:      m.Tag,
 		ArchList: nil,
 		Images:   nil,
 	}
 	for _, img := range m.images {
 		if mT.ArchList == nil ||
-			!slices.Contains(mT.ArchList, img.Arch()) {
-			mT.ArchList = append(mT.ArchList, img.Arch())
+			!slices.Contains(mT.ArchList, img.Arch) {
+			mT.ArchList = append(mT.ArchList, img.Arch)
 		}
 		iT := SavedImagesTemplate{
-			Arch:    img.Arch(),
-			OS:      img.OS(),
-			Variant: img.Variant(),
-			Folder:  img.SavedFolder(),
+			Arch:    img.Arch,
+			OS:      img.OS,
+			Variant: img.Variant,
+			Folder:  img.SavedFolder,
 		}
 		mT.Images = append(mT.Images, iT)
 	}
@@ -76,8 +76,8 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 	return &mT
 }
 
-// LoadSavedTemplates loads the saved json templates to Mirrorer slice
-func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
+// LoadSavedTemplates loads the saved json templates to *Mirror slice
+func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 	var err error
 	if directory, err = u.GetAbsPath(directory); err != nil {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
@@ -96,8 +96,8 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 
 	// TODO: Compare version
 
-	var mirrorerList []Mirrorer
-	for _, mT := range savedList.List {
+	var mirrorList []*Mirror
+	for i, mT := range savedList.List {
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
 			Destination: u.ConstructRegistry(mT.Source, destReg),
@@ -105,6 +105,7 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
 			Mode:        MODE_LOAD,
+			ID:          i + 1,
 		})
 
 		for _, iT := range mT.Images {
@@ -131,8 +132,8 @@ func LoadSavedTemplates(directory, destReg string) ([]Mirrorer, error) {
 			})
 			m.AppendImage(img)
 		}
-		mirrorerList = append(mirrorerList, m)
+		mirrorList = append(mirrorList, m)
 	}
 
-	return mirrorerList, nil
+	return mirrorList, nil
 }

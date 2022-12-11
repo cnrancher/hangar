@@ -2,94 +2,35 @@ package image
 
 import "fmt"
 
-// Imager interface is the specific image
-type Imager interface {
-	// Source gets the source image
-	Source() string
-
-	// Destination gets the destination image
-	Destination() string
-
-	// Arch gets the architecture of the image
-	Arch() string
-
-	// Variant gets the variant of the image
-	Variant() string
-
-	// OS gets the OS of the image
-	OS() string
-
-	// Digest gets the digest of the image,
-	// return empty string if not set
-	Digest() string
-
-	// Directory gets the absolute directory of the image
-	Directory() string
-
-	// SavedFolder gets the saved folder name of the image
-	SavedFolder() string
-
-	// SetDigest sets the digest of the image
-	SetDigest(string)
-
-	// Copy executes the copy operation of the image
-	Copy() error
-
-	// Copied checks the image is copied or not
-	Copied() bool
-
-	// Save saves the image into local directory
-	Save() error
-
-	// Saved checks the image is saved or not
-	Saved() bool
-
-	Load() error
-
-	Loaded() bool
-
-	// SetID sets the ID of the Imager
-	SetID(string)
-
-	// SetMID sets the Mirrorer ID
-	SetMID(string)
-
-	// ID gets the ID of the Imager
-	ID() string
-
-	// MID gets the Mirrorer ID of the Imager
-	MID() string
-}
-
 type Image struct {
-	source      string
-	destination string
-	tag         string
-	arch        string
-	variant     string
-	os          string
+	Source      string
+	Destination string
+	Tag         string
+	Arch        string
+	Variant     string
+	OS          string
 
-	// digest is the source image manifest sha256sum
-	digest string
+	// Digest is the source image manifest sha256sum
+	Digest string
 
-	// directory is the absolute path to save the image
-	directory string
+	// Directory is the absolute path to save the image
+	Directory string
 
-	// savedFolder is the folder name of the saved image
+	// SavedFolder is the folder name of the saved image
 	// folder name format is: sha256sum( SOURCE:CopiedTag() )
-	savedFolder string
+	SavedFolder string
 
-	copied bool
-	saved  bool
-	loaded bool
+	Copied bool
+	Saved  bool
+	Loaded bool
 
-	sourceSchemaVersion int
-	sourceMediaType     string
+	SourceSchemaVersion int
+	SourceMediaType     string
 
-	// ID of the Imager
-	iID string
-	// ID of the Mirrorer
-	mID string
+	// IID is the ID of the Image
+	IID string
+	// MID is the ID of the Mirror
+	MID string
 }
 
 type ImageOptions struct {
@@ -111,72 +52,19 @@ type ImageOptions struct {
 
 func NewImage(opts *ImageOptions) *Image {
 	return &Image{
-		source:              opts.Source,
-		destination:         opts.Destination,
-		tag:                 opts.Tag,
-		arch:                opts.Arch,
-		variant:             opts.Variant,
-		os:                  opts.OS,
-		digest:              opts.Digest,
-		directory:           opts.Directory,
-		savedFolder:         opts.SavedFolder,
-		sourceSchemaVersion: opts.SourceSchemaVersion,
-		sourceMediaType:     opts.SourceMediaType,
-		mID:                 opts.MID,
+		Source:              opts.Source,
+		Destination:         opts.Destination,
+		Tag:                 opts.Tag,
+		Arch:                opts.Arch,
+		Variant:             opts.Variant,
+		OS:                  opts.OS,
+		Digest:              opts.Digest,
+		Directory:           opts.Directory,
+		SavedFolder:         opts.SavedFolder,
+		SourceSchemaVersion: opts.SourceSchemaVersion,
+		SourceMediaType:     opts.SourceMediaType,
+		MID:                 opts.MID,
 	}
-}
-
-func (img *Image) Source() string {
-	return img.source
-}
-
-func (img *Image) Destination() string {
-	return img.destination
-}
-
-func (img *Image) Arch() string {
-	return img.arch
-}
-
-func (img *Image) OS() string {
-	return img.os
-}
-
-func (img *Image) Variant() string {
-	return img.variant
-}
-
-func (img *Image) Digest() string {
-	return img.digest
-}
-
-func (img *Image) Directory() string {
-	return img.directory
-}
-
-func (img *Image) SavedFolder() string {
-	return img.savedFolder
-}
-
-func (img *Image) SetDigest(d string) {
-	img.digest = d
-}
-
-func (img *Image) SetID(id string) {
-	// format: 01, 02, 03...
-	img.iID = id
-}
-
-func (img *Image) SetMID(id string) {
-	img.mID = id
-}
-
-func (img *Image) ID() string {
-	return img.iID
-}
-
-func (img *Image) MID() string {
-	return img.mID
 }
 
 // CopiedTag gets the tag of the copied image,

@@ -13,7 +13,7 @@ func (img *Image) Copy() error {
 		return u.ErrNilPointer
 	}
 
-	if img.source == "" || img.destination == "" || img.arch == "" {
+	if img.Source == "" || img.Destination == "" || img.Arch == "" {
 		return u.ErrInvalidParameter
 	}
 
@@ -21,24 +21,20 @@ func (img *Image) Copy() error {
 		return fmt.Errorf("Copy: %w", err)
 	}
 
-	if img.sourceSchemaVersion == 1 {
+	if img.SourceSchemaVersion == 1 {
 		// get digests from copied dest image
-		destImage := fmt.Sprintf("docker://%s", img.destination)
+		destImage := fmt.Sprintf("docker://%s", img.Destination)
 		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
 		out, err := registry.SkopeoInspect(destImage, "--raw")
 		if err != nil {
 			return fmt.Errorf("Copy: %w", err)
 		}
-		digest := "sha256:" + u.Sha256Sum(out)
-		img.digest = digest
+		Digest := "sha256:" + u.Sha256Sum(out)
+		img.Digest = Digest
 	}
 
-	img.copied = true
+	img.Copied = true
 	return nil
-}
-
-func (img *Image) Copied() bool {
-	return img.copied
 }
 
 func (img *Image) copyIfChanged() error {
@@ -48,8 +44,8 @@ func (img *Image) copyIfChanged() error {
 	)
 
 	// docker://registry/repository:${ORIGINAL_TAG}-${ARCH}${VARIANT}
-	srcDockerImage = fmt.Sprintf("docker://%s", img.source)
-	dstDockerImage = fmt.Sprintf("docker://%s", img.destination)
+	srcDockerImage = fmt.Sprintf("docker://%s", img.Source)
+	dstDockerImage = fmt.Sprintf("docker://%s", img.Destination)
 
 	destManifest, err := registry.SkopeoInspect(dstDockerImage, "--raw")
 	if err != nil {
@@ -61,35 +57,35 @@ func (img *Image) copyIfChanged() error {
 		destDigest = "sha256:" + u.Sha256Sum(destManifest)
 	}
 	// compare the source manifest with the dest manifest
-	if img.digest == destDigest {
+	if img.Digest == destDigest {
 		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("Unchanged: [%s] == [%s]", img.source, img.destination)
+			"M_ID":   img.MID,
+			"IMG_ID": img.IID}).
+			Infof("Unchanged: [%s] == [%s]", img.Source, img.Destination)
 		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("source digest: %s", img.digest)
+			"M_ID":   img.MID,
+			"IMG_ID": img.IID}).
+			Infof("Source Digest: %s", img.Digest)
 		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.mID,
-			"IMG_ID": img.iID}).
-			Infof("destin digest: %s", destDigest)
+			"M_ID":   img.MID,
+			"IMG_ID": img.IID}).
+			Infof("destin Digest: %s", destDigest)
 		return nil
 	}
 	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Infof("Digest changed: [%s] => [%s]", img.digest, destDigest)
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Infof("Digest changed: [%s] => [%s]", img.Digest, destDigest)
 	logrus.WithFields(logrus.Fields{
-		"M_ID":   img.mID,
-		"IMG_ID": img.iID}).
-		Infof("Copying: [%s] => [%s]", img.source, img.destination)
-	args := []string{"--format=v2s2", "--override-arch=" + img.arch}
-	if img.os != "" {
-		args = append(args, "--override-os="+img.os)
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Infof("Copying: [%s] => [%s]", img.Source, img.Destination)
+	args := []string{"--format=v2s2", "--override-arch=" + img.Arch}
+	if img.OS != "" {
+		args = append(args, "--override-os="+img.OS)
 	}
-	if img.variant != "" {
-		args = append(args, "--override-variant="+img.arch)
+	if img.Variant != "" {
+		args = append(args, "--override-variant="+img.Arch)
 	}
 	return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
 }
