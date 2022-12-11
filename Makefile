@@ -1,9 +1,7 @@
 .PHONY: build install test clean
 
-image-tools:
+build:
 	go build -o image-tools .
-
-build: image-tools
 
 install:
 	go install .

@@ -28,9 +28,9 @@ type Image struct {
 	SourceMediaType     string
 
 	// IID is the ID of the Image
-	IID string
+	IID int
 	// MID is the ID of the Mirror
-	MID string
+	MID int
 }
 
 type ImageOptions struct {
@@ -47,7 +47,7 @@ type ImageOptions struct {
 	SourceSchemaVersion int
 	SourceMediaType     string
 
-	MID string
+	MID int
 }
 
 func NewImage(opts *ImageOptions) *Image {

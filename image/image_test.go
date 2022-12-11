@@ -1,7 +1,6 @@
 package image
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -28,7 +27,7 @@ func Test_NewImage(t *testing.T) {
 		SavedFolder:         u.Sha256Sum("library/hello-world"),
 		SourceSchemaVersion: 2,
 		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 fmt.Sprintf("%02d", 1),
+		MID:                 1,
 	})
 
 	if s := image.Source; s != "docker.io/example" {
@@ -80,7 +79,7 @@ func Test_Copy(t *testing.T) {
 		Digest:              "sha256:" + u.Sha256Sum("ABC"),
 		SourceSchemaVersion: 2,
 		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 fmt.Sprintf("%02d", 1),
+		MID:                 1,
 	})
 
 	// fake skopeo copy, skopeo inspect func
@@ -105,7 +104,7 @@ func Test_Copy(t *testing.T) {
 		Digest:              "sha256:" + u.Sha256Sum("ABC"),
 		SourceSchemaVersion: 1,
 		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 fmt.Sprintf("%02d", 1),
+		MID:                 1,
 	})
 	if err := imageV1.Copy(); err != nil {
 		t.Error(err.Error())
@@ -131,7 +130,7 @@ func Test_Copy(t *testing.T) {
 		Digest:              "sha256:" + u.Sha256Sum("ABC"),
 		SourceSchemaVersion: 2,
 		SourceMediaType:     u.MediaTypeManifestListV2,
-		MID:                 fmt.Sprintf("%02d", 1),
+		MID:                 1,
 	})
 	if err := imageListV2.Copy(); err != nil {
 		t.Error(err.Error())

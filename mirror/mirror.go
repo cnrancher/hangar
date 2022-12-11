@@ -27,7 +27,7 @@ type Mirror struct {
 	images []*image.Image
 
 	// ID of the mirrorer
-	MID string
+	MID int
 
 	Mode int
 }
@@ -57,7 +57,7 @@ func NewMirror(opts *MirrorOptions) *Mirror {
 		Directory:   opts.Directory,
 		ArchList:    slices.Clone(opts.ArchList),
 		Mode:        opts.Mode,
-		MID:         fmt.Sprintf("%03d", opts.ID),
+		MID:         opts.ID,
 	}
 }
 
@@ -161,7 +161,7 @@ func (m *Mirror) ImageNum() int {
 }
 
 func (m *Mirror) AppendImage(img *image.Image) {
-	img.IID = fmt.Sprintf("%02d", m.ImageNum()+1)
+	img.IID = m.ImageNum() + 1
 	m.images = append(m.images, img)
 }
 
