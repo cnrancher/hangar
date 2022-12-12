@@ -81,7 +81,6 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 // InspectRaw function executs `skopeo inspect ${img}` command
 // and return the output if execute successfully
 func SkopeoInspect(img string, args ...string) (string, error) {
-	logrus.Debugf("Running skopeo inspect [%s] %v", img, args)
 	// Ensure skopeo installed
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
@@ -103,6 +102,7 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 		"--insecure-policy",
 		"--tls-verify=false",
 	)
+	logrus.Debugf("Running skopeo inspect [%s] %v", img, args)
 	param = append(param, args...)
 
 	out, err := execCommandFunc(skopeoPath, param...)
@@ -116,7 +116,6 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 // SkopeoCopy execute the `skopeo copy ${source} ${destination} args...` cmd
 // You can add custom parameters in `args`
 func SkopeoCopy(src, dst string, args ...string) error {
-	logrus.Debugf("Running skopeo copy src[%s] dst[%s] %v", src, dst, args)
 	skopeoPath, err := EnsureSkopeoInstalled("")
 	if err != nil {
 		return fmt.Errorf("unable to locate skopeo path: %w", err)
@@ -143,6 +142,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 		"--dest-tls-verify=false",
 	)
 	params = append(params, args...)
+	logrus.Debugf("Running skopeo copy src[%s] dst[%s] %v", src, dst, args)
 
 	if _, err = execCommandFunc(skopeoPath, params...); err != nil {
 		return fmt.Errorf("SkopeoCopy %s => %s:\n%w", src, dst, err)

@@ -2,7 +2,7 @@ package mirror
 
 import (
 	"embed"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"cnrancher.io/image-tools/image"
@@ -23,7 +23,7 @@ const (
 var testFs embed.FS
 
 func init() {
-	logrus.SetOutput(ioutil.Discard)
+	logrus.SetOutput(io.Discard)
 }
 
 // StartMirror method should test manually,

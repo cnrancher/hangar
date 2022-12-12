@@ -128,6 +128,10 @@ func DockerBuildx(args ...string) error {
 	buildxArgs = append(buildxArgs, args...)
 	out, err := execCommandFunc(path, buildxArgs...)
 	if err != nil {
+		if strings.Contains(err.Error(), "certificate signed by unknown") {
+			logrus.Warnf("Dest registry is using custom certificate!")
+			logrus.Warnf("Add self-signed certificate to '%s'", u.ETC_SSL_FILE)
+		}
 		return fmt.Errorf("docker buildx: %w", err)
 	}
 	fmt.Print(out)

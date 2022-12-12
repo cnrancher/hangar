@@ -20,7 +20,7 @@ var (
 	cmdFile      = cmd.String("f", "", "image list file")
 	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
 	cmdSourceReg = cmd.String("s", "", "override the source registry")
-	cmdDestDir   = cmd.String("d", u.CacheImageDirectory, "specify the output directory")
+	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into tar.gz")
 	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")
 	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
@@ -48,38 +48,9 @@ func SaveImages() {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
-	// Command line parameter is prior than environment variable
-	if *cmdDestDir == "" {
-		logrus.Panic("destination dir not specified!")
-	}
-
 	// Check cache image directory
-	ok, err := u.IsDirEmpty(u.CacheImageDirectory)
-	if err != nil {
-		logrus.Panic(err)
-	}
-	if !ok {
-		logrus.Warnf("Cache folder: '%s' is not empty!", u.CacheImageDirectory)
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Delete it before start save image? [Yes/No] ")
-		for {
-			text, _ := reader.ReadString('\n')
-			if len(text) == 0 {
-				continue
-			}
-			if text[0] == 'Y' || text[0] == 'y' {
-				break
-			} else {
-				logrus.Fatalf("'%s': %v",
-					u.CacheImageDirectory, u.ErrDirNotEmpty)
-			}
-		}
-		if err := u.DeleteIfExist(u.CacheImageDirectory); err != nil {
-			logrus.Panic(err)
-		}
-	}
-	if err = u.EnsureDirExists(u.CacheImageDirectory); err != nil {
-		logrus.Panic(err)
+	if err := u.CheckCacheDirEmpty(); err != nil {
+		logrus.Fatal(err)
 	}
 
 	var scanner *bufio.Scanner
@@ -140,8 +111,7 @@ func SaveImages() {
 				appendListMutex.Lock()
 				savedTemplate.Append(m.GetSavedImageTemplate())
 				if usingStdin {
-					u.SaveJson(savedTemplate,
-						filepath.Join(*cmdDestDir, u.SavedImageListFile))
+					u.SaveJson(savedTemplate, u.SavedImageListFile)
 				}
 				appendListMutex.Unlock()
 			}
@@ -193,7 +163,7 @@ func SaveImages() {
 		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
 			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:       v[1],
-			Directory: *cmdDestDir,
+			Directory: u.CacheImageDirectory,
 			ArchList:  strings.Split(*cmdArch, ","),
 			Mode:      mirror.MODE_SAVE,
 			ID:        num,
@@ -204,10 +174,15 @@ func SaveImages() {
 
 	// Write saved image json
 	if len(savedTemplate.List) > 0 {
-		dir := filepath.Join(*cmdDestDir, u.SavedImageListFile)
+		dir := filepath.Join(u.CacheImageDirectory, u.SavedImageListFile)
 		u.SaveJson(savedTemplate, dir)
 	}
-	// TODO: create tar.gz tarball
+
+	logrus.Infof("Compressing %s...", *cmdDest)
+	if err := u.Compress(u.CacheImageDirectory, *cmdDest); err != nil {
+		logrus.Fatal(err)
+	}
+	logrus.Infof("Successfully saved images into %s", *cmdDest)
 
 	if usingStdin {
 		fmt.Println()

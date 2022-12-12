@@ -43,6 +43,7 @@ const (
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 	SavedImageListFile      = "saved-images-list.json"
 	CacheImageDirectory     = "saved-image-cache"
+	ETC_SSL_FILE            = "/etc/ssl/certs/ca-certificates.crt"
 	MAX_WORKER_NUM          = 20
 	MIN_WORKER_NUM          = 1
 )
@@ -246,4 +247,36 @@ func ReadUsernamePasswd() (username, passwd string, err error) {
 
 	password := string(bytePassword)
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
+}
+
+func CheckCacheDirEmpty() error {
+	// Check cache image directory
+	ok, err := IsDirEmpty(CacheImageDirectory)
+	if err != nil {
+		logrus.Panic(err)
+	}
+	if !ok {
+		logrus.Warnf("Cache folder: '%s' is not empty!", CacheImageDirectory)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf("Delete it before start save image? [Yes/No] ")
+		for {
+			text, _ := reader.ReadString('\n')
+			if len(text) == 0 {
+				continue
+			}
+			if text[0] == 'Y' || text[0] == 'y' {
+				break
+			} else {
+				return fmt.Errorf("'%s': %w",
+					CacheImageDirectory, ErrDirNotEmpty)
+			}
+		}
+		if err := DeleteIfExist(CacheImageDirectory); err != nil {
+			return err
+		}
+	}
+	if err = EnsureDirExists(CacheImageDirectory); err != nil {
+		return err
+	}
+	return nil
 }

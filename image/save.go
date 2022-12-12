@@ -49,6 +49,7 @@ func (img *Image) Save() error {
 		"--override-arch=" + img.Arch,
 		"--dest-compress", // compress image in local dir
 		"--dest-compress-format=gzip",
+		"--dest-compress-level=9",
 	}
 	if img.OS != "" {
 		args = append(args, "--override-os="+img.OS)

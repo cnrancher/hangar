@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"cnrancher.io/image-tools/mirror"
@@ -14,7 +15,7 @@ import (
 
 var (
 	cmd        = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdFile    = cmd.String("f", "", "saved tar.gz file")
+	cmdSource  = cmd.String("s", "", "saved tar.gz file")
 	cmdDestReg = cmd.String("d", "", "override the destination registry")
 	cmdFailed  = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
 	cmdDebug   = cmd.Bool("debug", false, "enable the debug output")
@@ -28,6 +29,11 @@ func Parse(args []string) {
 func LoadImages() {
 	if *cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
+	}
+	if *cmdSource == "" {
+		logrus.Error("saved tar.gz file not specified.")
+		logrus.Error("Use '-f' to specify the saved tar.gz file.")
+		logrus.Fatal("Failed to load images.")
 	}
 
 	if err := registry.SelfCheckBuildX(); err != nil {
@@ -46,6 +52,11 @@ func LoadImages() {
 		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
 	}
 
+	// Check cache image directory
+	if err := u.CheckCacheDirEmpty(); err != nil {
+		logrus.Fatal(err)
+	}
+
 	// execute docker login command
 	err := registry.DockerLogin(
 		*cmdDestReg, u.EnvDockerUsername, u.EnvDockerPassword)
@@ -53,16 +64,17 @@ func LoadImages() {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 
-	// TODO: decompress tar.gz tarball
-	// TODO:
-	directory := *cmdFile
-	if directory == "" {
-		directory = u.CacheImageDirectory
-	}
-
+	directory := "."
 	if directory, err = u.GetAbsPath(directory); err != nil {
 		logrus.Fatal(err)
 	}
+
+	// decompress input tar.gz tarball
+	logrus.Infof("Decompressing %s...", *cmdSource)
+	if err := u.Decompress(*cmdSource, directory); err != nil {
+		logrus.Fatal(err)
+	}
+	directory = filepath.Join(directory, u.CacheImageDirectory)
 	logrus.Debugf("Decompressed directory: %s", directory)
 	info, err := os.Stat(directory)
 	if err != nil {

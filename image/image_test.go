@@ -1,7 +1,7 @@
 package image
 
 import (
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	logrus.SetOutput(ioutil.Discard)
+	logrus.SetOutput(io.Discard)
 }
 
 func Test_NewImage(t *testing.T) {
