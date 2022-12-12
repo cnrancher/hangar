@@ -1,46 +1,36 @@
 # image-tools
 
-Mirror multi-arch container images from public registry to your personal registry with manifest list support.
+`image-tools` is a tool for mirror/copy multi-arch container images from the public registry to your own personal registry with manifest list support.
 
-## Usage
+You can use `image-tools mirror` command to mirror images from source registry to your own registry.
 
-> Simplified Chinese Usage Guide: [简体中文-使用文档](docs/README.md)
+Or you can use `image-tools save` and `image-tools load` commands to save the images from public registry to `tar.gz` tarball and then load it into your private registry in air-gap mode.
+
+## Docs
+
+For more detailed information about this project, please refer to the documents in [docs](docs/) folder.
+
+The documents are available in two languages:
+
+- Simplified Chinese: [简体中文-使用文档](./docs/zh_CN/README.md)
+- English: [Usage guide](./docs/en/README.md)
+
+## QuickStart
 
 ```sh
-# go version
+# Ensure Go and make is installed
 go version go1.19 linux/amd64
 
-# Build image-tool
-go build -o image-tools .
+# Build this project
+make build
 
 # Get help message
 ./image-tools -h
 
 # Get help message of each command
 ./image-tools mirror -h
-```
-
-### Mirror
-
-`mirror` command copy images from source registry to the destination registry.
-
-```console
-$ ./image-tools mirror -h
-Usage of mirror:
-  -a string
-    	architecture list of images, seperate with ',' (default "amd64,arm64")
-  -d string
-    	override the destination registry
-  -debug
-    	enable the debug output
-  -f string
-    	image list file
-  -j int
-    	job number, async mode if larger than 1, maximun is 20 (default 1)
-  -o string
-    	file name of the mirror failed image list (default "mirror-failed.txt")
-  -s string
-    	override the source registry
+./image-tools save -h
+......
 ```
 
 ## LICENSE
