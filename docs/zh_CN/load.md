@@ -4,13 +4,19 @@
 $ image-tools load -h
 Usage of load:
   -d string
-        override the destination registry
+        target private registry:port
   -debug
         enable the debug output
+  -harbor-https
+        use HTTPS by default when create harbor project (default true)
+  -harbor-version string
+        (reserved) harbor version, only harbor v2 supported (default "v2")
   -j int
         job number, async mode if larger than 1, maximum is 20 (default 1)
   -o string
         file name of the load failed image list (default "load-failed.txt")
+  -repository-type string
+        repository type, can be 'harbor' or empty
   -s string
         saved tar.gz file
 ```
@@ -36,6 +42,11 @@ Usage of load:
 # 使用 -d (destination) 参数，指定目标镜像的 registry
 # 优先级为：-d 参数 > DOCKER_REGISTRY 环境变量
 ./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+
+# 使用 -repository-type 参数，指定目标仓库的类型
+# 合法的类型名称为: harbor
+# 若目标仓库为 harbor，此工具在导入镜像时会自动为目标 Harbor 仓库创建 Project
+./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repository-type=harbor
 
 # 使用 -j (jobs) 参数，指定协程池数量，并发导入镜像（支持 1~20 个 jobs）
 ./image-tools load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程
