@@ -1,4 +1,4 @@
-# image-tools usage (CN)
+# image-tools usage
 
 ```
 ./image-tools COMMAND OPTIONS
@@ -20,13 +20,14 @@
     - `DOCKER_REGISTRY`: Destination registry URL
 
     You can input username and password manually if these environment variables are not specified when running this tool.
+1. Following the [self-signed certificate](./self-signed-ssl.md) if using self-signed certificate.
 
 ## COMMANDS
 
 - [mirror](./mirror.md): mirror images by image-list txt file.
 - [save](./save.md): Save images into `tar.gz` by image-list txt file。
 - [load](./load.md): (Air-Gap) Load `tar.gz` archive, load images to private registry.
-- [convert-image](./convert-list.md): Convert image list format.
+- [convert-list](./convert-list.md): Convert image list format.
 
 ## Build
 

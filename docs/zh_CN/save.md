@@ -19,6 +19,9 @@ Usage of save:
         override the source registry
 ```
 
+## 准备工作
+
+在执行 `image-tools save` 之前，请手动执行 `docker login <registry-url>` 登录。
 ## 镜像列表格式
 
 每一行包含 **“镜像名称:TAG”**，镜像与 TAG 之间以 `:` 分隔，例如：
@@ -63,7 +66,7 @@ rancher/rancher:v2.7.0
 # 使用 -j (jobs) 参数，指定协程池数量，并发下载镜像至本地（支持 1~20 个 jobs）
 ./image-tools save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
 
-# 在不设定 -f 参数时，可手动按行输入镜像列表，拷贝某一个镜像
+# 在不设定 -f 参数时，可手动按行输入镜像列表，下载某一个镜像
 # 此时将不支持并发拷贝
 # 注意在此模式下，使用 `Ctrl-D` 结束镜像列表的，不要使用 `Ctrl-C` 结束程序！
 ./image-tools save -d saved-images.tar.gz
@@ -84,4 +87,6 @@ rancher/rancher:v2.7.0
 
 ## Output
 
-若拷贝过程中某个镜像拷贝失败，那么该工具会将拷贝失败的镜像列表输出至 `mirror-failed.txt`，可使用 `-o` 参数设定拷贝失败的镜像列表的文件名称。
+此工具最终会生成一个 `tar.gz` 压缩包文件。
+
+若拷贝过程中某个镜像拷贝失败，那么该工具会将拷贝失败的镜像列表输出至 `save-failed.txt`，可使用 `-o` 参数设定拷贝失败的镜像列表的文件名称。

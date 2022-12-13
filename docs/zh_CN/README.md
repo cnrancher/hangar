@@ -20,7 +20,7 @@
     - `DOCKER_REGISTRY`: 目标 registry 地址
 
     若未设定环境变量，可在执行该工具时手动输入用户名和密码。
-
+1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
 ## COMMANDS
 
 - [mirror](./mirror.md): 根据列表文件，将镜像拷贝至私有镜像仓库。

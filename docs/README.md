@@ -1,4 +1,4 @@
-# image-tools documents
+# Docs
 
 The documents are available in two languages:
 

@@ -84,6 +84,7 @@ func Convert() {
 		outputLine := fmt.Sprintf("%s %s %s\n", spec[0], destImage, spec[1])
 		u.AppendFileLine(*cmdOutput, outputLine)
 	}
+	logrus.Infof("Converted %q to %q", *cmdInput, *cmdOutput)
 }
 
 func checkLineFormat(line string) int {
