@@ -1,6 +1,7 @@
 # binary files
 image-tools
 skopeo
+*.tar.gz
 
 # image lists
 test.txt

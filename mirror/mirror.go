@@ -12,12 +12,19 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+const (
+	REPO_TYPE_DEFAULT = iota
+	REPO_TYPE_HARBOR_V1
+	REPO_TYPE_HARBOR_V2
+)
+
 type Mirror struct {
 	Source      string
 	Destination string
 	Tag         string
 	Directory   string
 	ArchList    []string
+	RepoType    int
 
 	sourceManifestStr string
 	destManifestStr   string
@@ -38,6 +45,7 @@ type MirrorOptions struct {
 	Tag         string
 	Directory   string
 	ArchList    []string
+	RepoType    int
 	Mode        int
 	ID          int
 }
@@ -56,6 +64,7 @@ func NewMirror(opts *MirrorOptions) *Mirror {
 		Tag:         opts.Tag,
 		Directory:   opts.Directory,
 		ArchList:    slices.Clone(opts.ArchList),
+		RepoType:    opts.RepoType,
 		Mode:        opts.Mode,
 		MID:         opts.ID,
 	}

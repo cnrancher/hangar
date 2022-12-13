@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"cnrancher.io/image-tools/image"
@@ -139,4 +140,39 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 	}
 
 	return mirrorList, nil
+}
+
+// GetSourceNamespaces gets namespaces (harbor project) from *Mirror slice
+func GetSourceNamespaces(mList []*Mirror) []string {
+	var namespaceList = make([]string, 0)
+
+	for _, m := range mList {
+		if m == nil {
+			continue
+		}
+
+		spec := []string{}
+		for _, v := range strings.Split(m.Source, "/") {
+			if len(v) == 0 || strings.ContainsAny(v, ".:") {
+				// skip registry prefix
+				continue
+			}
+			spec = append(spec, v)
+		}
+		switch len(spec) {
+		case 1:
+			// example: hello-world, nginx, mysql...
+			// the namespace is unknow
+			logrus.Warnf("%q does not have namespace (harbor project)",
+				m.Source)
+		case 2:
+			// example: library/app
+			// the namespace is library
+			if !slices.Contains(namespaceList, spec[0]) {
+				namespaceList = append(namespaceList, spec[0])
+			}
+		}
+	}
+
+	return namespaceList
 }

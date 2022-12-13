@@ -14,12 +14,15 @@ import (
 )
 
 var (
-	cmd        = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdSource  = cmd.String("s", "", "saved tar.gz file")
-	cmdDestReg = cmd.String("d", "", "override the destination registry")
-	cmdFailed  = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdDebug   = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs    = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	cmd              = flag.NewFlagSet("load", flag.ExitOnError)
+	cmdSource        = cmd.String("s", "", "saved tar.gz file")
+	cmdDestReg       = cmd.String("d", "", "target private registry:port")
+	cmdFailed        = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
+	cmdRepoType      = cmd.String("repository-type", "", "repository type, can be 'harbor' or empty")
+	cmdHarborVersion = cmd.String("harbor-version", "v2", "(reserved) harbor version, only harbor v2 supported")
+	cmdHarborHttps   = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
+	cmdDebug         = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs          = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
 
 func Parse(args []string) {
@@ -32,7 +35,7 @@ func LoadImages() {
 	}
 	if *cmdSource == "" {
 		logrus.Error("saved tar.gz file not specified.")
-		logrus.Error("Use '-f' to specify the saved tar.gz file.")
+		logrus.Error("Use '-s' to specify the saved tar.gz file.")
 		logrus.Fatal("Failed to load images.")
 	}
 
@@ -126,6 +129,24 @@ func LoadImages() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	// create harbor project before load
+	if *cmdRepoType == "harbor" {
+		projectList := mirror.GetSourceNamespaces(mList)
+		for _, proj := range projectList {
+			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
+			if *cmdHarborHttps {
+				url = "https://" + url
+			} else {
+				url = "http://" + url
+			}
+			err := registry.CreateHarborProject(proj, url)
+			if err != nil {
+				logrus.Errorf("Failed to create harbor project %q: %q",
+					proj, err)
+			}
+		}
+	}
+
 	for _, m := range mList {
 		mChan <- m
 	}

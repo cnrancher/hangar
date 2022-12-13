@@ -36,6 +36,7 @@ func Test_NewMirror(t *testing.T) {
 		Tag:         "v1.0.0",
 		Directory:   ".saved-cache",
 		ArchList:    []string{"amd64", "arm64"},
+		RepoType:    REPO_TYPE_DEFAULT,
 		Mode:        MODE_MIRROR,
 	})
 

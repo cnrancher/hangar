@@ -52,6 +52,17 @@ func Test_Sha256sum(t *testing.T) {
 	}
 }
 
+func Test_Base64(t *testing.T) {
+	s := Base64("123")
+	if s != "MTIz" {
+		t.Error("base64 test failed")
+	}
+	s = Base64("Username:Password")
+	if s != "VXNlcm5hbWU6UGFzc3dvcmQ=" {
+		t.Error("base64 test failed")
+	}
+}
+
 // func AppendFileLine should be test manually
 
 func Test_IsDirEmpty(t *testing.T) {

@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,6 +57,11 @@ var (
 func Sha256Sum(s string) string {
 	sum := sha256.Sum256([]byte(s))
 	return fmt.Sprintf("%x", sum)
+}
+
+func Base64(s string) string {
+	data := []byte(s)
+	return base64.StdEncoding.EncodeToString(data)
 }
 
 func IsDirEmpty(name string) (bool, error) {
