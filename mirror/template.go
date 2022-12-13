@@ -12,6 +12,7 @@ import (
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
+	"golang.org/x/mod/semver"
 )
 
 type SavedListTemplate struct {
@@ -98,7 +99,12 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
 	}
 
-	// TODO: Compare version
+	sVersion := savedList.Version
+	if semver.Compare(sVersion, u.VERSION) > 0 {
+		logrus.Warnf("Version in saved tar.gz is %s", sVersion)
+		logrus.Warnf("Current tool version is %s", u.VERSION)
+		return nil, fmt.Errorf("image-tool version is lower than %s", sVersion)
+	}
 
 	var mirrorList []*Mirror
 	for i, mT := range savedList.List {
