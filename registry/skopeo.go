@@ -3,7 +3,6 @@ package registry
 import (
 	"fmt"
 	"os/exec"
-	"runtime"
 
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
@@ -23,7 +22,7 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 	}
 
 	logrus.Warnf("skopeo not found, lease install skopeo manually: %s",
-		runtime.GOOS, skopeoInsGuideURL)
+		skopeoInsGuideURL)
 	return "", u.ErrSkopeoNotFound
 }
 

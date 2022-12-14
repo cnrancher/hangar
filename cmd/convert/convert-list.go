@@ -19,10 +19,11 @@ const (
 )
 
 var (
-	cmd        = flag.NewFlagSet("convert-list", flag.ExitOnError)
-	cmdInput   = cmd.String("i", "", "input image list")
-	cmdOutput  = cmd.String("o", "", "output image list")
-	cmdDestReg = cmd.String("d", "", "specify the dest registry")
+	cmd          = flag.NewFlagSet("convert-list", flag.ExitOnError)
+	cmdInput     = cmd.String("i", "", "input image list")
+	cmdOutput    = cmd.String("o", "", "output image list")
+	cmdSourceReg = cmd.String("s", "", "specify the source registry")
+	cmdDestReg   = cmd.String("d", "", "specify the dest registry")
 )
 
 func Parse(args []string) {
@@ -80,8 +81,14 @@ func Convert() {
 			}
 		}
 
+		var srcImage string
+		if *cmdSourceReg == "" {
+			srcImage = spec[0]
+		} else {
+			srcImage = u.ConstructRegistry(spec[0], *cmdSourceReg)
+		}
 		destImage := u.ConstructRegistry(spec[0], *cmdDestReg)
-		outputLine := fmt.Sprintf("%s %s %s\n", spec[0], destImage, spec[1])
+		outputLine := fmt.Sprintf("%s %s %s\n", srcImage, destImage, spec[1])
 		u.AppendFileLine(*cmdOutput, outputLine)
 	}
 	logrus.Infof("Converted %q to %q", *cmdInput, *cmdOutput)

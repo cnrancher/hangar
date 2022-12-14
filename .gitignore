@@ -5,11 +5,9 @@ skopeo
 /release/
 
 # image lists
-test.txt
-mirror-failed.txt
-save-failed.txt
-load-failed.txt
+*.txt
 *.out
+*.converted
 
 # default save image directory
 /saved-image-cache/
