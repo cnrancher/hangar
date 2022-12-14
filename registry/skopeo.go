@@ -21,7 +21,7 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 		return path, nil
 	}
 
-	logrus.Warnf("skopeo not found, lease install skopeo manually: %s",
+	logrus.Warnf("skopeo not found, please install skopeo manually: %s",
 		skopeoInsGuideURL)
 	return "", u.ErrSkopeoNotFound
 }
