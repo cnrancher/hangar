@@ -51,9 +51,9 @@ func LoadImages() {
 	}
 
 	if *cmdDestReg != "" {
-		logrus.Infof("Set destination registry to [%s]", *cmdDestReg)
+		logrus.Infof("Set 'docker login' registry to %q", *cmdDestReg)
 	} else {
-		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
+		logrus.Infof("Set 'docker login' registry to %q", u.DockerHubRegistry)
 	}
 
 	// Check cache image directory
@@ -105,7 +105,7 @@ func LoadImages() {
 					Error("Mirror", err.Error())
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Destination, m.Tag))
+					fmt.Sprintf("%s:%s", m.Destination, m.Tag))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Loaded() != 0 {
 				// if there are some images load failed in this mirrorer
@@ -113,7 +113,7 @@ func LoadImages() {
 					Errorf("Some images failed to load: %s", m.Source)
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Destination, m.Tag))
+					fmt.Sprintf("%s:%s", m.Destination, m.Tag))
 				writeFileMutex.Unlock()
 			}
 		}

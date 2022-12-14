@@ -99,7 +99,7 @@ func AppendFileLine(fileName string, line string) error {
 	if err != nil {
 		return fmt.Errorf("AppendFileLine: %w", err)
 	}
-	if _, err := f.Write([]byte(line)); err != nil {
+	if _, err := f.Write([]byte(line + "\n")); err != nil {
 		f.Close() // ignore error; Write error takes precedence
 		return fmt.Errorf("AppendFileLine: %w", err)
 	}

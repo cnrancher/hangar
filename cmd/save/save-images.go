@@ -96,7 +96,7 @@ func SaveImages() {
 					Error(err.Error())
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Source, m.Tag))
+					fmt.Sprintf("%s:%s", m.Source, m.Tag))
 				writeFileMutex.Unlock()
 			} else if m.ImageNum()-m.Saved() != 0 {
 				// if there are some images save failed in this mirrorer
@@ -104,7 +104,7 @@ func SaveImages() {
 					Errorf("Some images failed to save: %s", m.Source)
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s\n", m.Source, m.Tag))
+					fmt.Sprintf("%s:%s", m.Source, m.Tag))
 				writeFileMutex.Unlock()
 			} else {
 				// if image saved successfully

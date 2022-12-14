@@ -88,7 +88,7 @@ func Convert() {
 			srcImage = u.ConstructRegistry(spec[0], *cmdSourceReg)
 		}
 		destImage := u.ConstructRegistry(spec[0], *cmdDestReg)
-		outputLine := fmt.Sprintf("%s %s %s\n", srcImage, destImage, spec[1])
+		outputLine := fmt.Sprintf("%s %s %s", srcImage, destImage, spec[1])
 		u.AppendFileLine(*cmdOutput, outputLine)
 	}
 	logrus.Infof("Converted %q to %q", *cmdInput, *cmdOutput)

@@ -44,9 +44,9 @@ func MirrorImages() {
 	}
 
 	if *cmdSourceReg != "" {
-		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
+		logrus.Infof("Set source registry to %q", *cmdSourceReg)
 	} else {
-		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
+		logrus.Infof("Set source registry to %q", u.DockerHubRegistry)
 	}
 
 	// Command line parameter is prior than environment variable
@@ -55,9 +55,9 @@ func MirrorImages() {
 	}
 
 	if *cmdDestReg != "" {
-		logrus.Infof("Set destination registry to [%s]", *cmdDestReg)
+		logrus.Infof("Set 'docker login' registry to %q", *cmdDestReg)
 	} else {
-		logrus.Infof("Set destination registry to [%s]", u.DockerHubRegistry)
+		logrus.Infof("Set 'docker login' registry to %q", u.DockerHubRegistry)
 	}
 
 	// execute docker login command
