@@ -111,7 +111,9 @@ func SaveImages() {
 				appendListMutex.Lock()
 				savedTemplate.Append(m.GetSavedImageTemplate())
 				if usingStdin {
-					u.SaveJson(savedTemplate, u.SavedImageListFile)
+					dir := filepath.Join(
+						u.CacheImageDirectory, u.SavedImageListFile)
+					u.SaveJson(savedTemplate, dir)
 				}
 				appendListMutex.Unlock()
 			}

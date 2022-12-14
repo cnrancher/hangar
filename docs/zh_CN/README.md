@@ -14,7 +14,6 @@
     ```
 
 1. 确保 [skopeo](https://github.com/containers/skopeo) 已安装
-    > Linux 系统若在没有安装 `skopeo` 时执行此工具，那么该工具将会自动下载已编译的 `skopeo` 可执行文件至本地。
 1. 确保 `docker` 和 `docker-buildx` 插件已安装。
 
     （`docker` 和 `docker-buildx` 可使用最新版本）
@@ -27,6 +26,7 @@
 
     若未设定环境变量，可在执行该工具时手动输入用户名和密码。
 1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
+
 ## COMMANDS
 
 - [mirror](./mirror.md): 根据列表文件，将镜像拷贝至私有镜像仓库。
