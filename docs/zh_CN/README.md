@@ -7,6 +7,12 @@
 ## 运行环境
 
 1. Linux 或 macOS 系统，架构为 amd64 或 arm64
+1. 在 Release 页面下载构建物，使用 `unxz` 解压获取编译后的可执行文件
+
+    ```console
+    $ unxz image-tools-${OS}-${ARCH}-${VERSION}.xz
+    ```
+
 1. 确保 [skopeo](https://github.com/containers/skopeo) 已安装
     > Linux 系统若在没有安装 `skopeo` 时执行此工具，那么该工具将会自动下载已编译的 `skopeo` 可执行文件至本地。
 1. 确保 `docker` 和 `docker-buildx` 插件已安装。
