@@ -2,6 +2,7 @@
 image-tools
 skopeo
 *.tar.gz
+/release/
 
 # image lists
 test.txt

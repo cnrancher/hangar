@@ -1,4 +1,4 @@
-.PHONY: build install test clean
+.PHONY: build install test release clean
 
 build:
 	go build -o image-tools .
@@ -8,6 +8,9 @@ install:
 
 test:
 	@./scripts/test.sh
+
+release:
+	@./scripts/release.sh
 
 clean:
 	@./scripts/clean.sh
