@@ -9,6 +9,8 @@ Usage of convert-list:
         input image list
   -o string
         output image list
+  -s string
+        specify the source registry
 ```
 
 ## QuickStart
@@ -43,6 +45,9 @@ nginx custom.private.io/nginx latest
 # 使用 -i (input) 和 -d (destination) 参数，
 # 指定输入的镜像列表文件名和目标镜像的 registry
 ./image-tools convert-list -i list.txt -d private.registry.io
+
+# 使用 -s (source) 参数指定转换格式后的镜像列表的源 registry
+./image-tools convert-list -i list.txt -s source.io -d dest.io
 
 # 使用 -o (output) 参数，指定输出镜像列表的文件名
 # 默认为输入的文件名添加 .converted 后缀
