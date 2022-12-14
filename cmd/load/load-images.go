@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	cmd              = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdSource        = cmd.String("s", "", "saved tar.gz file")
-	cmdDestReg       = cmd.String("d", "", "target private registry:port")
-	cmdFailed        = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdRepoType      = cmd.String("repository-type", "", "repository type, can be 'harbor' or empty")
-	cmdHarborVersion = cmd.String("harbor-version", "v2", "(reserved) harbor version, only harbor v2 supported")
-	cmdHarborHttps   = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
-	cmdDebug         = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs          = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	cmd            = flag.NewFlagSet("load", flag.ExitOnError)
+	cmdSource      = cmd.String("s", "", "saved tar.gz file")
+	cmdDestReg     = cmd.String("d", "", "target private registry:port")
+	cmdFailed      = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
+	cmdRepoType    = cmd.String("repository-type", "", "repository type, can be 'harbor' or empty")
+	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
+	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	// cmdHarborVersion = cmd.String("harbor-version", "v2", "(reserved) harbor version, only harbor v2 supported")
 )
 
 func Parse(args []string) {
@@ -30,6 +30,7 @@ func Parse(args []string) {
 }
 
 func LoadImages() {
+	var err error
 	if *cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
@@ -61,9 +62,7 @@ func LoadImages() {
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(
-		*cmdDestReg, u.EnvDockerUsername, u.EnvDockerPassword)
-	if err != nil {
+	if err := registry.DockerLogin(*cmdDestReg); err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 

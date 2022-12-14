@@ -50,7 +50,7 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 }
 
 // DockerLogin executes the `docker login <registry_url>` command
-func DockerLogin(url string, username string, passwd string) error {
+func DockerLogin(url string) error {
 	// docker login ${DOCKER_REGISTRY} --username=${USERNAME} --password-stdin
 	if url == "" {
 		url = u.DockerHubRegistry
@@ -63,12 +63,14 @@ func DockerLogin(url string, username string, passwd string) error {
 	}
 	logrus.Debugf("found docker installed at: %v", path)
 
-	if username == "" || passwd == "" {
+	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
 		// read username and password from stdin
-		username, passwd, err = u.ReadUsernamePasswd()
+		username, passwd, err := u.ReadUsernamePasswd()
 		if err != nil {
 			return fmt.Errorf("DockerLogin: %w", err)
 		}
+		u.EnvDockerUsername = username
+		u.EnvDockerPassword = passwd
 	}
 
 	var stdout bytes.Buffer
@@ -76,12 +78,12 @@ func DockerLogin(url string, username string, passwd string) error {
 		path,
 		"login",
 		url,
-		"-u", username,
+		"-u", u.EnvDockerUsername,
 		"--password-stdin",
 	)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
-	cmd.Stdin = strings.NewReader(passwd)
+	cmd.Stdin = strings.NewReader(u.EnvDockerPassword)
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}

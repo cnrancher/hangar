@@ -61,9 +61,7 @@ func MirrorImages() {
 	}
 
 	// execute docker login command
-	err := registry.DockerLogin(
-		*cmdDestReg, u.EnvDockerUsername, u.EnvDockerPassword)
-	if err != nil {
+	if err := registry.DockerLogin(*cmdDestReg); err != nil {
 		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
 	}
 

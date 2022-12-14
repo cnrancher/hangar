@@ -48,7 +48,7 @@ func CreateHarborProject(name string, url string) error {
 	if err != nil {
 		return fmt.Errorf("CreateHarborProject: %w", err)
 	}
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(resp.Body)
 	logrus.Debugf("Create %q response: %s", name, string(bodyBytes))
 	logrus.Debugf("Status: %d", resp.StatusCode)
 	return nil
