@@ -20,7 +20,6 @@ do
     do
         OUTPUT="image-tools-$os-$arch-$VERSION"
         GOOS=$os GOARCH=$arch go build -ldflags "-s -w" -o $OUTPUT ..
-        xz $OUTPUT
-        echo $OUTPUT.xz
+        echo $OUTPUT
     done
 done
