@@ -7,13 +7,24 @@
 ## 运行环境
 
 1. Linux 或 macOS 系统，架构为 amd64 或 arm64
-1. 在 Release 页面下载构建物，使用 `unxz` 解压获取编译后的可执行文件
+1. 确保 [skopeo](https://github.com/containers/skopeo/blob/main/install.md) 已安装
 
-    ```console
-    $ unxz image-tools-${OS}-${ARCH}-${VERSION}.xz
+    openEuler:
+
+    ```sh
+    sudo yum install skopeo
     ```
 
-1. 确保 [skopeo](https://github.com/containers/skopeo) 已安装
+    Ubuntu 可下载已编译的可执行文件：
+    - [skopeo-1.9.3-amd64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/amd64/1.9.3/skopeo)
+    - [skopeo-1.9.3-arm64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/arm64/1.9.3/skopeo)
+
+    macOS:
+
+    ```sh
+    brew install skopeo
+    ```
+
 1. 确保 `docker` 和 `docker-buildx` 插件已安装。
 
     （`docker` 和 `docker-buildx` 可使用最新版本）
