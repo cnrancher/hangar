@@ -18,11 +18,12 @@ var (
 	cmdSource      = cmd.String("s", "", "saved tar.gz file")
 	cmdDestReg     = cmd.String("d", "", "target private registry:port")
 	cmdFailed      = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdRepoType    = cmd.String("repository-type", "", "repository type, can be 'harbor' or empty")
+	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
 	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
 	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
-	// cmdHarborVersion = cmd.String("harbor-version", "v2", "(reserved) harbor version, only harbor v2 supported")
+
+	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest repo type is harbor and dest project is empty")
 )
 
 func Parse(args []string) {
@@ -130,7 +131,7 @@ func LoadImages() {
 	}
 	// create harbor project before load
 	if *cmdRepoType == "harbor" {
-		projectList := mirror.GetSourceNamespaces(mList)
+		projectList := mirror.GetSourceProjects(mList, *cmdDefaultProject)
 		for _, proj := range projectList {
 			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
 			if *cmdHarborHttps {

@@ -210,16 +210,24 @@ func CheckWorkerNum(usingStdin bool, num *int) {
 // ConstructRegistry will re-construct the image url:
 //
 // If `registryOverride` is empty string, example:
-// nginx --> docker.io/nginx (add docker.io prefix)
-// reg.io/nginx --> reg.io/nginx (nothing changed)
-// reg.io/user/nginx --> reg.io/user/nginx (nothing changed)
+//
+//	nginx --> docker.io/nginx (add docker.io prefix)
+//	reg.io/nginx --> reg.io/nginx (nothing changed)
+//	reg.io/user/nginx --> reg.io/user/nginx (nothing changed)
 //
 // If `registryOverride` set, example:
-// nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
-// reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
-// reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
+//
+//	nginx --> ${registryOverride}/nginx (add ${registryOverride} prefix)
+//	reg.io/nginx --> ${registryOverride}/nginx (set registry ${registryOverride})
+//	reg.io/user/nginx --> ${registryOverride}/user/nginx (same as above)
 func ConstructRegistry(image, registryOverride string) string {
-	s := strings.Split(image, "/")
+	spec := strings.Split(image, "/")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
+	}
 	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
 		if registryOverride != "" {
 			s[0] = registryOverride
@@ -233,6 +241,113 @@ func ConstructRegistry(image, registryOverride string) string {
 	}
 
 	return strings.Join(s, "/")
+}
+
+// ReplaceProjectName will replace the image project name:
+//
+// If `project` is empty string, the project name will be removed:
+//
+//	nginx --> nginx (nothing changed)
+//	reg.io/nginx --> reg.io/nginx (nothing changed)
+//	reg.io/user/nginx --> reg.io/nginx (remove project name)
+//
+// If `project` set, example:
+//
+//	nginx --> ${project}/nginx (add project name)
+//	reg.io/nginx --> reg.io/${project}/nginx (same as above)
+//	reg.io/user/nginx --> reg.io/${project}/nginx (same as above)
+func ReplaceProjectName(image, project string) string {
+	spec := strings.Split(image, "/")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
+	}
+	switch len(s) {
+	case 1:
+		if project != "" {
+			s = append([]string{project}, s...)
+		}
+	case 2:
+		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			if project != "" {
+				s = []string{s[0], project, s[1]}
+			}
+		} else {
+			if project != "" {
+				s = append([]string{project}, s...)
+			}
+		}
+	case 3:
+		if project != "" {
+			s[1] = project
+		} else {
+			// remove project name
+			s = []string{s[0], s[2]}
+		}
+	}
+	return strings.Join(s, "/")
+}
+
+// GetProjectName gets the project name of the image, example:
+//
+//	nginx -> ""
+//	docker.io/nginx -> ""
+//	library/nginx -> library
+//	docker.io/library/nginx -> library
+func GetProjectName(image string) string {
+	spec := strings.Split(image, "/")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
+	}
+
+	switch len(s) {
+	case 1:
+		return ""
+	case 2:
+		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			return ""
+		} else {
+			return s[0]
+		}
+	case 3:
+		return s[1]
+	}
+	return ""
+}
+
+// GetRegistryName gets the registry name of the image, example:
+//
+//	nginx -> docker.io
+//	reg.io/nginx -> reg.io
+//	library/nginx -> docker.io
+//	reg.io/library/nginx -> reg.io
+func GetRegistryName(image string) string {
+	spec := strings.Split(image, "/")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
+	}
+
+	switch len(s) {
+	case 1:
+		return DockerHubRegistry
+	case 2:
+		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			return s[0]
+		} else {
+			return DockerHubRegistry
+		}
+	case 3:
+		return s[0]
+	}
+	return ""
 }
 
 func ReadUsernamePasswd() (username, passwd string, err error) {

@@ -175,4 +175,26 @@ func Test_ConstructRegistry(t *testing.T) {
 	}
 }
 
+func Test_ReplaceProjectName(t *testing.T) {
+	var s string
+	if s = ReplaceProjectName("nginx", ""); s != "nginx" {
+		t.Error("ReplaceProjectName 1 failed")
+	}
+	if s = ReplaceProjectName("docker.io/nginx", ""); s != "docker.io/nginx" {
+		t.Error("ReplaceProjectName 2 failed")
+	}
+	if s = ReplaceProjectName("docker.io/library/nginx", ""); s != "docker.io/nginx" {
+		t.Error("ReplaceProjectName 3 failed")
+	}
+	if s = ReplaceProjectName("nginx", "library"); s != "library/nginx" {
+		t.Error("ReplaceProjectName 4 failed")
+	}
+	if s = ReplaceProjectName("docker.io/nginx", "library"); s != "docker.io/library/nginx" {
+		t.Error("ReplaceProjectName 5 failed")
+	}
+	if s = ReplaceProjectName("docker.io/name/nginx", "library"); s != "docker.io/library/nginx" {
+		t.Error("ReplaceProjectName 6 failed")
+	}
+}
+
 // ReadUsernamePasswd should test manually

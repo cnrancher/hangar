@@ -9,16 +9,21 @@ Usage of mirror:
         override the destination registry
   -debug
         enable the debug output
+  -default-project string
+        project name when dest repo type is harbor and dest project is empty (default "library")
   -f string
         image list file
+  -harbor-https
+        use HTTPS by default when create harbor project (default true)
   -j int
         job number, async mode if larger than 1, maximun is 20 (default 1)
   -o string
         file name of the mirror failed image list (default "mirror-failed.txt")
+  -repo-type string
+        repository type, can be 'harbor' or empty
   -s string
         override the source registry
 ```
-
 ## 镜像列表格式
 
 每一行包含 **“源镜像 目标镜像 TAG”**，以空格分隔，例如：
@@ -67,6 +72,16 @@ hello-world private.io/library/hello-world latest
 ./image-tools mirror
 ......
 >>> hello-world library/hello-world latest
+
+# 使用 -repo-type 指定目标镜像仓库的类型，默认为空字符串，可设定为 "harbor"
+# 目标镜像仓库的类型为 harbor 时，将会自动为目标镜像创建 project
+./image-tools mirror -f ./list.txt -repo-type=harbor
+
+# 使用 -default-project 参数指定默认的 project 名称
+# 仅当目标仓库类型为 harbor 且镜像没有 project 时，为镜像添加默认的 project 名称
+# 默认值为 library
+# 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
+./image-tools mirror -f ./list.txt -repo-type=harbor -default-project=library
 
 # 使用 -o (output) 参数，将 mirror 失败的镜像列表输出至指定文件中
 # 默认输出至 mirror-failed.txt

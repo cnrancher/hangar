@@ -17,14 +17,18 @@ import (
 // mirror COMMAND reads file from image-list txt or stdin, then mirror images
 // from source repo to the destination repo
 var (
-	cmd          = flag.NewFlagSet("mirror", flag.ExitOnError)
-	cmdFile      = cmd.String("f", "", "image list file")
-	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
-	cmdSourceReg = cmd.String("s", "", "override the source registry")
-	cmdDestReg   = cmd.String("d", "", "override the destination registry")
-	cmdFailed    = cmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
-	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+	cmd            = flag.NewFlagSet("mirror", flag.ExitOnError)
+	cmdFile        = cmd.String("f", "", "image list file")
+	cmdArch        = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdSourceReg   = cmd.String("s", "", "override the source registry")
+	cmdDestReg     = cmd.String("d", "", "override the destination registry")
+	cmdFailed      = cmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
+	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
+	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
+
+	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest repo type is harbor and dest project is empty")
 )
 
 func Parse(args []string) {
@@ -129,6 +133,7 @@ func MirrorImages() {
 		go worker(i+1, mirrorChan)
 	}
 
+	var destProjects map[string]bool = make(map[string]bool)
 	var num int = 0
 	for scanner.Scan() {
 		l := scanner.Text()
@@ -157,7 +162,7 @@ func MirrorImages() {
 		}
 
 		num++
-		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
+		m := mirror.NewMirror(&mirror.MirrorOptions{
 			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
@@ -165,6 +170,35 @@ func MirrorImages() {
 			Mode:        mirror.MODE_MIRROR,
 			ID:          num,
 		})
+
+		if *cmdRepoType == "harbor" {
+			// If the dest image project name is empty
+			if u.GetProjectName(m.Destination) == "" {
+				logrus.Warnf("The project of %q is empty, set to default %q",
+					m.Destination, *cmdDefaultProject)
+				m.Destination = u.ReplaceProjectName(
+					m.Destination, *cmdDefaultProject)
+			}
+
+			destReg := u.GetRegistryName(m.Destination)
+			destProj := u.GetProjectName(m.Destination)
+			// Create the project name
+			if !destProjects[destProj] {
+				url := fmt.Sprintf("%s/api/v2.0/projects", destReg)
+				if *cmdHarborHttps {
+					url = "https://" + url
+				} else {
+					url = "http://" + url
+				}
+				err := registry.CreateHarborProject(destProj, url)
+				if err != nil {
+					logrus.Errorf("Failed to create harbor project %q: %q",
+						destProj, err)
+				}
+				destProjects[destProj] = true
+			}
+		}
+		mirrorChan <- m
 	}
 
 	close(mirrorChan)

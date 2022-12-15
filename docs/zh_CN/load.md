@@ -7,15 +7,15 @@ Usage of load:
         target private registry:port
   -debug
         enable the debug output
+  -default-project string
+        project name when dest repo type is harbor and dest project is empty (default "library")
   -harbor-https
         use HTTPS by default when create harbor project (default true)
-  -harbor-version string
-        (reserved) harbor version, only harbor v2 supported (default "v2")
   -j int
         job number, async mode if larger than 1, maximum is 20 (default 1)
   -o string
         file name of the load failed image list (default "load-failed.txt")
-  -repository-type string
+  -repo-type string
         repository type, can be 'harbor' or empty
   -s string
         saved tar.gz file
@@ -43,10 +43,15 @@ Usage of load:
 # 优先级为：-d 参数 > DOCKER_REGISTRY 环境变量
 ./image-tools load -s ./saved-images.tar.gz -d private.registry.io
 
-# 使用 -repository-type 参数，指定目标仓库的类型
-# 合法的类型名称为: harbor
-# 若目标仓库为 harbor，此工具在导入镜像时会自动为目标 Harbor 仓库创建 Project
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repository-type=harbor
+# 使用 -repo-type 指定目标镜像仓库的类型，默认为空字符串，可设定为 "harbor"
+# 目标镜像仓库的类型为 harbor 时，将会自动为目标镜像创建 project
+./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor
+
+# 使用 -default-project 参数指定默认的 project 名称
+# 仅当目标仓库类型为 harbor 且镜像没有 project 时，为镜像添加默认的 project 名称
+# 默认值为 library
+# 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
+./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor -default-project=library
 
 # 使用 -j (jobs) 参数，指定协程池数量，并发导入镜像（支持 1~20 个 jobs）
 ./image-tools load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程

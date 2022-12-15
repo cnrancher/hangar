@@ -155,8 +155,8 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 	return mirrorList, nil
 }
 
-// GetSourceNamespaces gets namespaces (harbor project) from *Mirror slice
-func GetSourceNamespaces(mList []*Mirror) []string {
+// GetSourceProjects gets namespaces (harbor project) from *Mirror slice
+func GetSourceProjects(mList []*Mirror, defaultNamae string) []string {
 	var namespaceList = make([]string, 0)
 
 	for _, m := range mList {
@@ -176,8 +176,13 @@ func GetSourceNamespaces(mList []*Mirror) []string {
 		case 1:
 			// example: hello-world, nginx, mysql...
 			// the namespace is unknow
-			logrus.Warnf("%q does not have namespace (harbor project)",
+			logrus.Warnf("%q does not have project",
 				m.Source)
+			if defaultNamae != "" {
+				logrus.Infof("Set default project to %q", defaultNamae)
+				m.Destination = u.ReplaceProjectName(
+					m.Destination, defaultNamae)
+			}
 		case 2:
 			// example: library/app
 			// the namespace is library
