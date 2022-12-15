@@ -184,7 +184,7 @@ func SaveImages() {
 	if err := u.Compress(u.CacheImageDirectory, *cmdDest); err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Successfully saved images into %s", *cmdDest)
+	logrus.Infof("Successfully saved images into %q", *cmdDest)
 
 	if usingStdin {
 		fmt.Println()

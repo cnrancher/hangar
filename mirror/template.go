@@ -15,6 +15,10 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+const (
+	SavedTemplateVersion = "1.0.0"
+)
+
 type SavedListTemplate struct {
 	List      []SavedMirrorTemplate
 	Version   string
@@ -38,7 +42,7 @@ type SavedImagesTemplate struct {
 func NewSavedListTemplate() *SavedListTemplate {
 	return &SavedListTemplate{
 		List:      make([]SavedMirrorTemplate, 0),
-		Version:   u.VERSION,
+		Version:   SavedTemplateVersion,
 		SavedTime: time.Now().Format(time.RFC3339),
 	}
 }
@@ -101,9 +105,12 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 
 	sVersion := savedList.Version
 	if semver.Compare(sVersion, u.VERSION) > 0 {
-		logrus.Warnf("Version in saved tar.gz is %s", sVersion)
-		logrus.Warnf("Current tool version is %s", u.VERSION)
-		return nil, fmt.Errorf("image-tool version is lower than %s", sVersion)
+		logrus.Warnf("Template version in saved tar.gz is %q", sVersion)
+		logrus.Warnf("The maxium template version supported of this tool is %q",
+			SavedTemplateVersion)
+		return nil, fmt.Errorf(
+			"this tool need to update to support template version %q",
+			sVersion)
 	}
 
 	var mirrorList []*Mirror

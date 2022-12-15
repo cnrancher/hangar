@@ -38,7 +38,7 @@ func (m *Mirror) StartSave() error {
 		}
 	}
 	logrus.WithField("M_ID", m.MID).
-		Infof("Successfully saved %s:%s.", m.Source, m.Tag)
+		Infof("Successfully saved [%s:%s]", m.Source, m.Tag)
 
 	return nil
 }

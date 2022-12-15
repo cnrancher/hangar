@@ -28,7 +28,7 @@ func (img *Image) Save() error {
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
-		Infof("Save image Directory: %s", img.Directory)
+		Debugf("Save image Directory: %s", img.Directory)
 
 	// Ensure dir empty
 	if ok, err = u.IsDirEmpty(img.Directory); !ok {
@@ -62,6 +62,10 @@ func (img *Image) Save() error {
 		return fmt.Errorf("Save: skopeo copy :%w", err)
 	}
 	img.Saved = true
+	logrus.WithFields(logrus.Fields{
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Infof("Saved image %q", destImage)
 
 	return nil
 }
