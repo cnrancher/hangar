@@ -14,13 +14,9 @@ For more detailed information about this project, please refer to the documents 
 
 ## QuickStart
 
+You can download the latest compiled binary from the [Release](/releases) page.
+
 ```sh
-# Ensure Go and make is installed
-go version go1.19 linux/amd64
-
-# Build this project
-make build
-
 # Get help message
 ./image-tools -h
 
@@ -28,6 +24,25 @@ make build
 ./image-tools mirror -h
 ./image-tools save -h
 ......
+```
+
+## Build
+
+```sh
+# Ensure Go and make is installed
+go version go1.19 linux/amd64
+
+# Get help message
+make help
+
+# Build this project
+make build
+
+# Install executable binary into $GOPATH/bin
+make install
+
+# Run unit test
+make test
 ```
 
 ## LICENSE

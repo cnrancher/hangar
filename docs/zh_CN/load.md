@@ -31,6 +31,17 @@ Usage of load:
 
 此命令会将自动根据 `save` 时保存的镜像文件在目标 registry 中创建适配多架构的 Manifest 列表。
 
+### Harbor V2
+
+若目标镜像仓库类型为 Harbor V2，那么可使用 `-repo-type=harbor` 参数，该参数会在导入时自动为 Harbor V2 仓库创建 Project。
+
+除此之外若 Save 时镜像列表中的目标镜像不包含 `Project` （例如 Docker Hub 的 `mysql:8.0`, `busybox:latest`），那么在 Load 的过程中会自动为其添加 `library` Project 前缀（`library/mysql:8.0`，`library/busybox:latest`）。
+
+可使用 `-default-project=library` 参数设定添加 Project 的名称 （默认为 `library`）。
+
+> 若未设定 `DOCKER_REGISTRY` 环境变量，且未使用 `-d` 参数指定目标 registry 时，执行此工具时会将 `docker login` 的 registry 设定为默认的 `docker.io`。
+> 若目标 registry 不为 `docker.io`，请使用 `-d` 参数或 `DOCKER_REGISTRY` 环境变量指明目标 registry，否则可能会导致 `mirror` 执行失败。
+
 ## Parameters
 
 命令行参数：
@@ -66,7 +77,7 @@ Usage of load:
 
 ## Logs
 
-执行该工具输出的日志包含了 “时间、日志的等级”，在并发拷贝镜像时每行日志还包含了 `M_ID`（对应导入的第 N 个 Manifest 列表）和 `IMG_ID`（该 Manifest 列表中的第 N 个镜像），在并发拷贝遇到错误时可根据这两个 ID 来跟踪具体是哪个镜像拷贝失败。
+执行该工具输出的日志包含了 “时间、日志的等级”，在并发拷贝镜像时每行日志的 `M_ID`（对应导入的第 N 个 Manifest 列表）和 `IMG_ID`（该 Manifest 列表中的第 N 个镜像）可用来跟踪具体是哪个镜像拷贝失败。
 
 ## Output
 

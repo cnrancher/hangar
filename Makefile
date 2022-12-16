@@ -17,5 +17,9 @@ clean:
 
 help:
 	@echo "Usage:"
-	@echo "    make build  -  build 'image-tools'"
-	@echo "    make clean  -  remove generated files"
+	@echo "    make build   -  Build 'image-tools'"
+	@echo "    make install -  Install image-tools into \$$GOPATH/bin"
+	@echo "    make test    -  Run unit test"
+	@echo "    make release -  Build all platform and architecture binaried in 'release' folder"
+	@echo "    make clean   -  Remove generated files"
+	@echo "    make help    -  Show this message"

@@ -30,18 +30,33 @@ Usage of mirror:
 
 ```txt
 # <SOURCE> <DEST> <TAG>
-hello-world private.io/library/hello-world latest
+docker.io/hello-world private.io/library/hello-world latest
+```
+
+源镜像和目标镜像可以为不包含 registry 前缀的镜像，例如：
+
+```txt
+# <SOURCE> <DEST> <TAG>
+hello-world library/hello-world latest
 ```
 
 > 若该行以 `#` 或 `//` 开头，那么这一行将被视为注释
 
 ## QuickStart
 
-将 `image-list.txt` 列表中的所有镜像执行 Mirror：
+将 `image-list.txt` 列表中的所有镜像执行 Mirror，使用 `-f` 参数指定镜像列表名称，`-d` 指定目标 registry
 
 ```sh
-./image-tools mirror -f ./image-list.txt
+./image-tools mirror -f ./image-list.txt -d <dest-registry-url>
 ```
+
+### Harbor V2
+
+若目标镜像仓库类型为 Harbor V2，那么可使用 `-repo-type=harbor` 参数，该参数会自动为 Harbor V2 仓库创建 Project。
+
+除此之外若镜像列表中的目标镜像不包含 `Project` （例如 Docker Hub 的 `mysql:8.0`, `busybox:latest`），那么在 mirror 的过程中会自动为其添加 `library` Project 前缀（`library/mysql:8.0`，`library/busybox:latest`）。
+
+可使用 `-default-project=library` 参数设定添加 Project 的名称 （默认为 `library`）。
 
 ## Parameters
 
@@ -93,7 +108,7 @@ hello-world private.io/library/hello-world latest
 
 ## Logs
 
-执行该工具输出的日志包含了 “时间、日志的等级”，在并发拷贝镜像时每行日志还包含了 `M_ID`（对应镜像列表中的第 N 个 Manifest 列表）和 `IMG_ID`（该 Manifest 列表中的第 N 个镜像），在并发拷贝遇到错误时可根据这两个 ID 来跟踪具体是哪个镜像拷贝失败。
+执行该工具输出的日志包含了 “时间、日志的等级”，在并发拷贝镜像时每行日志的 `M_ID`（对应镜像列表中的第 N 个 Manifest 列表）和 `IMG_ID`（该 Manifest 列表中的第 N 个镜像）可用来跟踪具体是哪个镜像拷贝失败。
 
 ## Output
 

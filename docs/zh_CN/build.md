@@ -8,6 +8,9 @@
 ## Build
 
 ```sh
+# 获取帮助信息
+make help
+
 # 生成可执行文件
 make build
 

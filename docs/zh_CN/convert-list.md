@@ -18,7 +18,7 @@ Usage of convert-list:
 将下载的 `rancher-images.txt` 镜像列表格式转换至 `mirror` 时输入的镜像列表格式，并设定目标镜像的 registry 为 `custom.private.io`：
 
 ``` sh
-./image-tools convert-list -i list.txt -d custom.private.io
+./image-tools convert-list -i rancher-images.txt -d custom.private.io
 ```
 
 此命令会将 `rancher-images.txt` 格式的镜像列表：
