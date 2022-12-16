@@ -1,7 +1,10 @@
 package registry
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 
 	u "cnrancher.io/image-tools/utils"
@@ -30,7 +33,7 @@ func EnsureSkopeoInstalled(installPath string) (string, error) {
 // and return the output if execute successfully
 func SkopeoInspect(img string, args ...string) (string, error) {
 	// Ensure skopeo installed
-	skopeoPath, err := EnsureSkopeoInstalled("")
+	skopeo, err := EnsureSkopeoInstalled("")
 	if err != nil {
 		return "", fmt.Errorf("unable to locate skopeo path: %w", err)
 	}
@@ -53,18 +56,18 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 	logrus.Debugf("Running skopeo inspect [%s] %v", img, args)
 	param = append(param, args...)
 
-	out, err := execCommandFunc(skopeoPath, param...)
-	if err != nil {
+	var out bytes.Buffer
+	if err := execCommandFunc(skopeo, nil, &out, param...); err != nil {
 		return "", fmt.Errorf("SkopeoInspect %s:\n%w", img, err)
 	}
 
-	return out, nil
+	return out.String(), nil
 }
 
 // SkopeoCopy execute the `skopeo copy ${source} ${destination} args...` cmd
 // You can add custom parameters in `args`
 func SkopeoCopy(src, dst string, args ...string) error {
-	skopeoPath, err := EnsureSkopeoInstalled("")
+	skopeo, err := EnsureSkopeoInstalled("")
 	if err != nil {
 		return fmt.Errorf("unable to locate skopeo path: %w", err)
 	}
@@ -72,11 +75,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 	var execCommandFunc u.RunCmdFuncType
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
-	} else if u.WorkerNum == 1 {
-		// if not async mode, set command output to stdout
-		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
-		// if in async mode, set command output to io.Writer instead of stdout
 		execCommandFunc = u.DefaultRunCommandFunc
 	}
 
@@ -91,8 +90,13 @@ func SkopeoCopy(src, dst string, args ...string) error {
 	)
 	params = append(params, args...)
 	logrus.Debugf("Running skopeo copy src[%s] dst[%s] %v", src, dst, args)
+	var out io.Writer = nil
+	if u.WorkerNum == 1 {
+		// single thread (worker) mode
+		out = os.Stdout
+	}
 
-	if _, err = execCommandFunc(skopeoPath, params...); err != nil {
+	if err = execCommandFunc(skopeo, nil, out, params...); err != nil {
 		return fmt.Errorf("SkopeoCopy %s => %s:\n%w", src, dst, err)
 	}
 

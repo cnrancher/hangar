@@ -12,6 +12,7 @@ import (
 
 func init() {
 	logrus.SetOutput(io.Discard)
+	u.WorkerNum = 2
 }
 
 func Test_NewImage(t *testing.T) {
@@ -84,9 +85,13 @@ func Test_Copy(t *testing.T) {
 
 	// fake skopeo copy, skopeo inspect func
 	// this function will make source digest equals to dest digest
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "FAKE_OUTPUT\n", nil
+	fake := func(p string, i io.Reader, o io.Writer, a ...string) error {
+		if o != nil {
+			o.Write([]byte("FAKE_OUTPUT\n"))
+		}
+		return nil
 	}
+	registry.RunCommandFunc = fake
 	if err := imageV2.Copy(); err != nil {
 		t.Error(err.Error())
 	}
@@ -114,11 +119,15 @@ func Test_Copy(t *testing.T) {
 	}
 
 	// return random output, this will make source digest not equal to dest
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		// sleep 100ms
-		time.Sleep(time.Microsecond * 100)
-		return time.Now().Format(time.StampNano) + "\n", nil
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
+		// sleep 10ms
+		time.Sleep(time.Microsecond * 10)
+		if o != nil {
+			o.Write([]byte(time.Now().Format(time.StampNano) + "\n"))
+		}
+		return nil
 	}
+	registry.RunCommandFunc = fake
 
 	var imageListV2 *Image = NewImage(&ImageOptions{
 		Source:              "docker.io/example",
@@ -174,9 +183,10 @@ func Test_Load(t *testing.T) {
 		Destination: "priv.io/library/nginx",
 	}
 	// fake skopeo copy function
-	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
-		return "", nil
+	fake := func(a string, i io.Reader, o io.Writer, p ...string) error {
+		return nil
 	}
+	registry.RunCommandFunc = fake
 	if err := img.Load(); err != nil {
 		t.Fatal(err)
 	}
@@ -193,9 +203,10 @@ func Test_Save(t *testing.T) {
 		Directory:   ".",
 	}
 	// fake skopeo copy function
-	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
-		return "", nil
+	fake := func(a string, i io.Reader, o io.Writer, p ...string) error {
+		return nil
 	}
+	registry.RunCommandFunc = fake
 	if err := img.Save(); err != nil {
 		t.Fatal(err)
 	}

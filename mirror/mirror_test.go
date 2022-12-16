@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"cnrancher.io/image-tools/image"
-	"cnrancher.io/image-tools/registry"
+	r "cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -24,6 +24,7 @@ var testFs embed.FS
 
 func init() {
 	logrus.SetOutput(io.Discard)
+	u.WorkerNum = 2
 }
 
 // StartMirror method should test manually,
@@ -84,26 +85,40 @@ func Test_S2V2(t *testing.T) {
 
 	// test initSourceDestinationManifest, make both source manifest and dest
 	// manifest are schemaVersion V2, mediaType manifest.v2
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+	fake := func(p string, i io.Reader, o io.Writer, a ...string) error {
 		// inspect func return S2V2 json manifest
 		s2v2, err := testFs.ReadFile(TestS2V2FileName)
-		return string(s2v2[:]), err
+		if err != nil {
+			return err
+		}
+		if o != nil {
+			o.Write(s2v2)
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
 	// test initImageListByV2, read the configuration of the source image
 	// to get the arch, os, calculate source manifest digest
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
 		// inspect func return S2V2 json manifest
 		s2v2, err := testFs.ReadFile(TestS2V2OciFileName)
-		return string(s2v2[:]), err
+		if err != nil {
+			return err
+		}
+		if o != nil {
+			o.Write(s2v2)
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	if err := m.initImageListByV2(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
 	// reset the override command function
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 
 	// test manifest schemaVersion
 	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
@@ -118,9 +133,13 @@ func Test_S2V2(t *testing.T) {
 	}
 
 	// fake skopeo copy function
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "FAKE_OUTPUT\n", nil
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
+		if o != nil {
+			o.Write([]byte("FAKE_OUTPUT\n"))
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -180,7 +199,7 @@ func Test_S2V2(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 }
 
 // Test_S2V2List simulates the mirror operations when
@@ -196,16 +215,22 @@ func Test_S2V2List(t *testing.T) {
 
 	// make both source manifest and dest manifest are schemaVersion V2,
 	// mediaType manifest.list.v2
-	testInspectFunc := func(path string, args ...string) (string, error) {
+	fake := func(path string, i io.Reader, o io.Writer, args ...string) error {
 		// inspect func return S2V2 json manifest.list
 		s2v2, err := testFs.ReadFile(TestS2V2ListFileName)
-		return string(s2v2[:]), err
+		if err != nil {
+			return err
+		}
+		if o != nil {
+			o.Write(s2v2)
+		}
+		return nil
 	}
-	registry.RunCommandFunc = testInspectFunc
+	r.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 
 	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
 		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
@@ -224,9 +249,13 @@ func Test_S2V2List(t *testing.T) {
 
 	// simulate copy operation
 	// fake skopeo copy function
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "FAKE_OUTPUT", nil
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
+		if o != nil {
+			o.Write([]byte("FAKE_OUTPUT"))
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -274,7 +303,7 @@ func Test_S2V2List(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 }
 
 // Test_S1V2 simulates the mirror operations when
@@ -289,11 +318,18 @@ func Test_S1V2(t *testing.T) {
 	})
 
 	// set source & dest manifest to same s1v2
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+	fake := func(p string, i io.Reader, o io.Writer, a ...string) error {
 		// inspect func return S1V2 json manifest
 		s1v2, err := testFs.ReadFile(TestS1V2FileName)
-		return string(s1v2[:]), err
+		if err != nil {
+			return err
+		}
+		if o != nil {
+			o.Write(s1v2)
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest:", err.Error())
 	}
@@ -307,16 +343,23 @@ func Test_S1V2(t *testing.T) {
 		t.Errorf("sourceManifestMediaType failed, mediaType should be empty")
 	}
 
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
 		// inspect func return S1V2 json manifest
 		s1v2, err := testFs.ReadFile(TestS1V2RepoFileName)
-		return string(s1v2[:]), err
+		if err != nil {
+			return err
+		}
+		if o != nil {
+			o.Write(s1v2)
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	// Generate imager from source manifest
 	if err := m.initImageListByV1(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 
 	if m.ImageNum() != 1 {
 		t.Error("initImageListByV1 should only generate 1 image")
@@ -325,9 +368,13 @@ func Test_S1V2(t *testing.T) {
 
 	// simulate copy operation
 	// fake skopeo copy and skopeo inspect function
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "FAKE_OUTPUT", nil
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
+		if o != nil {
+			o.Write([]byte("FAKE_OUTPUT"))
+		}
+		return nil
 	}
+	r.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -371,12 +418,13 @@ func Test_S1V2(t *testing.T) {
 	}
 
 	// docker buildx
-	registry.RunCommandFunc = func(p string, a ...string) (string, error) {
-		return "", nil
+	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
+		return nil
 	}
+	r.RunCommandFunc = fake
 	// updateDestManifest
 	if err := m.updateDestManifest(); err != nil {
 		t.Error("updateDestManifest:", err.Error())
 	}
-	registry.RunCommandFunc = nil
+	r.RunCommandFunc = nil
 }

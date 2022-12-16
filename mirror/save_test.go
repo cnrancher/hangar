@@ -1,6 +1,7 @@
 package mirror
 
 import (
+	"io"
 	"testing"
 
 	"cnrancher.io/image-tools/registry"
@@ -31,10 +32,17 @@ func Test_StartSave(t *testing.T) {
 	// mirror.AppendImage(image.NewImage(&image.ImageOptions{}))
 
 	// fake skopeo inspect / skopeo copy function
-	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
-		out, err := testFs.ReadFile(TestS2V2ListFileName)
-		return string(out), err
+	fake := func(a string, in io.Reader, out io.Writer, p ...string) error {
+		o, err := testFs.ReadFile(TestS2V2ListFileName)
+		if err != nil {
+			return err
+		}
+		if out != nil {
+			out.Write(o)
+		}
+		return nil
 	}
+	registry.RunCommandFunc = fake
 	if err = mirror.StartSave(); err != nil {
 		t.Error(err)
 	}

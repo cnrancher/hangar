@@ -36,6 +36,7 @@ var (
 	ErrDockerBuildxNotFound = errors.New("docker buildx not found")
 	ErrDirNotEmpty          = errors.New("directory is not empty")
 	ErrCredsStore           = errors.New("docker config use credsStore to store password")
+	ErrCredsStoreUnsupport  = errors.New("unsupported credsStore, only 'deskstop' supported")
 )
 
 const (

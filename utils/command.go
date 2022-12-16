@@ -3,43 +3,28 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"io"
 	"os/exec"
 )
 
 // RunCmdFuncType defines the type of the function to execute command
-type RunCmdFuncType func(name string, args ...string) (string, error)
+type RunCmdFuncType func(name string, in io.Reader, out io.Writer, args ...string) error
 
-// DefaultRunCommandFunc executes the command and returns the cmd output,
-// the output contains the stdout and stderr of the program
-func DefaultRunCommandFunc(cmdName string, args ...string) (string, error) {
+// DefaultRunCommandFunc executes the command and specifies the stdin
+// and stdout in parameters
+func DefaultRunCommandFunc(p string, i io.Reader, o io.Writer, args ...string) error {
 	// Inspect the source image info
-	cmd := exec.Command(cmdName, args...)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stdout
-	err := cmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("%s, %w", stdout.String(), err)
-	}
-
-	return stdout.String(), nil
-}
-
-// RunCommandStdoutFunc executes the command and redirect the output to stdout,
-// not recommand to use this func in async mode
-func RunCommandStdoutFunc(cmdName string, args ...string) (string, error) {
-	// Inspect the source image info
-	cmd := exec.Command(cmdName, args...)
+	cmd := exec.Command(p, args...)
 	var stderr bytes.Buffer
-	cmd.Stdout = os.Stdout
+	cmd.Stdin = i
+	cmd.Stdout = o
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("%s, %w", stderr.String(), err)
+		return fmt.Errorf("%s, %w", stderr.String(), err)
 	}
 
-	return "", nil
+	return nil
 }
 
 // TODO: handle command execute timeout

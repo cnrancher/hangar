@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"strings"
@@ -15,28 +16,26 @@ func init() {
 
 func Test_DefaultRunCommandFunc(t *testing.T) {
 	args := []string{"HELLO_WORLD"}
-	if out, err := DefaultRunCommandFunc("echo", args...); err != nil || out != "HELLO_WORLD\n" {
+	if err := DefaultRunCommandFunc("echo", nil, nil, args...); err != nil {
 		t.Error("DefaultRunCommandFunc 1 failed")
 	}
-	args = nil
-	if out, err := DefaultRunCommandFunc("echo", args...); err != nil || out != "\n" {
-		t.Error("DefaultRunCommandFunc 2 failed")
+	var out bytes.Buffer
+	if err := DefaultRunCommandFunc("echo", nil, &out, args...); err != nil {
+		t.Error("DefaultRunCommandFunc 2 failed: ", err)
 	}
-	if out, err := DefaultRunCommandFunc("UNKNOW_CMD", args...); err == nil || out != "" {
-		t.Error("DefaultRunCommandFunc 3 failed")
+	if out.String() != "HELLO_WORLD\n" {
+		t.Error("DefaultRunCommandFunc 2 failed", out.String())
 	}
-}
+	out.Reset()
+	in := strings.NewReader("123")
+	if err := DefaultRunCommandFunc("cat", in, &out); err != nil {
+		t.Error("DefaultRunCommandFunc 3 failed", err)
+	}
+	if out.String() != "123" {
+		t.Error("DefaultRunCommandFunc 3 failed", out.String())
+	}
 
-func Test_RunCommandStdoutFunc(t *testing.T) {
-	args := []string{"HELLO_WORLD"}
-	if out, err := RunCommandStdoutFunc("echo", args...); err != nil || out != "" {
-		t.Error("DefaultRunCommandFunc 1 failed")
-	}
-	args = nil
-	if out, err := RunCommandStdoutFunc("echo", args...); err != nil || out != "" {
-		t.Error("DefaultRunCommandFunc 2 failed")
-	}
-	if out, err := RunCommandStdoutFunc("UNKNOW_CMD", args...); err == nil || out != "" {
+	if err := DefaultRunCommandFunc("UNKNOW_CMD", nil, nil); err == nil {
 		t.Error("DefaultRunCommandFunc 3 failed")
 	}
 }

@@ -1,6 +1,7 @@
 package mirror
 
 import (
+	"io"
 	"testing"
 
 	"cnrancher.io/image-tools/image"
@@ -56,9 +57,10 @@ func Test_StartLoad(t *testing.T) {
 	}
 
 	// fake skopeo copy function
-	registry.RunCommandFunc = func(a string, p ...string) (string, error) {
-		return "", nil
+	fake := func(a string, in io.Reader, out io.Writer, p ...string) error {
+		return nil
 	}
+	registry.RunCommandFunc = fake
 	if err = mirror.StartLoad(); err != nil {
 		t.Fatal(err)
 	}

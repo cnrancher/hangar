@@ -126,7 +126,7 @@ func DockerLogin(url string) error {
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}
-	logrus.Info("Login successfully.")
+	logrus.Info("Login succeed")
 
 	return nil
 }
@@ -147,9 +147,7 @@ func DockerBuildx(args ...string) error {
 	}
 
 	// ensure docker-buildx is installed
-	checkBuildxInstalledParam := []string{"buildx"}
-
-	_, err = execCommandFunc(path, checkBuildxInstalledParam...)
+	err = execCommandFunc(path, nil, nil, "buildx")
 	if err != nil {
 		if strings.Contains(err.Error(), "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
@@ -158,8 +156,6 @@ func DockerBuildx(args ...string) error {
 
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
-	} else if u.WorkerNum == 1 {
-		execCommandFunc = u.RunCommandStdoutFunc
 	} else {
 		execCommandFunc = u.DefaultRunCommandFunc
 	}
@@ -167,7 +163,11 @@ func DockerBuildx(args ...string) error {
 	// Clear the stdout
 	buildxArgs := []string{"buildx"}
 	buildxArgs = append(buildxArgs, args...)
-	out, err := execCommandFunc(path, buildxArgs...)
+	var out io.Writer = nil
+	if u.WorkerNum == 1 {
+		out = os.Stdout
+	}
+	err = execCommandFunc(path, nil, out, buildxArgs...)
 	if err != nil {
 		if strings.Contains(err.Error(), "certificate signed by unknown") {
 			logrus.Warnf("Dest registry is using custom certificate!")
@@ -175,14 +175,13 @@ func DockerBuildx(args ...string) error {
 		}
 		return fmt.Errorf("docker buildx: %w", err)
 	}
-	fmt.Print(out)
 
 	return nil
 }
 
-func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
-	if reg == u.DockerHubRegistry {
-		reg = "https://index.docker.io/v1/"
+func GetDockerPasswdByConfig(r string, cf io.Reader) (string, string, error) {
+	if r == u.DockerHubRegistry {
+		r = "https://index.docker.io/v1/"
 	}
 
 	// Check already installed or not
@@ -194,7 +193,7 @@ func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
 	if credsStore, ok := dockerConfig["credsStore"]; ok {
 		if credsStore != "desktop" {
 			// unknow credsStore type
-			return "", "", u.ErrCredsStore
+			return "", "", u.ErrCredsStoreUnsupport
 		}
 		logrus.Debugf("Docker config stores password from credsStore")
 		// use docker-credential-desktop to get password
@@ -202,10 +201,10 @@ func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
 		cmd := exec.Command("docker-credential-desktop", "get")
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stdout
-		cmd.Stdin = strings.NewReader(reg)
+		cmd.Stdin = strings.NewReader(r)
 		if err := cmd.Run(); err != nil {
 			// failed to get password from credsStore
-			return "", "", u.ErrCredsStore
+			return "", "", fmt.Errorf("registry %q not found in credsStore", r)
 		}
 		var credOutput DockerCredDesktopOutput
 		if err := json.Unmarshal(stdout.Bytes(), &credOutput); err != nil {
@@ -224,7 +223,7 @@ func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
 		return "", "", u.ErrReadJsonFailed
 	}
 	for regName, v := range auths {
-		if regName != reg {
+		if regName != r {
 			continue
 		}
 		authMap, ok := v.(map[string]interface{})
@@ -234,7 +233,7 @@ func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
 		authEncoded = authMap["auth"].(string)
 	}
 	if authEncoded == "" {
-		return "", "", fmt.Errorf("registry not found in docker config")
+		return "", "", fmt.Errorf("registry %q not found in docker config", r)
 	}
 
 	authDecoded, err := u.DecodeBase64(authEncoded)
