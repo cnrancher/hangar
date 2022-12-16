@@ -3,17 +3,26 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
+type DockerCredDesktopOutput struct {
+	ServerURL string `json:"ServerURL"`
+	Username  string `json:"Username"`
+	Secret    string `json:"Secret"`
+}
+
 func GetLoginToken(url string, username string, passwd string) (string, error) {
-	// export DOCKER_TOKEN=$(curl -s -d @- -X POST -H "Content-Type: application/json" https://hub.docker.com/v2/users/login/ <<< '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' | jq -r '.token')
 	if url == "" {
 		url = u.DockerLoginURL
 	}
@@ -64,7 +73,37 @@ func DockerLogin(url string) error {
 	logrus.Debugf("found docker installed at: %v", path)
 
 	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
+		// read username and password from docker config file
+		cPath := filepath.Join(os.Getenv("HOME"), ".docker", "config.json")
+		cFile, err := os.Open(cPath)
+		if err == nil {
+			defer cFile.Close()
+			user, pwd, err := GetDockerPasswdByConfig(url, cFile)
+			if err != nil {
+				if !errors.Is(err, u.ErrCredsStore) {
+					logrus.Warnf(
+						"Failed to get password from docker config: %s",
+						err.Error())
+				} else {
+					logrus.Info("docker config is using credsStore, ",
+						"unable to read password from docker config file")
+				}
+			} else if user != "" && pwd != "" {
+				// read username password succeed, skip
+				u.EnvDockerUsername = user
+				u.EnvDockerPassword = pwd
+				logrus.Infof("Get passwd of user %q from docker config",
+					u.EnvDockerUsername)
+			}
+		} else {
+			cFile.Close()
+			logrus.Debug("Failed to open docker config file")
+		}
+	}
+	// If failed to get password from docker config file
+	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
 		// read username and password from stdin
+		logrus.Infof("Please input dest registry username and passwd:")
 		username, passwd, err := u.ReadUsernamePasswd()
 		if err != nil {
 			return fmt.Errorf("DockerLogin: %w", err)
@@ -139,4 +178,73 @@ func DockerBuildx(args ...string) error {
 	fmt.Print(out)
 
 	return nil
+}
+
+func GetDockerPasswdByConfig(reg string, cf io.Reader) (string, string, error) {
+	if reg == u.DockerHubRegistry {
+		reg = "https://index.docker.io/v1/"
+	}
+
+	// Check already installed or not
+	var dockerConfig map[string]interface{}
+	if err := json.NewDecoder(cf).Decode(&dockerConfig); err != nil {
+		return "", "", fmt.Errorf("decode failed: %w", err)
+	}
+	// if credsStore exists, do not read password from config (macOS)
+	if credsStore, ok := dockerConfig["credsStore"]; ok {
+		if credsStore != "desktop" {
+			// unknow credsStore type
+			return "", "", u.ErrCredsStore
+		}
+		logrus.Debugf("Docker config stores password from credsStore")
+		// use docker-credential-desktop to get password
+		var stdout bytes.Buffer
+		cmd := exec.Command("docker-credential-desktop", "get")
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stdout
+		cmd.Stdin = strings.NewReader(reg)
+		if err := cmd.Run(); err != nil {
+			// failed to get password from credsStore
+			return "", "", u.ErrCredsStore
+		}
+		var credOutput DockerCredDesktopOutput
+		if err := json.Unmarshal(stdout.Bytes(), &credOutput); err != nil {
+			// failed to read password from credsStore
+			return "", "", u.ErrCredsStore
+		}
+		if credOutput.Username == "" || credOutput.Secret == "" {
+			return "", "", u.ErrCredsStore
+		}
+		return credOutput.Username, credOutput.Secret, nil
+	}
+
+	var authEncoded string
+	auths, ok := dockerConfig["auths"].(map[string]interface{})
+	if !ok {
+		return "", "", u.ErrReadJsonFailed
+	}
+	for regName, v := range auths {
+		if regName != reg {
+			continue
+		}
+		authMap, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		authEncoded = authMap["auth"].(string)
+	}
+	if authEncoded == "" {
+		return "", "", fmt.Errorf("registry not found in docker config")
+	}
+
+	authDecoded, err := u.DecodeBase64(authEncoded)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode base64: %w", err)
+	}
+	spec := strings.Split(authDecoded, ":")
+	if len(spec) != 2 {
+		return "", "", fmt.Errorf("invalid username password format")
+	}
+
+	return spec[0], spec[1], nil
 }

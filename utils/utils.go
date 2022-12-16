@@ -35,11 +35,13 @@ var (
 	ErrNilPointer           = errors.New("nil pointer")
 	ErrDockerBuildxNotFound = errors.New("docker buildx not found")
 	ErrDirNotEmpty          = errors.New("directory is not empty")
+	ErrCredsStore           = errors.New("docker config use credsStore to store password")
 )
 
 const (
 	DockerLoginURL          = "https://hub.docker.com/v2/users/login/"
 	DockerHubRegistry       = "docker.io"
+	DockerConfigFile        = ".docker/config.json"
 	MediaTypeManifestListV2 = "application/vnd.docker.distribution.manifest.list.v2+json"
 	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
 	SavedImageListFile      = "saved-images-list.json"
@@ -62,6 +64,14 @@ func Sha256Sum(s string) string {
 func Base64(s string) string {
 	data := []byte(s)
 	return base64.StdEncoding.EncodeToString(data)
+}
+
+func DecodeBase64(s string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func IsDirEmpty(name string) (bool, error) {

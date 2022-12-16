@@ -63,6 +63,13 @@ func Test_Base64(t *testing.T) {
 	}
 }
 
+func Test_DecodeBase64(t *testing.T) {
+	s := Base64("123")
+	if d, e := DecodeBase64(s); e != nil || d != "123" {
+		t.Errorf("DecodeBase64 failed %q %v", d, e)
+	}
+}
+
 // func AppendFileLine should be test manually
 
 func Test_IsDirEmpty(t *testing.T) {
