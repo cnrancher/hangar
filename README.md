@@ -14,7 +14,7 @@ For more detailed information about this project, please refer to the documents 
 
 ## QuickStart
 
-You can download the latest compiled binary from the [Release](/releases) page.
+You can download the latest compiled binary from the [Release](https://github.com/cnrancher/image-tools/releases) page.
 
 ```sh
 # Get help message
