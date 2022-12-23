@@ -1,0 +1,17 @@
+FROM golang:1.19.4
+
+ARG VERSION
+ARG GOPROXY=https://goproxy.io,direct
+
+RUN go env -w GO111MODULE=on
+RUN go env -w GOPROXY=${GOPROXY}
+
+ENV DAPPER_SOURCE /source
+ENV VERSION=${VERSION}
+ENV DAPPER_OUTPUT build
+WORKDIR ${DAPPER_SOURCE}
+
+RUN ls -alh
+
+ENTRYPOINT [ "./scripts/entry.sh" ]
+CMD ["release"]

@@ -1,16 +1,20 @@
 # binary files
 image-tools
 skopeo
-*.tar.gz
-/release/
+/build/
 
-# image lists
 *.txt
 *.out
 *.converted
+*.tar.gz
 
 # default save image directory
 /saved-image-cache/
 
 # vscode config
 /.vscode/
+
+# Dapper
+.dapper
+Dockerfile.dapper*
+!Dockerfile.dapper

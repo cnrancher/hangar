@@ -1,15 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
 files=(
     "image-tools"
-    "skopeo"
     "mirror-failed.txt"
     "load-failed.txt"
     "save-failed.txt"
-    "release/"
+    "build/"
 )
 
 for f in ${files[@]}; do
