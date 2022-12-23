@@ -9,6 +9,7 @@ type Image struct {
 	Arch        string
 	Variant     string
 	OS          string
+	OsVersion   string
 
 	// Digest is the source image manifest sha256sum
 	Digest string
@@ -40,6 +41,7 @@ type ImageOptions struct {
 	Arch        string
 	Variant     string
 	OS          string
+	OsVersion   string
 	Digest      string
 	Directory   string
 	SavedFolder string
@@ -58,6 +60,7 @@ func NewImage(opts *ImageOptions) *Image {
 		Arch:                opts.Arch,
 		Variant:             opts.Variant,
 		OS:                  opts.OS,
+		OsVersion:           opts.OsVersion,
 		Digest:              opts.Digest,
 		Directory:           opts.Directory,
 		SavedFolder:         opts.SavedFolder,

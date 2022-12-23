@@ -297,13 +297,14 @@ func (m *Mirror) initSourceDestinationManifest() error {
 
 func (m *Mirror) initImageListByListV2() error {
 	var (
-		manifest map[string]interface{}
-		digest   string
-		platform map[string]interface{}
-		arch     string
-		variant  string
-		osType   string
-		ok       bool
+		manifest  map[string]interface{}
+		digest    string
+		platform  map[string]interface{}
+		arch      string
+		variant   string
+		osVersion string
+		osType    string
+		ok        bool
 	)
 
 	logrus.WithField("M_ID", m.MID).Debug("Start initImageListByListV2")
@@ -329,12 +330,16 @@ func (m *Mirror) initImageListByListV2() error {
 		}
 		// variant is empty string if not found
 		variant, _ = platform["variant"].(string)
+		// os.version is only used for windows system
+		osVersion, _ = platform["os.version"].(string)
 		if !slices.Contains(m.ArchList, arch) {
 			logrus.WithField("M_ID", m.MID).
 				Debugf("skip copy image %s arch %s", m.Source, arch)
 			continue
 		}
 		logrus.WithField("M_ID", m.MID).Debugf("arch: %s", arch)
+		logrus.WithField("M_ID", m.MID).Debugf("variant: %s", variant)
+		logrus.WithField("M_ID", m.MID).Debugf("osVersion: %s", osVersion)
 		osType, _ = platform["os"].(string)
 
 		sourceImage := fmt.Sprintf("%s@%s", m.Source, digest)
@@ -348,6 +353,7 @@ func (m *Mirror) initImageListByListV2() error {
 			Arch:        arch,
 			Variant:     variant,
 			OS:          osType,
+			OsVersion:   osVersion,
 			Digest:      digest,
 			Directory:   m.Directory,
 
@@ -554,7 +560,26 @@ func (m *Mirror) updateDestManifest() error {
 		if !img.Copied && !img.Loaded {
 			continue
 		}
-		args = append(args, img.Destination)
+		// args = append(args, img.Destination)
+		manifest := DockerBuildxManifest{
+			Digest: img.Digest,
+			Platform: DockerBuildxPlatform{
+				Architecture: img.Arch,
+				OS:           img.OS,
+				Variant:      img.Variant,
+				OsVersion:    img.OsVersion,
+			},
+		}
+		data, err := json.MarshalIndent(manifest, "", "  ")
+		if err != nil {
+			logrus.Warnf("updateDestManifest: %v", err)
+			continue
+		}
+		logrus.WithFields(logrus.Fields{
+			"M_ID":   img.MID,
+			"IMG_ID": img.IID}).
+			Debugf("updateDestManifest: %s", string(data))
+		args = append(args, string(data))
 	}
 
 	// docker buildx imagetools create --tag=registry/repository:tag <images>

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"cnrancher.io/image-tools/registry"
+	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,6 +27,11 @@ func (img *Image) Load() error {
 	if err = registry.SkopeoCopy(sourceImage, destImage, args...); err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}
+	destManifest, err := registry.SkopeoInspect(destImage, "--raw")
+	if err != nil {
+		return fmt.Errorf("Load: %w", err)
+	}
+	img.Digest = "sha256:" + u.Sha256Sum(destManifest)
 	img.Loaded = true
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,

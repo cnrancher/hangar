@@ -38,6 +38,18 @@ type SavedImagesTemplate struct {
 	Folder  string
 }
 
+type DockerBuildxManifest struct {
+	Digest   string               `json:"digest"`
+	Platform DockerBuildxPlatform `json:"platform"`
+}
+
+type DockerBuildxPlatform struct {
+	Architecture string `json:"architecture,omitempty"`
+	OS           string `json:"os,omitempty"`
+	Variant      string `json:"variant,omitempty"`
+	OsVersion    string `json:"os.version,omitempty"`
+}
+
 func NewSavedListTemplate() *SavedListTemplate {
 	return &SavedListTemplate{
 		List:      make([]SavedMirrorTemplate, 0),
