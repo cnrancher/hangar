@@ -66,12 +66,6 @@ func DockerLogin(url string) error {
 	}
 	logrus.Infof("Logging in to %v", url)
 
-	path, err := exec.LookPath("docker")
-	if err != nil {
-		return u.ErrDockerNotFound
-	}
-	logrus.Debugf("found docker installed at: %v", path)
-
 	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
 		// read username and password from docker config file
 		cPath := filepath.Join(os.Getenv("HOME"), ".docker", "config.json")
@@ -114,7 +108,7 @@ func DockerLogin(url string) error {
 
 	var stdout bytes.Buffer
 	cmd := exec.Command(
-		path,
+		DockerPath,
 		"login",
 		url,
 		"-u", u.EnvDockerUsername,
@@ -123,7 +117,7 @@ func DockerLogin(url string) error {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
 	cmd.Stdin = strings.NewReader(u.EnvDockerPassword)
-	if err = cmd.Run(); err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}
 	logrus.Info("Login succeed")
@@ -133,12 +127,6 @@ func DockerLogin(url string) error {
 
 // DockerBuildx executes 'docker buildx args...' command
 func DockerBuildx(args ...string) error {
-	path, err := exec.LookPath("docker")
-	if err != nil {
-		return u.ErrDockerNotFound
-	}
-	logrus.Debugf("found docker installed at: %v", path)
-
 	var execCommandFunc u.RunCmdFuncType
 	if RunCommandFunc != nil {
 		execCommandFunc = RunCommandFunc
@@ -147,7 +135,7 @@ func DockerBuildx(args ...string) error {
 	}
 
 	// ensure docker-buildx is installed
-	err = execCommandFunc(path, nil, nil, "buildx")
+	err := execCommandFunc(DockerPath, nil, nil, "buildx")
 	if err != nil {
 		if strings.Contains(err.Error(), "is not a docker command") {
 			return fmt.Errorf("DockerBuildx: %w", u.ErrDockerBuildxNotFound)
@@ -167,7 +155,7 @@ func DockerBuildx(args ...string) error {
 	if u.WorkerNum == 1 {
 		out = os.Stdout
 	}
-	err = execCommandFunc(path, nil, out, buildxArgs...)
+	err = execCommandFunc(DockerPath, nil, out, buildxArgs...)
 	if err != nil {
 		if strings.Contains(err.Error(), "certificate signed by unknown") {
 			logrus.Warnf("Dest registry is using custom certificate!")

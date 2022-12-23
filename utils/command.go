@@ -26,5 +26,3 @@ func DefaultRunCommandFunc(p string, i io.Reader, o io.Writer, args ...string) e
 
 	return nil
 }
-
-// TODO: handle command execute timeout
