@@ -5,9 +5,6 @@ WORKINGDIR=$(pwd)
 
 files=(
     "image-tools"
-    "mirror-failed.txt"
-    "load-failed.txt"
-    "save-failed.txt"
     "build/"
 )
 
