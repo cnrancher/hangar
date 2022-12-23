@@ -41,11 +41,16 @@ func main() {
 	case "convert-list":
 		convertCMD.Parse(os.Args[2:])
 		convertCMD.Convert()
+	case "-v":
+		fallthrough
+	case "--version":
+		fallthrough
 	case "version":
 		showVersion()
 	default:
+		logrus.Errorf("unrecognized command %q", os.Args[1])
 		showHelp()
-		os.Exit(0)
+		os.Exit(1)
 	}
 }
 
