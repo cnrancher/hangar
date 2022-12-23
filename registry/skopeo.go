@@ -46,16 +46,14 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 	}
 
 	// Inspect the source image info
-	param := []string{"inspect", img}
-	// default policy: permissive policy that allows anything.
-	args = append(
-		args,
-		"--insecure-policy",
+	param := []string{
+		"--insecure-policy", // permissive policy that allows anything
+		"inspect",
+		img,
 		"--tls-verify=false",
-	)
-	logrus.Debugf("Running skopeo inspect [%s] %v", img, args)
+	}
 	param = append(param, args...)
-
+	logrus.Debugf("Running skopeo %v", param)
 	var out bytes.Buffer
 	if err := execCommandFunc(skopeo, nil, &out, param...); err != nil {
 		return "", fmt.Errorf("SkopeoInspect %s:\n%w", img, err)
@@ -80,16 +78,16 @@ func SkopeoCopy(src, dst string, args ...string) error {
 	}
 
 	// skopeo copy src dst args...
-	params := []string{"copy", src, dst}
-	// default policy: permissive policy that allows anything.
-	args = append(
-		args,
-		"--insecure-policy",
+	params := []string{
+		"--insecure-policy", // permissive policy that allows anything
+		"copy",
+		src,
+		dst,
 		"--src-tls-verify=false",
 		"--dest-tls-verify=false",
-	)
+	}
 	params = append(params, args...)
-	logrus.Debugf("Running skopeo copy src[%s] dst[%s] %v", src, dst, args)
+	logrus.Debugf("Running skopeo %v", params)
 	var out io.Writer = nil
 	if u.WorkerNum == 1 {
 		// single thread (worker) mode

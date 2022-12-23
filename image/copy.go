@@ -65,11 +65,11 @@ func (img *Image) copyIfChanged() error {
 		logrus.WithFields(logrus.Fields{
 			"M_ID":   img.MID,
 			"IMG_ID": img.IID}).
-			Infof("Source Digest: %s", img.Digest)
+			Debugf("Source Digest: %s", img.Digest)
 		logrus.WithFields(logrus.Fields{
 			"M_ID":   img.MID,
 			"IMG_ID": img.IID}).
-			Infof("destin Digest: %s", destDigest)
+			Debugf("destin Digest: %s", destDigest)
 		return nil
 	}
 	logrus.WithFields(logrus.Fields{
@@ -80,12 +80,6 @@ func (img *Image) copyIfChanged() error {
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
 		Infof("Copying: [%s] => [%s]", img.Source, img.Destination)
-	args := []string{"--format=v2s2", "--override-arch=" + img.Arch}
-	if img.OS != "" {
-		args = append(args, "--override-os="+img.OS)
-	}
-	if img.Variant != "" {
-		args = append(args, "--override-variant="+img.Arch)
-	}
+	args := []string{"--format=v2s2"}
 	return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
 }

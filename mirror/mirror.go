@@ -497,14 +497,14 @@ func (m *Mirror) compareSourceDestManifest() bool {
 	if m.destManifest == nil {
 		// dest image does not exist, return false
 		logrus.WithField("M_ID", m.MID).
-			Infof("compareSourceDestManifest: dest manifest does not exist")
+			Debugf("compareSourceDestManifest: dest manifest does not exist")
 		return false
 	}
 	schemaFloat64, ok := m.destManifest["schemaVersion"].(float64)
 	if !ok {
 		// read json failed, return false
 		logrus.WithField("M_ID", m.MID).
-			Infof("compareSourceDestManifest: read schemaVersion failed")
+			Debugf("compareSourceDestManifest: read schemaVersion failed")
 		return false
 	}
 	var schema int = int(schemaFloat64)
@@ -512,7 +512,7 @@ func (m *Mirror) compareSourceDestManifest() bool {
 	// The destination manifest list schemaVersion should be 2
 	case 1:
 		logrus.WithField("M_ID", m.MID).
-			Infof("compareSourceDestManifest: dest schemaVersion is 1")
+			Debugf("compareSourceDestManifest: dest schemaVersion is 1")
 		return false
 	case 2:
 		mediaType, ok := m.destManifest["mediaType"].(string)
@@ -525,16 +525,16 @@ func (m *Mirror) compareSourceDestManifest() bool {
 			srcDigests := m.SourceDigests()
 			dstDigests := m.DestinationDigests()
 			logrus.WithField("M_ID", m.MID).
-				Infof("compareSourceDestManifest: ")
+				Debugf("compareSourceDestManifest: ")
 			logrus.WithField("M_ID", m.MID).
-				Infof("  srcDigests: %v", srcDigests)
+				Debugf("  srcDigests: %v", srcDigests)
 			logrus.WithField("M_ID", m.MID).
-				Infof("  dstDigests: %v", dstDigests)
+				Debugf("  dstDigests: %v", dstDigests)
 			return slices.Compare(srcDigests, dstDigests) == 0
 		case u.MediaTypeManifestV2:
 			// The destination manifest mediaType should be 'manifest.list.v2'
 			logrus.WithField("M_ID", m.MID).
-				Infof("compareSourceDestManifest: dest mediaType is m.v2")
+				Debugf("compareSourceDestManifest: dest mediaType is m.v2")
 			return false
 		}
 	}

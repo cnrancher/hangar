@@ -20,16 +20,9 @@ func (img *Image) Load() error {
 	if !info.IsDir() {
 		return fmt.Errorf("Load: '%s' is not directory", img.Source)
 	}
-
 	sourceImage := fmt.Sprintf("dir:/%s", img.Source)
 	destImage := fmt.Sprintf("docker://%s", img.Destination)
-	args := []string{"--format=v2s2", "--override-arch=" + img.Arch}
-	if img.OS != "" {
-		args = append(args, "--override-os="+img.OS)
-	}
-	if img.Variant != "" {
-		args = append(args, "--override-variant="+img.Arch)
-	}
+	args := []string{"--format=v2s2"}
 	if err = registry.SkopeoCopy(sourceImage, destImage, args...); err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}

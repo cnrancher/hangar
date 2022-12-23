@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -26,6 +27,13 @@ func SelfCheckSkopeo() error {
 	} else {
 		logrus.Debug("skopeo is at current folder as a executable binary file")
 	}
+	var buff bytes.Buffer
+	cmd := exec.Command(skopeoPath, "-v")
+	cmd.Stdout = &buff
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("SelfCheckSkopeo: 'skopeo -v': %w", err)
+	}
+	logrus.Infof("Found skopeo: %s", strings.TrimSpace(buff.String()))
 
 	return nil
 }

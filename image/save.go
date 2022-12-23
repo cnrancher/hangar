@@ -46,16 +46,9 @@ func (img *Image) Save() error {
 	// when saving image to local dir.
 	args := []string{
 		"--format=v2s2",
-		"--override-arch=" + img.Arch,
 		"--dest-compress", // compress image in local dir
 		"--dest-compress-format=gzip",
 		"--dest-compress-level=9",
-	}
-	if img.OS != "" {
-		args = append(args, "--override-os="+img.OS)
-	}
-	if img.Variant != "" {
-		args = append(args, "--override-variant="+img.Arch)
 	}
 	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
 	if err != nil {
