@@ -1,0 +1,77 @@
+---
+kind: pipeline
+type: docker
+name: amd64
+
+platform:
+  os: linux
+  arch: amd64
+
+clone:
+  disable: true
+
+steps:
+  - name: clone
+    image: "drone/git:latest"
+    environment:
+      HTTP_PROXY:
+        from_secret: proxy
+      HTTPS_PROXY:
+        from_secret: proxy
+      http_proxy:
+        from_secret: proxy
+      https_proxy:
+        from_secret: proxy
+      NOPROXY: localhost
+      noproxy: localhost
+
+  - name: test
+    image: rancher/dapper:v0.6.0
+    environment:
+      PROXY:
+        from_secret: proxy
+    commands:
+      - dapper test
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - push
+      - pull_request
+
+  - name: build
+    image: rancher/dapper:v0.6.0
+    environment:
+      PROXY:
+        from_secret: proxy
+    commands:
+      - dapper build
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - push
+      - pull_request
+
+  - name: github_binary_release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      checksum:
+      - sha256
+      files:
+      - "build/image-tools-*"
+    when:
+      event:
+      - tag
+
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+node:
+  instance: agent-amd64
