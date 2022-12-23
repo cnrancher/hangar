@@ -14,7 +14,7 @@ For more detailed information about this project, please refer to the documents 
 
 ## QuickStart
 
-You can download the latest compiled binary from the [Release](https://github.com/cnrancher/image-tools/releases) page.
+You can download the latest compiled binary `image-tools-${OS}-${ARCH}-${VERSION}` from the [Release](https://github.com/cnrancher/image-tools/releases) page.
 
 ```sh
 # Get help message
@@ -29,20 +29,19 @@ You can download the latest compiled binary from the [Release](https://github.co
 ## Build
 
 ```sh
-# Ensure Go and make is installed
-go version go1.19 linux/amd64
+# Ensure Docker and make are installed
 
 # Get help message
 make help
 
-# Build this project
+# Build binary files into `build` folder
 make build
-
-# Install executable binary into $GOPATH/bin
-make install
 
 # Run unit test
 make test
+
+# Delete binary files
+make clean
 ```
 
 ## LICENSE

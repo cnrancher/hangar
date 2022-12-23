@@ -39,9 +39,6 @@ Usage of load:
 
 可使用 `-default-project=library` 参数设定添加 Project 的名称 （默认为 `library`）。
 
-> 若未设定 `DOCKER_REGISTRY` 环境变量，且未使用 `-d` 参数指定目标 registry 时，执行此工具时会将 `docker login` 的 registry 设定为默认的 `docker.io`。
-> 若目标 registry 不为 `docker.io`，请使用 `-d` 参数或 `DOCKER_REGISTRY` 环境变量指明目标 registry，否则可能会导致 `mirror` 执行失败。
-
 ## Parameters
 
 命令行参数：

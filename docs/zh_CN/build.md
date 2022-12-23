@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-- go version >= 1.19
+- 确保 Docker 和 `make` 已安装
 - OS: Linux / macOS
 
 ## Build
@@ -11,15 +11,12 @@
 # 获取帮助信息
 make help
 
-# 生成可执行文件
+# 生成可执行文件于 `build` 文件夹中
 make build
-
-# 将可执行文件安装至 $GOPATH/bin 目录下
-make install
 
 # 执行单元测试
 make test
 
-# 删除编译生成的文件和执行此工具时输出的文件
+# 删除编译生成的二进制文件
 make clean
 ```

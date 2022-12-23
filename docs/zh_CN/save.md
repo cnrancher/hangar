@@ -21,7 +21,8 @@ Usage of save:
 
 ## 准备工作
 
-在执行 `image-tools save` 之前，请手动执行 `docker login <registry-url>` 登录。
+在执行 `image-tools save` 之前，若镜像列表中存在私有镜像，请确保手动执行过 `docker login <registry-url>` 登录。
+
 ## 镜像列表格式
 
 每一行包含 **“镜像名称:TAG”**，镜像与 TAG 之间以 `:` 分隔，例如：
