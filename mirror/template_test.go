@@ -70,7 +70,7 @@ func Test_GetSavedImageTemplate(t *testing.T) {
 }
 
 func Test_LoadSavedTemplates(t *testing.T) {
-	mList, err := LoadSavedTemplates("test/", "custom.io")
+	mList, err := LoadSavedTemplates("test/", "custom.io", "")
 	if err != nil {
 		t.Fatal(err)
 	}

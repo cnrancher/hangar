@@ -125,14 +125,16 @@ func LoadImages() {
 		go worker(i+1, mChan)
 	}
 
-	mList, err := mirror.LoadSavedTemplates(directory, *cmdDestReg)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	var mList []*mirror.Mirror
 	// create harbor project before load
 	if *cmdRepoType == "harbor" {
-		projectList := mirror.GetSourceProjects(mList, *cmdDefaultProject)
-		for _, proj := range projectList {
+		mList, err = mirror.LoadSavedTemplates(
+			directory, *cmdDestReg, *cmdDefaultProject)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		for _, m := range mList {
+			proj := u.GetProjectName(m.Destination)
 			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
 			if *cmdHarborHttps {
 				url = "https://" + url
@@ -144,6 +146,11 @@ func LoadImages() {
 				logrus.Errorf("Failed to create harbor project %q: %q",
 					proj, err)
 			}
+		}
+	} else {
+		mList, err = mirror.LoadSavedTemplates(directory, *cmdDestReg, "")
+		if err != nil {
+			logrus.Fatal(err)
 		}
 	}
 

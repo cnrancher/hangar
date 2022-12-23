@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"cnrancher.io/image-tools/image"
@@ -86,7 +85,7 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 }
 
 // LoadSavedTemplates loads the saved json templates to *Mirror slice
-func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
+func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 	var err error
 	if directory, err = u.GetAbsPath(directory); err != nil {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
@@ -115,9 +114,15 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 
 	var mirrorList []*Mirror
 	for i, mT := range savedList.List {
+		source := mT.Source
+		if u.GetProjectName(source) == "" && proj != "" {
+			logrus.Warnf("%q does not have project name, set to %q",
+				source, proj)
+			source = u.ReplaceProjectName(source, proj)
+		}
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
-			Destination: u.ConstructRegistry(mT.Source, destReg),
+			Destination: u.ConstructRegistry(source, destReg),
 			Directory:   directory,
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
@@ -130,7 +135,7 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 			// Source is a directory
 			srcImageDir := filepath.Join(directory, iT.Folder)
 			// Destination is the dest registry
-			repo := u.ConstructRegistry(mT.Source, destReg)
+			repo := u.ConstructRegistry(source, destReg)
 			destImage := fmt.Sprintf("%s:%s", repo, copiedTag)
 			img := image.NewImage(&image.ImageOptions{
 				Source:      srcImageDir,
@@ -153,44 +158,4 @@ func LoadSavedTemplates(directory, destReg string) ([]*Mirror, error) {
 	}
 
 	return mirrorList, nil
-}
-
-// GetSourceProjects gets namespaces (harbor project) from *Mirror slice
-func GetSourceProjects(mList []*Mirror, defaultNamae string) []string {
-	var namespaceList = make([]string, 0)
-
-	for _, m := range mList {
-		if m == nil {
-			continue
-		}
-
-		spec := []string{}
-		for _, v := range strings.Split(m.Source, "/") {
-			if len(v) == 0 || strings.ContainsAny(v, ".:") {
-				// skip registry prefix
-				continue
-			}
-			spec = append(spec, v)
-		}
-		switch len(spec) {
-		case 1:
-			// example: hello-world, nginx, mysql...
-			// the namespace is unknow
-			logrus.Warnf("%q does not have project",
-				m.Source)
-			if defaultNamae != "" {
-				logrus.Infof("Set default project to %q", defaultNamae)
-				m.Destination = u.ReplaceProjectName(
-					m.Destination, defaultNamae)
-			}
-		case 2:
-			// example: library/app
-			// the namespace is library
-			if !slices.Contains(namespaceList, spec[0]) {
-				namespaceList = append(namespaceList, spec[0])
-			}
-		}
-	}
-
-	return namespaceList
 }
