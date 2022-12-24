@@ -18,7 +18,7 @@ import (
 var (
 	cmd          = flag.NewFlagSet("save", flag.ExitOnError)
 	cmdFile      = cmd.String("f", "", "image list file")
-	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, separate with ','")
 	cmdSourceReg = cmd.String("s", "", "override the source registry")
 	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into tar.gz")
 	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")

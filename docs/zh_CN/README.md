@@ -22,9 +22,15 @@
     sudo yum install skopeo
     ```
 
-    Ubuntu 可下载已编译的可执行文件：
+    Ubuntu 20.04 可下载已编译的可执行文件：
     - [skopeo-1.9.3-amd64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/amd64/1.9.3/skopeo)
     - [skopeo-1.9.3-arm64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/arm64/1.9.3/skopeo)
+
+    ``` sh
+    # Ubuntu 20.10 and newer
+    sudo apt-get -y update
+    sudo apt-get -y install skopeo
+    ```
 
     macOS:
 

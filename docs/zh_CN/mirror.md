@@ -4,7 +4,7 @@
 $ ./image-tools mirror -h
 Usage of mirror:
   -a string
-        architecture list of images, seperate with ',' (default "amd64,arm64")
+        architecture list of images, separate with ',' (default "amd64,arm64")
   -d string
         override the destination registry
   -debug

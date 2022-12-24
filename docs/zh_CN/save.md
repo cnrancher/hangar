@@ -4,7 +4,7 @@
 $ ./image-tools save -h
 Usage of save:
   -a string
-        architecture list of images, seperate with ',' (default "amd64,arm64")
+        architecture list of images, separate with ',' (default "amd64,arm64")
   -d string
         Output saved images into tar.gz (default "saved-images.tar.gz")
   -debug
@@ -69,7 +69,7 @@ rancher/rancher:v2.7.0
 
 # 在不设定 -f 参数时，可手动按行输入镜像列表，下载某一个镜像
 # 此时将不支持并发拷贝
-# 注意在此模式下，使用 `Ctrl-D` 结束镜像列表的，不要使用 `Ctrl-C` 结束程序！
+# 注意在此模式下，使用 `Ctrl-D` 结束镜像列表的输入，不要使用 `Ctrl-C` 结束程序，否则将无法创建压缩包！
 ./image-tools save -d saved-images.tar.gz
 ......
 >>> rancher/rancher:v2.7.0

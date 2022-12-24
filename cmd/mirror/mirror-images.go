@@ -19,7 +19,7 @@ import (
 var (
 	cmd            = flag.NewFlagSet("mirror", flag.ExitOnError)
 	cmdFile        = cmd.String("f", "", "image list file")
-	cmdArch        = cmd.String("a", "amd64,arm64", "architecture list of images, seperate with ','")
+	cmdArch        = cmd.String("a", "amd64,arm64", "architecture list of images, separate with ','")
 	cmdSourceReg   = cmd.String("s", "", "override the source registry")
 	cmdDestReg     = cmd.String("d", "", "override the destination registry")
 	cmdFailed      = cmd.String("o", "mirror-failed.txt", "file name of the mirror failed image list")
