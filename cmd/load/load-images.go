@@ -11,6 +11,7 @@ import (
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -133,8 +134,14 @@ func LoadImages() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
+		var projList = make([]string, 0)
 		for _, m := range mList {
 			proj := u.GetProjectName(m.Destination)
+			if slices.Contains(projList, proj) {
+				continue
+			} else {
+				projList = append(projList, proj)
+			}
 			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
 			if *cmdHarborHttps {
 				url = "https://" + url
