@@ -7,7 +7,17 @@ WORKINGDIR=$(pwd)
 
 ARCH=('amd64' 'arm64')
 OS=('linux' 'darwin')
-VERSION=$(git describe --tags)
+VERSION=$(git describe --tags 2>/dev/null || echo "")
+if [[ "${VERSION}" = "" ]]; then
+    if [[ "${DRONE_TAG}" != "" ]]; then
+        echo "DRONE_TAG: ${DRONE_TAG}"
+        VERSION=${DRONE_TAG}
+    else
+        echo "DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}"
+        VERSION=${DRONE_COMMIT_SHA:0:8}
+    fi
+fi
+echo "Build version: ${VERSION}"
 
 mkdir -p $WORKINGDIR/build
 cd $WORKINGDIR/build

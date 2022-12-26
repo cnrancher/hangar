@@ -7,29 +7,14 @@ platform:
   os: linux
   arch: amd64
 
-clone:
-  disable: true
-
 steps:
-  - name: clone
-    image: "drone/git:latest"
-    environment:
-      HTTP_PROXY:
-        from_secret: proxy
-      HTTPS_PROXY:
-        from_secret: proxy
-      http_proxy:
-        from_secret: proxy
-      https_proxy:
-        from_secret: proxy
-      NOPROXY: localhost
-      noproxy: localhost
-
   - name: ci
     image: rancher/dapper:v0.6.0
     environment:
       PROXY:
         from_secret: proxy
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
       - dapper ci
     volumes:
