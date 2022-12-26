@@ -1,10 +1,10 @@
 # 自建 SSL Certificate
 
-在使用自建 SSL Certificate 的私有镜像仓库时，请参照以下部分进行配置。
+如果镜像仓库为使用自建 SSL Certificate 的私有镜像仓库 (自签名 Harbor)，请参照以下部分进行配置。
 
 ## Docker
 
-> FYI: [Use self-signed certificates](https://docs.docker.com/registry/insecure/#use-self-signed-certificates)
+> FYI: [Use self-signed certificates](https://docs.docker.com/registry/insecure/#use-self-signed-certificates) (从步骤3开始)
 
 将 SSL 公钥拷贝至 `/etc/docker/certs.d/<registry-url>/ca.crt`。
 
