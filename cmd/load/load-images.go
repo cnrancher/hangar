@@ -11,7 +11,6 @@ import (
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -127,21 +126,21 @@ func LoadImages() {
 	}
 
 	var mList []*mirror.Mirror
-	// create harbor project before load
 	if *cmdRepoType == "harbor" {
+		// Set default project name if dest repo is harbor
 		mList, err = mirror.LoadSavedTemplates(
 			directory, *cmdDestReg, *cmdDefaultProject)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		var projList = make([]string, 0)
+		var projMap = make(map[string]bool, 0)
 		for _, m := range mList {
+			// create harbor project before load
 			proj := u.GetProjectName(m.Destination)
-			if slices.Contains(projList, proj) {
+			if projMap[proj] {
 				continue
-			} else {
-				projList = append(projList, proj)
 			}
+			projMap[proj] = true
 			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
 			if *cmdHarborHttps {
 				url = "https://" + url
@@ -155,6 +154,7 @@ func LoadImages() {
 			}
 		}
 	} else {
+		// Do not set default project name if dest repo is not harbor
 		mList, err = mirror.LoadSavedTemplates(directory, *cmdDestReg, "")
 		if err != nil {
 			logrus.Fatal(err)
