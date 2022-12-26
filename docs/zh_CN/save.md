@@ -5,8 +5,10 @@ $ ./image-tools save -h
 Usage of save:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
+  -compress string
+        compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
   -d string
-        Output saved images into tar.gz (default "saved-images.tar.gz")
+        Output saved images into destination file (directory or tar tarball) (default "saved-images.tar.gz")
   -debug
         enable the debug output
   -f string
@@ -52,7 +54,8 @@ rancher/rancher:v2.7.0
 # 使用 -f (file) 参数指定镜像列表文件
 ./image-tools save -f ./list.txt
 
-# 使用 -d (destination) 参数，指定导出镜像的 tar.gz 文件名称
+# 使用 -d (destination) 参数，指定导出镜像的文件名称
+# 可配合 -compress 参数使用
 # 默认文件名为 saved-images.tar.gz
 ./image-tools save -f ./list.txt -d saved-images.tar.gz
 
@@ -77,6 +80,11 @@ rancher/rancher:v2.7.0
 # 使用 -o (output) 参数，将 save 失败的镜像列表输出至指定文件中
 # 默认输出至 save-failed.txt
 ./image-tools save -f image-list.txt -o failed-list.txt
+
+# 使用 -compress 参数，指定压缩格式
+# 可选：gzip, zstd, dir
+# 默认为 gzip 格式，若为 dir 格式则表示只将 save 的镜像保存在文件夹中，不对其进行压缩
+./image-tools save -f image-list.txt -compress=zstd -d saved.tar.zstd
 
 # 使用 -debug 参数，输出更详细的调试日志
 ./image-tools save -debug

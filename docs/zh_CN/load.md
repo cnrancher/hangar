@@ -3,6 +3,8 @@
 ```console
 $ image-tools load -h
 Usage of load:
+  -compress string
+        compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
   -d string
         target private registry:port
   -debug
@@ -18,7 +20,7 @@ Usage of load:
   -repo-type string
         repository type, can be 'harbor' or empty
   -s string
-        saved tar.gz file
+        saved file to load (tar tarball or a directory)
 ```
 
 ## QuickStart
@@ -44,12 +46,17 @@ Usage of load:
 命令行参数：
 
 ```sh
-# 使用 -s (source file) 参数指定导入的 tar.gz 文件（必选参数）
+# 使用 -s (source file) 参数指定导入的文件（必选参数）
 ./image-tools load -s ./saved-images.tar.gz
 
 # 使用 -d (destination) 参数，指定目标镜像的 registry
 # 优先级为：-d 参数 > DOCKER_REGISTRY 环境变量
 ./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+
+# 使用 -compress 参数，指定导入文件的压缩格式
+# 可选：gzip, zstd, dir
+# 默认为 gzip 格式，若为 dir 格式则表示从文件夹中加载镜像，不对其进行解压
+./image-tools load -s ./saved-images.tar.zstd -compress=zstd
 
 # 使用 -repo-type 指定目标镜像仓库的类型，默认为空字符串，可设定为 "harbor"
 # 目标镜像仓库的类型为 harbor 时，将会自动为目标镜像创建 project
