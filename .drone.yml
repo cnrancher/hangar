@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: amd64
+name: ci-pipeline-amd64
 
 platform:
   os: linux
@@ -25,13 +25,13 @@ steps:
       NOPROXY: localhost
       noproxy: localhost
 
-  - name: test
+  - name: ci
     image: rancher/dapper:v0.6.0
     environment:
       PROXY:
         from_secret: proxy
     commands:
-      - dapper test
+      - dapper ci
     volumes:
       - name: docker
         path: /var/run/docker.sock
@@ -39,21 +39,7 @@ steps:
       event:
       - push
       - pull_request
-
-  - name: build
-    image: rancher/dapper:v0.6.0
-    environment:
-      PROXY:
-        from_secret: proxy
-    commands:
-      - dapper build
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
-    when:
-      event:
-      - push
-      - pull_request
+      - tag
 
   - name: github_binary_release
     image: plugins/github-release
@@ -67,6 +53,31 @@ steps:
     when:
       event:
       - tag
+      ref:
+        include:
+        - "refs/tags/v*"
+        exclude:
+        - "refs/tags/*rc*"
+        - "refs/tags/*alpha*"
+
+  - name: github_binary_prerelease
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      checksum:
+      - sha256
+      files:
+      - "build/image-tools-*"
+      prerelease: true
+      title: "Pre-release ${DRONE_TAG}"
+    when:
+      event:
+      - tag
+      ref:
+        include:
+        - "refs/tags/*rc*"
+        - "refs/tags/*alpha*"
 
 volumes:
   - name: docker

@@ -17,4 +17,4 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
-CMD ["release"]
+CMD ["ci"]
