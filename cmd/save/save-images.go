@@ -20,8 +20,9 @@ var (
 	cmdFile      = cmd.String("f", "", "image list file")
 	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, separate with ','")
 	cmdSourceReg = cmd.String("s", "", "override the source registry")
-	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into tar.gz")
+	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into destination file (directory or tar tarball)")
 	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")
+	cmdCompress  = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
 	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
@@ -48,9 +49,23 @@ func SaveImages() {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
+	var compressFormat u.CompressFormat = u.CompressFormatGzip
+	switch *cmdCompress {
+	case "gzip":
+		compressFormat = u.CompressFormatGzip
+	case "zstd":
+		compressFormat = u.CompressFormatZstd
+	case "dir":
+		compressFormat = u.CompressFormatDirectory
+	default:
+		compressFormat = u.CompressFormatGzip
+	}
+
 	// Check cache image directory
-	if err := u.CheckCacheDirEmpty(); err != nil {
-		logrus.Fatal(err)
+	if compressFormat != u.CompressFormatDirectory {
+		if err := u.CheckCacheDirEmpty(); err != nil {
+			logrus.Fatal(err)
+		}
 	}
 
 	var scanner *bufio.Scanner
@@ -180,9 +195,17 @@ func SaveImages() {
 		u.SaveJson(savedTemplate, dir)
 	}
 
-	logrus.Infof("Compressing %s...", *cmdDest)
-	if err := u.Compress(u.CacheImageDirectory, *cmdDest); err != nil {
-		logrus.Fatal(err)
+	if compressFormat != u.CompressFormatDirectory {
+		logrus.Infof("Compressing %s...", *cmdDest)
+		err := u.Compress(u.CacheImageDirectory, *cmdDest, compressFormat)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+	} else {
+		err := os.Rename(u.CacheImageDirectory, *cmdDest)
+		if err != nil {
+			logrus.Fatal(err)
+		}
 	}
 	logrus.Infof("Successfully saved images into %q", *cmdDest)
 

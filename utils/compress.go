@@ -9,16 +9,58 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/sirupsen/logrus"
 )
 
-func Compress(src string, dst string) error {
+type CompressFormat int
+
+const (
+	CompressFormatGzip CompressFormat = iota
+	CompressFormatZstd
+	CompressFormatDirectory
+)
+
+func (c CompressFormat) String() string {
+	switch c {
+	case CompressFormatGzip:
+		return "gzip"
+	case CompressFormatZstd:
+		return "zstd"
+	case CompressFormatDirectory:
+		return "dir"
+	}
+	return ""
+}
+
+func Compress(src string, dst string, format CompressFormat) error {
+	var err error
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("Compress: os.Open: %w", err)
 	}
-	zr := gzip.NewWriter(dstFile)
-	tw := tar.NewWriter(zr)
+	defer dstFile.Close()
+	var tw *tar.Writer
+	var zr io.WriteCloser
+
+	switch format {
+	case CompressFormatDirectory:
+		return nil
+	case CompressFormatGzip:
+		zr = gzip.NewWriter(dstFile)
+		defer zr.Close()
+	case CompressFormatZstd:
+		zr, err = zstd.NewWriter(
+			dstFile,
+			zstd.WithEncoderLevel(zstd.SpeedBestCompression),
+		)
+		if err != nil {
+			return fmt.Errorf("Compress: zstd.NewWriter: %w", err)
+		}
+		defer zr.Close()
+	}
+	tw = tar.NewWriter(zr)
+	defer tw.Close()
 
 	fi, err := os.Stat(src)
 	if err != nil {
@@ -46,9 +88,9 @@ func Compress(src string, dst string) error {
 		if err := tw.Close(); err != nil {
 			return err
 		}
-		if err := zr.Close(); err != nil {
-			return err
-		}
+		// if err := zr.Close(); err != nil {
+		// 	return err
+		// }
 		return nil
 	}
 
@@ -88,25 +130,43 @@ func Compress(src string, dst string) error {
 		return fmt.Errorf("Compress: filepath.Walk: %w", err)
 	}
 
-	if err := tw.Close(); err != nil {
-		return fmt.Errorf("Compress: %w", err)
-	}
-	if err := zr.Close(); err != nil {
-		return fmt.Errorf("Compress: %w", err)
-	}
+	// if err := tw.Close(); err != nil {
+	// 	return fmt.Errorf("Compress: %w", err)
+	// }
+	// if err := zr.Close(); err != nil {
+	// 	return fmt.Errorf("Compress: %w", err)
+	// }
 	return nil
 }
 
-func Decompress(src string, dst string) error {
+func Decompress(src string, dst string, format CompressFormat) error {
+	var err error
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("Decompress: os.Open: %w", err)
 	}
-	zr, err := gzip.NewReader(srcFile)
-	if err != nil {
-		return fmt.Errorf("Decompress: gzip.NewReader: %w", err)
+	defer srcFile.Close()
+
+	var tr *tar.Reader = nil
+	switch format {
+	case CompressFormatDirectory:
+		// directory does not need to decompress
+		return nil
+	case CompressFormatGzip:
+		zr, err := gzip.NewReader(srcFile)
+		if err != nil {
+			return fmt.Errorf("Decompress: gzip.NewReader: %w", err)
+		}
+		defer zr.Close()
+		tr = tar.NewReader(zr)
+	case CompressFormatZstd:
+		zr, err := zstd.NewReader(srcFile)
+		if err != nil {
+			return fmt.Errorf("Decompress: zstd.NewReader: %w", err)
+		}
+		defer zr.Close()
+		tr = tar.NewReader(zr)
 	}
-	tr := tar.NewReader(zr)
 
 	for {
 		header, err := tr.Next()

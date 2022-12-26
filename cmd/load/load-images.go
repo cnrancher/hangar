@@ -15,10 +15,11 @@ import (
 
 var (
 	cmd            = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdSource      = cmd.String("s", "", "saved tar.gz file")
+	cmdSource      = cmd.String("s", "", "saved file to load (tar tarball or a directory)")
 	cmdDestReg     = cmd.String("d", "", "target private registry:port")
 	cmdFailed      = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
 	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
+	cmdCompress    = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
 	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
 	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
@@ -36,8 +37,8 @@ func LoadImages() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	if *cmdSource == "" {
-		logrus.Error("saved tar.gz file not specified.")
-		logrus.Error("Use '-s' to specify the saved tar.gz file.")
+		logrus.Error("saved file not specified.")
+		logrus.Error("Use '-s' to specify the file name (tarball or directory)")
 		logrus.Fatal("Failed to load images.")
 	}
 
@@ -57,9 +58,23 @@ func LoadImages() {
 		logrus.Infof("Set 'docker login' registry to %q", u.DockerHubRegistry)
 	}
 
+	var compressFormat u.CompressFormat = u.CompressFormatGzip
+	switch *cmdCompress {
+	case "gzip":
+		compressFormat = u.CompressFormatGzip
+	case "zstd":
+		compressFormat = u.CompressFormatZstd
+	case "dir":
+		compressFormat = u.CompressFormatDirectory
+	default:
+		compressFormat = u.CompressFormatGzip
+	}
+
 	// Check cache image directory
-	if err := u.CheckCacheDirEmpty(); err != nil {
-		logrus.Fatal(err)
+	if compressFormat != u.CompressFormatDirectory {
+		if err := u.CheckCacheDirEmpty(); err != nil {
+			logrus.Fatal(err)
+		}
 	}
 
 	// execute docker login command
@@ -72,13 +87,18 @@ func LoadImages() {
 		logrus.Fatal(err)
 	}
 
-	// decompress input tar.gz tarball
-	logrus.Infof("Decompressing %s...", *cmdSource)
-	if err := u.Decompress(*cmdSource, directory); err != nil {
-		logrus.Fatal(err)
+	if compressFormat != u.CompressFormatDirectory {
+		// decompress input tar.gz tarball
+		logrus.Infof("Decompressing %s...", *cmdSource)
+		err := u.Decompress(*cmdSource, directory, compressFormat)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		directory = filepath.Join(directory, u.CacheImageDirectory)
+		logrus.Debugf("Decompressed directory: %s", directory)
+	} else {
+		directory = filepath.Join(directory, *cmdSource)
 	}
-	directory = filepath.Join(directory, u.CacheImageDirectory)
-	logrus.Debugf("Decompressed directory: %s", directory)
 	info, err := os.Stat(directory)
 	if err != nil {
 		logrus.Fatal(err.Error())

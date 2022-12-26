@@ -202,6 +202,7 @@ func GetDockerPasswdByConfig(r string, cf io.Reader) (string, string, error) {
 		if credOutput.Username == "" || credOutput.Secret == "" {
 			return "", "", u.ErrCredsStore
 		}
+		logrus.Debugf("Got username %q from credsStore", credOutput.Username)
 		return credOutput.Username, credOutput.Secret, nil
 	}
 
