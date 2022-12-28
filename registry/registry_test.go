@@ -13,7 +13,7 @@ func Test_CreateHarborProject(t *testing.T) {
 	if url == "" {
 		return
 	}
-	if err := CreateHarborProject("name", url); err != nil {
+	if err := CreateHarborProject("name", url, "", ""); err != nil {
 		t.Error(err)
 	}
 }

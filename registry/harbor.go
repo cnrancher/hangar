@@ -21,7 +21,7 @@ type HarborProjectMetadataTemplate struct {
 }
 
 // CreateHarborProject creates project for harbor v2
-func CreateHarborProject(name string, url string) error {
+func CreateHarborProject(name, url, username, passwd string) error {
 	// result_code=$(curl -k -s -u "${harbor_user}:${harbor_password}"
 	//  -X POST -H "Content-type:application/json" -d
 	// '{"project_name":"'"${project}"'","metadata":{"public":"true"}}' $url)
@@ -39,7 +39,7 @@ func CreateHarborProject(name string, url string) error {
 	// URL-encoded payload
 	client := &http.Client{}
 	r, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(json_data))
-	auth := fmt.Sprintf("%s:%s", u.EnvDockerUsername, u.EnvDockerPassword)
+	auth := fmt.Sprintf("%s:%s", username, passwd)
 	r.Header.Add("Authorization", "Basic "+u.Base64(auth))
 	r.Header.Add("Content-Type", "application/json")
 

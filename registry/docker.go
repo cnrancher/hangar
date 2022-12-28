@@ -22,6 +22,14 @@ type DockerCredDesktopOutput struct {
 	Secret    string `json:"Secret"`
 }
 
+type DockerPasswordCache struct {
+	Username string
+	Password string
+	Registry string
+}
+
+var dockerPasswordCache = make([]DockerPasswordCache, 0)
+
 func GetLoginToken(url string, username string, passwd string) (string, error) {
 	if url == "" {
 		url = u.DockerLoginURL
@@ -58,69 +66,43 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 	return token.(string), nil
 }
 
-// DockerLogin executes the `docker login <registry_url>` command
-func DockerLogin(url string) error {
-	// docker login ${DOCKER_REGISTRY} --username=${USERNAME} --password-stdin
+// DockerLogin executes
+// 'docker login <registry> --username=<user> --password-stdin'
+func DockerLogin(url, username, password string) error {
 	if url == "" {
 		url = u.DockerHubRegistry
 	}
-	logrus.Infof("Logging in to %v", url)
-
-	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
-		// read username and password from docker config file
-		cPath := filepath.Join(os.Getenv("HOME"), ".docker", "config.json")
-		cFile, err := os.Open(cPath)
-		if err == nil {
-			defer cFile.Close()
-			user, pwd, err := GetDockerPasswdByConfig(url, cFile)
-			if err != nil {
-				if !errors.Is(err, u.ErrCredsStore) {
-					logrus.Warnf(
-						"Failed to get password from docker config: %s",
-						err.Error())
-				} else {
-					logrus.Info("docker config is using credsStore, ",
-						"unable to read password from docker config file")
-				}
-			} else if user != "" && pwd != "" {
-				// read username password succeed, skip
-				u.EnvDockerUsername = user
-				u.EnvDockerPassword = pwd
-				logrus.Infof("Get passwd of user %q from docker config",
-					u.EnvDockerUsername)
-			}
-		} else {
-			cFile.Close()
-			logrus.Debug("Failed to open docker config file")
-		}
-	}
-	// If failed to get password from docker config file
-	if u.EnvDockerUsername == "" || u.EnvDockerPassword == "" {
-		// read username and password from stdin
-		logrus.Infof("Please input dest registry username and passwd:")
-		username, passwd, err := u.ReadUsernamePasswd()
-		if err != nil {
-			return fmt.Errorf("DockerLogin: %w", err)
-		}
-		u.EnvDockerUsername = username
-		u.EnvDockerPassword = passwd
-	}
-
 	var stdout bytes.Buffer
 	cmd := exec.Command(
 		DockerPath,
 		"login",
 		url,
-		"-u", u.EnvDockerUsername,
+		"-u", username,
 		"--password-stdin",
 	)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stdout
-	cmd.Stdin = strings.NewReader(u.EnvDockerPassword)
+	cmd.Stdin = strings.NewReader(password)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
 	}
-	logrus.Info("Login succeed")
+
+	// Login succeed, store registry, username, passwd into cache
+	var cached bool = false
+	for _, v := range dockerPasswordCache {
+		if v.Password == password && v.Username == username &&
+			v.Registry == url {
+			// data already cached, skip
+			cached = true
+		}
+	}
+	if !cached {
+		dockerPasswordCache = append(dockerPasswordCache, DockerPasswordCache{
+			Username: username,
+			Password: password,
+			Registry: url,
+		})
+	}
 
 	return nil
 }
@@ -167,7 +149,8 @@ func DockerBuildx(args ...string) error {
 	return nil
 }
 
-func GetDockerPasswdByConfig(r string, cf io.Reader) (string, string, error) {
+func GetDockerPasswdByConfig(r string, cf io.Reader) (
+	user, passwd string, err error) {
 	if r == u.DockerHubRegistry {
 		r = "https://index.docker.io/v1/"
 	}
@@ -235,4 +218,52 @@ func GetDockerPasswdByConfig(r string, cf io.Reader) (string, string, error) {
 	}
 
 	return spec[0], spec[1], nil
+}
+
+// GetDockerPasswordFromCache gets docker password from cache
+func GetDockerPasswordFromCache(url string) (
+	username, passwd string, err error) {
+	if url == "" {
+		url = u.DockerHubRegistry
+	}
+	for _, v := range dockerPasswordCache {
+		if v.Registry == url {
+			return v.Username, v.Password, nil
+		}
+	}
+	return "", "", errors.New("not found")
+}
+
+// GetDockerPassword will try to find docker password from cache,
+// if not found, it will try to find password from docker config.
+// if passwd found in docker config, it will cache the password.
+// if not found, return error
+func GetDockerPassword(url string) (
+	username, passwd string, err error) {
+	if url == "" {
+		url = u.DockerHubRegistry
+	}
+	// get password from cache first
+	uname, passwd, err := GetDockerPasswordFromCache(url)
+	if err == nil {
+		return uname, passwd, nil
+	}
+	// if password not found in cache, get password from docker config file
+	cfName := filepath.Join(os.Getenv("HOME"), ".docker", "config.json")
+	cf, err := os.Open(cfName)
+	if err != nil {
+		return "", "", fmt.Errorf("GetDockerPassword: %w", err)
+	}
+	uname, passwd, err = GetDockerPasswdByConfig(url, cf)
+	if err != nil {
+		// failed to read passwd from config
+		return "", "", fmt.Errorf("GetDockerPassword: %w", err)
+	}
+	// store data into cache
+	dockerPasswordCache = append(dockerPasswordCache, DockerPasswordCache{
+		Username: uname,
+		Password: passwd,
+		Registry: url,
+	})
+	return uname, passwd, nil
 }

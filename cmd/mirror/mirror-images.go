@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
 
+	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -47,28 +49,20 @@ func MirrorImages() {
 		logrus.Fatal(err)
 	}
 
-	if *cmdSourceReg != "" {
-		logrus.Infof("Set source registry to %q", *cmdSourceReg)
-	} else {
-		logrus.Infof("Set source registry to %q", u.DockerHubRegistry)
-	}
-
 	// Command line parameter is prior than environment variable
-	if *cmdDestReg == "" && u.EnvDockerRegistry != "" {
-		*cmdDestReg = u.EnvDockerRegistry
+	if *cmdDestReg == "" && u.EnvDestRegistry != "" {
+		*cmdDestReg = u.EnvDestRegistry
+	}
+	if *cmdSourceReg == "" && u.EnvSourceRegistry != "" {
+		*cmdSourceReg = u.EnvSourceRegistry
+	}
+	logrus.Debugf("Source registry %q", *cmdSourceReg)
+	logrus.Debugf("Dest registry %q", *cmdDestReg)
+	if err := command.ProcessDockerLoginEnv(); err != nil {
+		logrus.Warn(err)
 	}
 
-	if *cmdDestReg != "" {
-		logrus.Infof("Set 'docker login' registry to %q", *cmdDestReg)
-	} else {
-		logrus.Infof("Set 'docker login' registry to %q", u.DockerHubRegistry)
-	}
-
-	// execute docker login command
-	if err := registry.DockerLogin(*cmdDestReg); err != nil {
-		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
-	}
-
+	var registryMap = make(map[string]bool)
 	var scanner *bufio.Scanner
 	var usingStdin bool
 	if *cmdFile == "" {
@@ -83,7 +77,30 @@ func MirrorImages() {
 			fmt.Println(err)
 		}
 		defer readFile.Close()
+		// pre-load dest registries in image list
+		sc := bufio.NewScanner(readFile)
+		sc.Split(bufio.ScanLines)
+		for sc.Scan() {
+			v := processImageListLine(sc.Text())
+			if len(v) != 3 {
+				continue
+			}
+			// add dest registry into registry map
+			reg := u.GetRegistryName(u.ConstructRegistry(v[1], *cmdDestReg))
+			if !registryMap[reg] {
+				registryMap[reg] = true
+			}
+		}
 
+		// Run docker login for all registries in image list before mirror
+		for k := range registryMap {
+			if err := command.DockerLoginRegistry(k); err != nil {
+				logrus.Warn(err)
+			}
+		}
+
+		// reset file seek
+		readFile.Seek(0, io.SeekStart)
 		scanner = bufio.NewScanner(readFile)
 		scanner.Split(bufio.ScanLines)
 	}
@@ -136,34 +153,24 @@ func MirrorImages() {
 	var destProjects map[string]bool = make(map[string]bool)
 	var num int = 0
 	for scanner.Scan() {
-		l := scanner.Text()
-		// Ignore empty/comment line
-		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			continue
-		}
-
-		var v []string = make([]string, 0, 4)
-		for _, s := range strings.Split(l, " ") {
-			if s != "" {
-				v = append(v, s)
-			}
-		}
+		v := processImageListLine(scanner.Text())
 		if len(v) != 3 {
-			logrus.Errorf("Invalid line format")
-			logrus.Errorf("Should be: '<SOURCE> <DESTINATION> <TAG>'")
-			logrus.Debugf("Skip line %s", l)
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
+			fmt.Printf(">>> ")
 			continue
 		}
 
 		num++
+		destReg := u.GetRegistryName(u.ConstructRegistry(v[1], *cmdDestReg))
+		registryMap := make(map[string]bool)
+		if usingStdin && !registryMap[destReg] {
+			if err := command.DockerLoginRegistry(destReg); err != nil {
+				logrus.Warn(err)
+			} else {
+				registryMap[destReg] = true
+			}
+		}
 		m := mirror.NewMirror(&mirror.MirrorOptions{
-			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
+			Source:      u.ConstructRegistry(v[1], *cmdSourceReg),
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
 			ArchList:    strings.Split(*cmdArch, ","),
@@ -190,7 +197,8 @@ func MirrorImages() {
 				} else {
 					url = "http://" + url
 				}
-				err := registry.CreateHarborProject(destProj, url)
+				user, passwd, _ := registry.GetDockerPassword(destReg)
+				err := registry.CreateHarborProject(destProj, url, user, passwd)
 				if err != nil {
 					logrus.Errorf("Failed to create harbor project %q: %q",
 						destProj, err)
@@ -206,4 +214,21 @@ func MirrorImages() {
 	if usingStdin {
 		fmt.Println()
 	}
+}
+
+func processImageListLine(l string) []string {
+	var spec []string = make([]string, 0)
+	if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
+		return spec
+	}
+	var v []string = make([]string, 0, 4)
+	for _, s := range strings.Split(l, " ") {
+		if s != "" {
+			v = append(v, s)
+		}
+	}
+	if len(v) != 3 {
+		return spec
+	}
+	return v
 }

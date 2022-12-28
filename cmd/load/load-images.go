@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -47,17 +48,6 @@ func LoadImages() {
 		logrus.Fatal(err)
 	}
 
-	// Command line parameter is prior than environment variable
-	if *cmdDestReg == "" && u.EnvDockerRegistry != "" {
-		*cmdDestReg = u.EnvDockerRegistry
-	}
-
-	if *cmdDestReg != "" {
-		logrus.Infof("Set 'docker login' registry to %q", *cmdDestReg)
-	} else {
-		logrus.Infof("Set 'docker login' registry to %q", u.DockerHubRegistry)
-	}
-
 	var compressFormat u.CompressFormat = u.CompressFormatGzip
 	switch *cmdCompress {
 	case "gzip":
@@ -77,9 +67,12 @@ func LoadImages() {
 		}
 	}
 
-	// execute docker login command
-	if err := registry.DockerLogin(*cmdDestReg); err != nil {
-		logrus.Fatalf("MirrorImages login failed: %v", err.Error())
+	// Command line parameter is prior than environment variable
+	if *cmdDestReg == "" && u.EnvDestRegistry != "" {
+		*cmdDestReg = u.EnvDestRegistry
+	}
+	if err := command.ProcessDockerLoginEnv(); err != nil {
+		logrus.Warn(err)
 	}
 
 	directory := "."
@@ -145,6 +138,10 @@ func LoadImages() {
 		go worker(i+1, mChan)
 	}
 
+	if err := command.DockerLoginRegistry(*cmdDestReg); err != nil {
+		logrus.Error(err)
+	}
+
 	var mList []*mirror.Mirror
 	if *cmdRepoType == "harbor" {
 		// Set default project name if dest repo is harbor
@@ -167,7 +164,8 @@ func LoadImages() {
 			} else {
 				url = "http://" + url
 			}
-			err := registry.CreateHarborProject(proj, url)
+			user, passwd, _ := registry.GetDockerPassword(*cmdDestReg)
+			err := registry.CreateHarborProject(proj, url, user, passwd)
 			if err != nil {
 				logrus.Errorf("Failed to create harbor project %q: %q",
 					proj, err)

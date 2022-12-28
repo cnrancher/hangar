@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -43,6 +44,9 @@ func SaveImages() {
 		logrus.Fatal(err)
 	}
 
+	if *cmdSourceReg == "" && u.EnvSourceRegistry != "" {
+		*cmdSourceReg = u.EnvSourceRegistry
+	}
 	if *cmdSourceReg != "" {
 		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
 	} else {
@@ -59,6 +63,10 @@ func SaveImages() {
 		compressFormat = u.CompressFormatDirectory
 	default:
 		compressFormat = u.CompressFormatGzip
+	}
+
+	if err := command.ProcessDockerLoginEnv(); err != nil {
+		logrus.Warn(err)
 	}
 
 	// Check cache image directory
@@ -82,11 +90,9 @@ func SaveImages() {
 			fmt.Println(err)
 		}
 		defer readFile.Close()
-
 		scanner = bufio.NewScanner(readFile)
 		scanner.Split(bufio.ScanLines)
 	}
-
 	u.CheckWorkerNum(usingStdin, cmdJobs)
 	if !usingStdin {
 		logrus.Infof("Creating %d job workers", *cmdJobs)
@@ -146,30 +152,8 @@ func SaveImages() {
 
 	var num int = 0
 	for scanner.Scan() {
-		l := scanner.Text()
-		l = strings.TrimSpace(l)
-		// Ignore empty/comment line
-		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
-			continue
-		}
-		// if image name does not have tag, add 'latest'
-		if !strings.Contains(l, ":") {
-			l = l + ":latest"
-		}
-
-		var v []string = make([]string, 0)
-		for _, s := range strings.Split(l, ":") {
-			if s != "" {
-				v = append(v, s)
-			}
-		}
+		v := processImageListLine(scanner.Text())
 		if len(v) != 2 {
-			logrus.Errorf("Invalid line format")
-			logrus.Errorf("Should be: '<SOURCE>:<TAG>'")
-			logrus.Debugf("Skip line %s", l)
 			if usingStdin {
 				fmt.Printf(">>> ")
 			}
@@ -177,6 +161,18 @@ func SaveImages() {
 		}
 
 		num++
+		sourceReg := u.GetRegistryName(u.ConstructRegistry(v[0], *cmdSourceReg))
+		registryMap := make(map[string]bool)
+		if usingStdin && !registryMap[sourceReg] {
+			user, passwd, err := registry.GetDockerPassword(sourceReg)
+			if err != nil {
+				user, passwd, _ = u.ReadUsernamePasswd()
+			}
+			if err = registry.DockerLogin(sourceReg, user, passwd); err != nil {
+				logrus.Warn(err)
+			}
+			registryMap[sourceReg] = true
+		}
 		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
 			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:       v[1],
@@ -212,4 +208,28 @@ func SaveImages() {
 	if usingStdin {
 		fmt.Println()
 	}
+}
+
+func processImageListLine(l string) []string {
+	var spec []string = make([]string, 0)
+	l = strings.TrimSpace(l)
+	// Ignore empty/comment line
+	if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
+		return spec
+	}
+	// if image name does not have tag, add 'latest'
+	if !strings.Contains(l, ":") {
+		l = l + ":latest"
+	}
+
+	var v []string = make([]string, 0)
+	for _, s := range strings.Split(l, ":") {
+		if s != "" {
+			v = append(v, s)
+		}
+	}
+	if len(v) != 2 {
+		return spec
+	}
+	return v
 }

@@ -17,10 +17,15 @@ import (
 	"golang.org/x/term"
 )
 
+// environment variables of source and destination
+// registry url, username and password
 var (
-	EnvDockerUsername = os.Getenv("DOCKER_USERNAME")
-	EnvDockerPassword = os.Getenv("DOCKER_PASSWORD")
-	EnvDockerRegistry = os.Getenv("DOCKER_REGISTRY")
+	EnvDestUsername   = os.Getenv("DEST_USERNAME")
+	EnvDestPassword   = os.Getenv("DEST_PASSWORD")
+	EnvDestRegistry   = os.Getenv("DEST_REGISTRY")
+	EnvSourceUsername = os.Getenv("SOURCE_USERNAME")
+	EnvSourcePassword = os.Getenv("SOURCE_PASSWORD")
+	EnvSourceRegistry = os.Getenv("SOURCE_REGISTRY")
 )
 
 var (
