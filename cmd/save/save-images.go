@@ -66,7 +66,7 @@ func SaveImages() {
 	}
 
 	if err := command.ProcessDockerLoginEnv(); err != nil {
-		logrus.Warn(err)
+		logrus.Error(err)
 	}
 
 	// Check cache image directory
@@ -87,7 +87,7 @@ func SaveImages() {
 	} else {
 		readFile, err := os.Open(*cmdFile)
 		if err != nil {
-			fmt.Println(err)
+			logrus.Fatal(err)
 		}
 		defer readFile.Close()
 		scanner = bufio.NewScanner(readFile)

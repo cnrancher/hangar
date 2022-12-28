@@ -72,7 +72,7 @@ func LoadImages() {
 		*cmdDestReg = u.EnvDestRegistry
 	}
 	if err := command.ProcessDockerLoginEnv(); err != nil {
-		logrus.Warn(err)
+		logrus.Error(err)
 	}
 
 	directory := "."

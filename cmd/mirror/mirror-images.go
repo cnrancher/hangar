@@ -74,7 +74,7 @@ func MirrorImages() {
 	} else {
 		readFile, err := os.Open(*cmdFile)
 		if err != nil {
-			fmt.Println(err)
+			logrus.Fatal(err)
 		}
 		defer readFile.Close()
 		// pre-load dest registries in image list
@@ -164,7 +164,7 @@ func MirrorImages() {
 		registryMap := make(map[string]bool)
 		if usingStdin && !registryMap[destReg] {
 			if err := command.DockerLoginRegistry(destReg); err != nil {
-				logrus.Warn(err)
+				logrus.Error(err)
 			} else {
 				registryMap[destReg] = true
 			}
