@@ -1,5 +1,5 @@
 TARGERS := build test ci
-.PHONY: $(TARGERS) clean help
+.PHONY: $(TARGERS) docker manifest clean help
 
 .dapper:
 	@echo Downloading dapper
@@ -10,6 +10,9 @@ TARGERS := build test ci
 
 $(TARGERS): .dapper
 	./.dapper $@
+
+docker:
+	@./scripts/docker.sh
 
 clean:
 	@./scripts/clean.sh

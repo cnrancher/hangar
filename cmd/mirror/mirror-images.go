@@ -170,7 +170,7 @@ func MirrorImages() {
 			}
 		}
 		m := mirror.NewMirror(&mirror.MirrorOptions{
-			Source:      u.ConstructRegistry(v[1], *cmdSourceReg),
+			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
 			ArchList:    strings.Split(*cmdArch, ","),
