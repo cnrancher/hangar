@@ -47,23 +47,20 @@
 
 1. 设定环境变量（可选）：
 
-    以下环境变量在 `mirror` 或 `load` 时可设定目标 registry 的用户名、密码和 URL。
-    - `DOCKER_USERNAME`: 目标 registry 用户名
-    - `DOCKER_PASSWORD`: 目标 registry 密码
-    - `DOCKER_REGISTRY`: 目标 registry 地址
+    以下环境变量在执行此工具时可设定源/目标 Registry 的用户名、密码和 URL，用于在 CI 场景中自动 Mirror 镜像。
+    - `SOURCE_USERNAME`: 源 Registry 用户名
+    - `SOURCE_PASSWORD`: 源 Registry 密码
+    - `SOURCE_REGISTRY`: 源 Registry 地址
+    - `DEST_USERNAME`: 目标 Registry 用户名
+    - `DEST_PASSWORD`: 目标 Registry 密码
+    - `DEST_REGISTRY`: 目标 Registry 地址
 
-    本工具获取 `docker login` 的 registry 的方式为：
-    1. 若 Mirror 或 Load 时使用 `-d` 参数设定了目标 registry，那么使用此 registry 登录
-    1. 若未使用 `-d` 参数，尝试读取 `DOCKER_REGISTRY` 环境变量
-    1. 若未设定环境变量，那么设定 `docker login` 的 registry 为 Docker Hub 的 `docker.io`
+    除此之外本工具会在 Mirror / Load 时从镜像列表中获取目标镜像的 Registry 并对其执行 `docker login`。
 
-    本工具 **不会** 从镜像列表中获取 `docker login` 的目标 registry，若镜像列表中目标镜像的 registry 不为 `docker.io`，
-    请使用 `-d` 参数或 `DOCKER_REGISTRY` 环境变量显示的指明目标 registry，否则可能会导致 Mirror 或 Load 执行失败。
+    若待 Mirror / Save 的镜像为私有镜像，可通过设定 `SOURCE_*` 环境变量，对源镜像的 Registry 执行 `docker login`。
 
-    本工具获取 `docker login` 的的用户名密码的顺序为：
-    1. 首先尝试获取 `DOCKER_USERNAME` 和 `DOCKER_PASSWORD` 环境变量
-    1. 若未设定环境变量，则尝试从 `~/.docker/config.json` 中获取已保存的用户名和密码信息
-    1. 若仍未找到用户名和密码信息，那么提示手动输入用户名和密码
+    本工具除了通过环境变量获取 Registry 的用户名和密码外，还会尝试从 `~/.docker/config.json` 文件中获取 Registry 的用户名和密码，
+    若未获取到用户名密码，那么本工具会提示手动输入用户名和密码。
 
 1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
 
