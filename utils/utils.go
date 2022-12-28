@@ -394,8 +394,9 @@ func CheckCacheDirEmpty() error {
 	}
 	if !ok {
 		logrus.Warnf("Cache folder: '%s' is not empty!", CacheImageDirectory)
+		logrus.Infof("You can use '-compress=dir' option to load images from directory")
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Delete it before start save image? [Y/N] ")
+		fmt.Printf("Delete it before start save/load image? [Y/N] ")
 		for {
 			text, _ := reader.ReadString('\n')
 			if len(text) == 0 {

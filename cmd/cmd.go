@@ -13,7 +13,8 @@ import (
 // SRC_REGISTRY, DEST_REGISTRY
 // environment variables are set
 func ProcessDockerLoginEnv() error {
-	if u.EnvSourcePassword != "" && u.EnvSourceRegistry != "" {
+	if u.EnvSourcePassword != "" && u.EnvSourceUsername != "" {
+		logrus.Infof("Running docker login to source registry")
 		err := registry.DockerLogin(
 			u.EnvSourceRegistry, u.EnvSourceUsername, u.EnvSourcePassword)
 		if err != nil {
@@ -23,6 +24,7 @@ func ProcessDockerLoginEnv() error {
 	}
 
 	if u.EnvDestPassword != "" && u.EnvDestUsername != "" {
+		logrus.Infof("Running docker login to destination registry")
 		err := registry.DockerLogin(
 			u.EnvDestRegistry, u.EnvDestUsername, u.EnvDestPassword)
 		if err != nil {
@@ -35,7 +37,7 @@ func ProcessDockerLoginEnv() error {
 }
 
 func DockerLoginRegistry(reg string) error {
-	logrus.Infof("Start to login %q", reg)
+	logrus.Infof("Logging into %q", reg)
 	username, passwd, err := registry.GetDockerPassword(reg)
 	if err != nil {
 		logrus.Warnf("Please input password of registry %q manually", reg)
