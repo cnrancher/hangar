@@ -204,7 +204,7 @@ func SaveImages() {
 			logrus.Warn(err)
 		}
 	}
-	logrus.Infof("Successfully saved images into %q", *cmdDest)
+	logrus.Infof("Saved images into %q", *cmdDest)
 
 	if usingStdin {
 		fmt.Println()

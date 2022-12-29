@@ -35,7 +35,7 @@ func (m *Mirror) StartLoad() error {
 	}
 
 	logrus.WithField("M_ID", m.MID).
-		Infof("Successfully loaded %s:%s.", m.Destination, m.Tag)
+		Infof("Loaded \"%s:%s\"", m.Destination, m.Tag)
 
 	return nil
 }

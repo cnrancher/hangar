@@ -80,15 +80,13 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 	start := 0
 	num := 0
 	var err error
-	for {
+	for start < len(p) {
 		num, err = c.file.Read(p[start:])
 		start += num
 		c.readBytes += num
 		if err == nil {
 			// no error occured
-			if num == len(p) {
-				return start, nil
-			}
+			continue
 		} else if !errors.Is(err, io.EOF) {
 			// other error occured
 			return start, fmt.Errorf("Read: %w", err)
@@ -96,8 +94,9 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 
 		// switch to next part
 		err := c.openNextPart()
-		if errors.Is(err, os.ErrNotExist) {
+		if err != nil && errors.Is(err, os.ErrNotExist) {
 			// next part does not exist, return
+			logrus.Info("c.readEOF = true")
 			c.readEOF = true
 			return start, nil
 		} else if err != nil {
@@ -105,6 +104,7 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 			return start, fmt.Errorf("Read: %w", err)
 		}
 	}
+	return start, nil
 }
 
 // Write implements io.Writer

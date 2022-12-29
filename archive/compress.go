@@ -44,7 +44,7 @@ func (c CompressFormat) String() string {
 
 func Compress(src string, dst string, format CompressFormat) error {
 	var err error
-	dstFile := part.NewPartHelper(dst, 2*GB) // split file part each 2 GB
+	dstFile := part.NewPartHelper(dst, 20*MB) // split file part each 2 GB
 	defer dstFile.Close()
 	var tw *tar.Writer
 	var zr io.WriteCloser
