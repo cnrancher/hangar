@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"cnrancher.io/image-tools/archive"
@@ -83,6 +84,13 @@ func LoadImages() {
 
 	if compressFormat != archive.CompressFormatDirectory {
 		// decompress input tar.* tarball
+		// if filename already have '.part*' extention
+		ext := filepath.Ext(*cmdSource)
+		if strings.Contains(ext, "part") {
+			logrus.Warnf("File name %q contains 'part*' extention", *cmdSource)
+			*cmdSource = strings.TrimRight(*cmdSource, ext)
+			logrus.Warnf("Rename it to %q", *cmdSource)
+		}
 		logrus.Infof("Decompressing %s...", *cmdSource)
 		err := archive.Decompress(*cmdSource, directory, compressFormat)
 		if err != nil {
