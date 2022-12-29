@@ -44,10 +44,6 @@ func (c CompressFormat) String() string {
 
 func Compress(src string, dst string, format CompressFormat) error {
 	var err error
-	// dstFile, err := os.Create(dst)
-	// if err != nil {
-	// 	return fmt.Errorf("Compress: os.Open: %w", err)
-	// }
 	dstFile := part.NewPartHelper(dst, 2*GB) // split file part each 2 GB
 	defer dstFile.Close()
 	var tw *tar.Writer
@@ -141,11 +137,6 @@ func Compress(src string, dst string, format CompressFormat) error {
 }
 
 func Decompress(src string, dst string, format CompressFormat) error {
-	// var err error
-	// srcFile, err := os.Open(src)
-	// if err != nil {
-	// 	return fmt.Errorf("Decompress: os.Open: %w", err)
-	// }
 	srcFile := part.NewPartHelper(src, 0)
 	defer srcFile.Close()
 

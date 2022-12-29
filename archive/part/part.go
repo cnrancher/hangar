@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"cnrancher.io/image-tools/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // PartHelper implements io.ReadWriteCloser to write file
@@ -37,6 +37,8 @@ type PartHelper struct {
 	// readBytes for record how many bytes were read
 	// from the part of the archive
 	readBytes int
+
+	readEOF bool
 }
 
 // NewPartHelper create a new PartHelper
@@ -56,38 +58,94 @@ func NewPartHelper(file string, size int) *PartHelper {
 		part:       0,
 		writeBytes: 0,
 		readBytes:  0,
+		readEOF:    false,
 	}
 	return c
 }
 
 // Read implements io.Reader
 func (c *PartHelper) Read(p []byte) (int, error) {
-	var b byte
-	var num int = 0
-	for range p {
-		if err := c.readOneByte(&b); err != nil {
-			if errors.Is(err, io.EOF) {
-				return num, err
-			}
-			return num, fmt.Errorf("Read: %w", err)
+	if c.file == nil {
+		// first init
+		var err error
+		c.file, err = os.Open(c.partname)
+		if err != nil {
+			return 0, fmt.Errorf("Write: %w", err)
 		}
-		p[num] = b
-		num++
+	}
+	if c.readEOF {
+		return 0, io.EOF
 	}
 
-	return num, nil
+	start := 0
+	num := 0
+	var err error
+	for {
+		num, err = c.file.Read(p[start:])
+		start += num
+		c.readBytes += num
+		if err == nil {
+			// no error occured
+			if num == len(p) {
+				return start, nil
+			}
+		} else if !errors.Is(err, io.EOF) {
+			// other error occured
+			return start, fmt.Errorf("Read: %w", err)
+		}
+
+		// switch to next part
+		err := c.openNextPart()
+		if errors.Is(err, os.ErrNotExist) {
+			// next part does not exist, return
+			c.readEOF = true
+			return start, nil
+		} else if err != nil {
+			// other error occured
+			return start, fmt.Errorf("Read: %w", err)
+		}
+	}
 }
 
 // Write implements io.Writer
 func (c *PartHelper) Write(p []byte) (int, error) {
-	num := 0
-	for _, v := range p {
-		if err := c.writeOneByte(v); err != nil {
-			return num, fmt.Errorf("Write: %w", err)
+	if c.file == nil {
+		// first init
+		var err error
+		c.file, err = os.Create(c.partname)
+		if err != nil {
+			return 0, fmt.Errorf("Write: %w", err)
 		}
-		num++
 	}
-	return num, nil
+	if c.Size == 0 {
+		// disable part
+		return c.file.Write(p)
+	}
+
+	start := 0
+	end := len(p)
+	for end-start > c.Size-c.writeBytes {
+		end = start + c.Size - c.writeBytes
+		// logrus.Infof("Write from %d to %d: %v", start, end, p[start:end])
+		_, err := c.file.Write(p[start:end])
+		if err != nil {
+			return end, fmt.Errorf("Write: %w", err)
+		}
+		if err := c.createNextPart(); err != nil {
+			return end, fmt.Errorf("Write: %w", err)
+		}
+		start = end
+		end = len(p)
+	}
+	if end > start {
+		// logrus.Infof("Write from %d to %d: %v", start, end, p[start:end])
+		num, err := c.file.Write(p[start:end])
+		if err != nil {
+			return end, fmt.Errorf("Write: %w", err)
+		}
+		c.writeBytes += num
+	}
+	return end, nil
 }
 
 // nextPartExists determines whether the next part exists or not.
@@ -125,6 +183,7 @@ func (c *PartHelper) createNextPart() error {
 	c.part++
 	c.partname = partname
 	c.writeBytes = 0
+	logrus.Infof("Create %q", partname)
 	return nil
 }
 
@@ -145,87 +204,8 @@ func (c *PartHelper) openNextPart() error {
 	c.part++
 	c.partname = partname
 	c.readBytes = 0
+	logrus.Infof("Read %q", partname)
 
-	return nil
-}
-
-// writeOneByte will write one byte into file
-// and switch file parts automatically.
-func (c *PartHelper) writeOneByte(b byte) error {
-	// initialize if the file is not open
-	if c.file == nil {
-		var err error
-		c.file, err = os.Create(c.partname)
-		if err != nil {
-			return fmt.Errorf("writeOneByte: %w", err)
-		}
-	}
-	// part will be disabled if c.Size is 0
-	if c.Size == 0 {
-		_, err := c.file.Write([]byte{b})
-		return err
-	}
-
-	if c.writeBytes+1 > c.Size {
-		if err := c.createNextPart(); err != nil {
-			return fmt.Errorf("writeOneByte: %w", err)
-		}
-	}
-	num, err := c.file.Write([]byte{b})
-	if err != nil {
-		return fmt.Errorf("writeOneByte: %w", err)
-	}
-	c.writeBytes += num
-	return nil
-}
-
-// readOneByte will try to read one byte from file,
-// this method will switch file part automatically.
-// io.EOF will return when EOF.
-func (c *PartHelper) readOneByte(b *byte) error {
-	if b == nil {
-		return utils.ErrNilPointer
-	}
-	// initialize if the file is not open
-	if c.file == nil {
-		var err error
-		c.file, err = os.Open(c.partname)
-		if err != nil {
-			return fmt.Errorf("readOneByte: %w", err)
-		}
-	}
-
-	// try to read one byte from current file part
-	buff := make([]byte, 1)
-	var err error
-	_, err = c.file.Read(buff)
-	if err == nil {
-		// read succeed
-		*b = buff[0]
-		return nil
-	} else if errors.Is(err, io.EOF) {
-		// EOF, try to switch to next part
-	} else {
-		// other error occured
-		return fmt.Errorf("readOneByte: %w", err)
-	}
-
-	err = c.openNextPart()
-	if err == nil {
-		// open next file part succeed
-	} else if os.IsNotExist(err) {
-		// next part does not exists
-		return io.EOF
-	} else {
-		// other error occured
-		return fmt.Errorf("readOneByte: %w", err)
-	}
-
-	_, err = c.file.Read(buff)
-	if err != nil {
-		return fmt.Errorf("readOneByte: %w", err)
-	}
-	*b = buff[0]
 	return nil
 }
 
@@ -234,8 +214,14 @@ func (c *PartHelper) Part() int {
 	return c.part
 }
 
-// Close closes the current opening file
+// Close closes the current opening file and reset the status of PartHelper
 func (c *PartHelper) Close() error {
+	c.readBytes = 0
+	c.writeBytes = 0
+	c.part = 0
+	c.readEOF = false
+
+	c.partname = fmt.Sprintf("%spart%d", c.Filename, c.part)
 	if c.file == nil {
 		return nil
 	}
