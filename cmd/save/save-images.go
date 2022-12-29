@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"cnrancher.io/image-tools/archive"
 	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
@@ -53,16 +54,16 @@ func SaveImages() {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
-	var compressFormat u.CompressFormat = u.CompressFormatGzip
+	var compressFormat archive.CompressFormat = archive.CompressFormatGzip
 	switch *cmdCompress {
 	case "gzip":
-		compressFormat = u.CompressFormatGzip
+		compressFormat = archive.CompressFormatGzip
 	case "zstd":
-		compressFormat = u.CompressFormatZstd
+		compressFormat = archive.CompressFormatZstd
 	case "dir":
-		compressFormat = u.CompressFormatDirectory
+		compressFormat = archive.CompressFormatDirectory
 	default:
-		compressFormat = u.CompressFormatGzip
+		compressFormat = archive.CompressFormatGzip
 	}
 
 	if err := command.ProcessDockerLoginEnv(); err != nil {
@@ -70,7 +71,7 @@ func SaveImages() {
 	}
 
 	// Check cache image directory
-	if compressFormat != u.CompressFormatDirectory {
+	if compressFormat != archive.CompressFormatDirectory {
 		if err := u.CheckCacheDirEmpty(); err != nil {
 			logrus.Fatal(err)
 		}
@@ -191,16 +192,16 @@ func SaveImages() {
 		u.SaveJson(savedTemplate, dir)
 	}
 
-	if compressFormat != u.CompressFormatDirectory {
+	if compressFormat != archive.CompressFormatDirectory {
 		logrus.Infof("Compressing %s...", *cmdDest)
-		err := u.Compress(u.CacheImageDirectory, *cmdDest, compressFormat)
+		err := archive.Compress(u.CacheImageDirectory, *cmdDest, compressFormat)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 	} else {
 		err := os.Rename(u.CacheImageDirectory, *cmdDest)
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Warn(err)
 		}
 	}
 	logrus.Infof("Successfully saved images into %q", *cmdDest)

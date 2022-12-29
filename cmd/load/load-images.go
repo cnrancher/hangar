@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"cnrancher.io/image-tools/archive"
 	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
@@ -48,20 +49,20 @@ func LoadImages() {
 		logrus.Fatal(err)
 	}
 
-	var compressFormat u.CompressFormat = u.CompressFormatGzip
+	var compressFormat archive.CompressFormat = archive.CompressFormatGzip
 	switch *cmdCompress {
 	case "gzip":
-		compressFormat = u.CompressFormatGzip
+		compressFormat = archive.CompressFormatGzip
 	case "zstd":
-		compressFormat = u.CompressFormatZstd
+		compressFormat = archive.CompressFormatZstd
 	case "dir":
-		compressFormat = u.CompressFormatDirectory
+		compressFormat = archive.CompressFormatDirectory
 	default:
-		compressFormat = u.CompressFormatGzip
+		compressFormat = archive.CompressFormatGzip
 	}
 
 	// Check cache image directory
-	if compressFormat != u.CompressFormatDirectory {
+	if compressFormat != archive.CompressFormatDirectory {
 		if err := u.CheckCacheDirEmpty(); err != nil {
 			logrus.Fatal(err)
 		}
@@ -80,10 +81,10 @@ func LoadImages() {
 		logrus.Fatal(err)
 	}
 
-	if compressFormat != u.CompressFormatDirectory {
-		// decompress input tar.gz tarball
+	if compressFormat != archive.CompressFormatDirectory {
+		// decompress input tar.* tarball
 		logrus.Infof("Decompressing %s...", *cmdSource)
-		err := u.Decompress(*cmdSource, directory, compressFormat)
+		err := archive.Decompress(*cmdSource, directory, compressFormat)
 		if err != nil {
 			logrus.Fatal(err)
 		}

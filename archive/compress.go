@@ -1,4 +1,4 @@
-package utils
+package archive
 
 import (
 	"archive/tar"
@@ -9,8 +9,17 @@ import (
 	"path/filepath"
 	"strings"
 
+	"cnrancher.io/image-tools/archive/part"
 	"github.com/klauspost/compress/zstd"
 	"github.com/sirupsen/logrus"
+)
+
+// Data size definition
+const (
+	BYTE int = 1
+	KB       = 1024 * BYTE
+	MB       = 1024 * KB
+	GB       = 1024 * MB
 )
 
 type CompressFormat int
@@ -35,10 +44,11 @@ func (c CompressFormat) String() string {
 
 func Compress(src string, dst string, format CompressFormat) error {
 	var err error
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return fmt.Errorf("Compress: os.Open: %w", err)
-	}
+	// dstFile, err := os.Create(dst)
+	// if err != nil {
+	// 	return fmt.Errorf("Compress: os.Open: %w", err)
+	// }
+	dstFile := part.NewPartHelper(dst, 2*GB) // split file part each 2 GB
 	defer dstFile.Close()
 	var tw *tar.Writer
 	var zr io.WriteCloser
@@ -88,9 +98,6 @@ func Compress(src string, dst string, format CompressFormat) error {
 		if err := tw.Close(); err != nil {
 			return err
 		}
-		// if err := zr.Close(); err != nil {
-		// 	return err
-		// }
 		return nil
 	}
 
@@ -130,21 +137,16 @@ func Compress(src string, dst string, format CompressFormat) error {
 		return fmt.Errorf("Compress: filepath.Walk: %w", err)
 	}
 
-	// if err := tw.Close(); err != nil {
-	// 	return fmt.Errorf("Compress: %w", err)
-	// }
-	// if err := zr.Close(); err != nil {
-	// 	return fmt.Errorf("Compress: %w", err)
-	// }
 	return nil
 }
 
 func Decompress(src string, dst string, format CompressFormat) error {
-	var err error
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return fmt.Errorf("Decompress: os.Open: %w", err)
-	}
+	// var err error
+	// srcFile, err := os.Open(src)
+	// if err != nil {
+	// 	return fmt.Errorf("Decompress: os.Open: %w", err)
+	// }
+	srcFile := part.NewPartHelper(src, 0)
 	defer srcFile.Close()
 
 	var tr *tar.Reader = nil

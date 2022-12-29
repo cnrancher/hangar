@@ -8,6 +8,7 @@ skopeo
 *.converted
 *.tar.gz
 *.zstd
+*.part*
 
 # default save image directory
 /saved-image-cache/
