@@ -20,6 +20,7 @@ func (img *Image) Save() error {
 	destImage := fmt.Sprintf("%s:%s",
 		img.Source, CopiedTag(img.Tag, img.OS, img.Arch, img.Variant))
 	img.SavedFolder = u.Sha256Sum(destImage)
+	share := filepath.Join(img.Directory, "share")
 	img.Directory = filepath.Join(img.Directory, img.SavedFolder)
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
@@ -38,17 +39,15 @@ func (img *Image) Save() error {
 		return fmt.Errorf("Save: %w", u.ErrDirNotEmpty)
 	}
 
-	// skopeo copy docker://<source> dir://<local_dir>
+	// skopeo copy docker://<source> oci:/<local_dir>
 	sourceImage := fmt.Sprintf("docker://%s", img.Source)
-	destImageDir := fmt.Sprintf("dir:/%s", img.Directory)
+	destImageDir := fmt.Sprintf("oci:/%s", img.Directory)
 
-	// Convert image manifest schemaVersion to v2, mediaType to 'manifest.v2'
-	// when saving image to local dir.
 	args := []string{
-		"--format=v2s2",
 		"--dest-compress", // compress image in local dir
 		"--dest-compress-format=gzip",
 		"--dest-compress-level=9",
+		"--dest-shared-blob-dir=" + share,
 	}
 	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
 	if err != nil {
