@@ -28,11 +28,23 @@ func (m *Mirror) StartLoad() error {
 		}
 	}
 
-	logrus.WithField("M_ID", m.MID).
-		Info("Creating dest manifest list...")
-	if err := m.updateDestManifest(); err != nil {
-		return fmt.Errorf("StartLoad: %w", err)
+	if !m.compareSourceDestManifest() {
+		logrus.WithField("M_ID", m.MID).
+			Info("Creating dest manifest list...")
+		// Create a new dest manifest list
+		if err := m.updateDestManifest(); err != nil {
+			return fmt.Errorf("Mirror: %w", err)
+		}
+	} else {
+		logrus.WithField("M_ID", m.MID).
+			Info("Dest manifest list already exists, no need to recreate")
 	}
+
+	// logrus.WithField("M_ID", m.MID).
+	// 	Info("Creating dest manifest list...")
+	// if err := m.updateDestManifest(); err != nil {
+	// 	return fmt.Errorf("StartLoad: %w", err)
+	// }
 
 	logrus.WithField("M_ID", m.MID).
 		Infof("Loaded \"%s:%s\"", m.Destination, m.Tag)

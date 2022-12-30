@@ -157,22 +157,23 @@ func Test_S2V2(t *testing.T) {
 	// compare the source digests and dest digests
 
 	// source manifest mediaType is manifest.v2, should have one digest
-	list := m.SourceDigests()
-	if len(list) != 1 {
-		t.Error("SourceDigests failed")
+	srcSpec := m.SourceManifestSpec()
+	if len(srcSpec) != 1 {
+		t.Error("SourceManifestSpec failed")
 		return
 	}
 	// output should be the sha256sum of the source manifest
 	srcManifest, _ := testFs.ReadFile(TestS2V2FileName)
 	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
-	if list[0] != sourceSum {
-		t.Errorf("SourceDigests should be %s, but got %s", sourceSum, list[0])
+	if srcSpec[0].Digest != sourceSum {
+		t.Errorf("SourceDigests should be %s, but got %s",
+			sourceSum, srcSpec[0].Digest)
 	}
 
 	// destination mediaType is manifest.v2, do not have digest list
 	// should get empty slice
-	if list := m.DestinationDigests(); len(list) != 0 {
-		t.Error("DestinationDigests failed")
+	if list := m.DestinationManifestSpec(); len(list) != 0 {
+		t.Error("DestinationManifestSpec failed")
 	}
 
 	// dest schemaVersion is 2, mediatype is manifest.v2
@@ -189,8 +190,8 @@ func Test_S2V2(t *testing.T) {
 
 	// if dest image does not exists, destManifest is nil
 	m.destManifest = nil
-	if list := m.DestinationDigests(); len(list) != 0 {
-		t.Error("DestinationDigests failed")
+	if list := m.DestinationManifestSpec(); len(list) != 0 {
+		t.Error("DestinationManifestSpec failed")
 	}
 	if m.compareSourceDestManifest() {
 		// dest manifest is nil
@@ -273,18 +274,18 @@ func Test_S2V2List(t *testing.T) {
 	// compare the source digests and dest digests
 
 	// source manifest mediaType is manifest.list.v2, should have multi-digests
-	srcDigests := m.SourceDigests()
-	if len(srcDigests) == 0 {
-		t.Error("SourceDigests failed")
+	srcSpec := m.SourceManifestSpec()
+	if len(srcSpec) == 0 {
+		t.Error("SourceManifestSpec failed")
 		return
 	}
 
 	// destination mediaType is manifest.list.v2, should have multi-digests
-	dstDigests := m.DestinationDigests()
-	if len(dstDigests) == 0 {
-		t.Error("DestinationDigests failed")
+	dstSpec := m.DestinationManifestSpec()
+	if len(dstSpec) == 0 {
+		t.Error("DestinationManifestSpec failed")
 	}
-	if len(srcDigests) != len(dstDigests) {
+	if len(srcSpec) != len(dstSpec) {
 		t.Error("the length of srcDigests and dstDigests should be same")
 	}
 
@@ -391,18 +392,18 @@ func Test_S1V2(t *testing.T) {
 	// now the image status should be set to copied
 	// compare the source digests and dest digests
 
-	srcDigests := m.SourceDigests()
-	if len(srcDigests) != 1 {
-		t.Error("SourceDigests failed")
+	srcSpec := m.SourceManifestSpec()
+	if len(srcSpec) != 1 {
+		t.Error("SourceManifestSpec failed")
 		return
 	}
-	if srcDigests[0] != "sha256:"+u.Sha256Sum("FAKE_OUTPUT") {
+	if srcSpec[0].Digest != "sha256:"+u.Sha256Sum("FAKE_OUTPUT") {
 		t.Error("SourceDigests should be the sha256sum of 'FAKE_OUTPUT'")
 	}
 	// dest schemaVersion is 1, should return empty slice
-	dstDigests := m.DestinationDigests()
-	if len(dstDigests) != 0 {
-		t.Error("dstDigests failed")
+	dstSpec := m.DestinationManifestSpec()
+	if len(dstSpec) != 0 {
+		t.Error("DestinationManifestSpec failed")
 	}
 
 	if m.compareSourceDestManifest() {

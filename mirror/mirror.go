@@ -178,71 +178,90 @@ func (m *Mirror) AppendImage(img *image.Image) {
 }
 
 // SourceDigests gets the digest list of the copied source image
-func (m *Mirror) SourceDigests() []string {
-	var digests []string = make([]string, 0)
+func (m *Mirror) SourceManifestSpec() []DockerBuildxManifest {
+	var spec []DockerBuildxManifest = make([]DockerBuildxManifest, 0)
 	for _, img := range m.images {
 		if img.Copied {
-			digests = append(digests, img.Digest)
+			spec = append(spec, DockerBuildxManifest{
+				Digest: img.Digest,
+				Platform: DockerBuildxPlatform{
+					Architecture: img.Arch,
+					OS:           img.OS,
+					Variant:      img.Variant,
+					OsVersion:    img.OsVersion,
+				},
+			})
 		}
 	}
-	return digests
+	return spec
 }
 
 // DestinationDigests gets the exists digest list of the destination image
-func (m *Mirror) DestinationDigests() []string {
-	var digests []string = make([]string, 0)
+func (m *Mirror) DestinationManifestSpec() []DockerBuildxManifest {
+	var spec []DockerBuildxManifest = make([]DockerBuildxManifest, 0)
 	if m.destManifest == nil {
-		return digests
+		return spec
 	}
 	schemaFloat64, ok := m.destManifest["schemaVersion"].(float64)
 	if !ok {
-		return digests
+		return spec
 	}
 	schema := int(schemaFloat64)
 
 	switch schema {
 	case 1:
-		return digests
+		return spec
 	case 2:
 		mediaType, ok := m.destManifest["mediaType"].(string)
 		if !ok {
-			return digests
+			return spec
 		}
 		switch mediaType {
 		case u.MediaTypeManifestListV2:
 			manifests, ok := m.destManifest["manifests"].([]interface{})
 			if !ok {
-				return digests
+				return spec
 			}
 			for _, v := range manifests {
 				manifest, ok := v.(map[string]interface{})
 				if !ok {
-					return digests
+					return spec
 				}
 				platform, ok := manifest["platform"].(map[string]interface{})
 				if !ok {
-					return digests
+					return spec
 				}
 				arch, ok := platform["architecture"].(string)
 				if !ok {
-					return digests
+					return spec
 				}
+				osType, _ := platform["os"].(string)
+				variant, _ := platform["variant"].(string)
+				osVersion, _ := platform["os.version"].(string)
 				if !m.HasArch(arch) {
 					continue
 				}
 				digest, ok := manifest["digest"].(string)
 				if !ok {
-					return digests
+					return spec
 				}
-				digests = append(digests, digest)
+				spec = append(spec, DockerBuildxManifest{
+					Digest: digest,
+					Platform: DockerBuildxPlatform{
+						Architecture: arch,
+						OS:           osType,
+						Variant:      variant,
+						OsVersion:    osVersion,
+					},
+				})
 			}
-			return digests
+			return spec
 		case u.MediaTypeManifestV2:
 			// dest mediaType is not manifest.list, return empty slice
-			return digests
+			return spec
 		}
 	}
-	return digests
+	return spec
 }
 
 // Copied method gets the number of copied images
@@ -529,16 +548,10 @@ func (m *Mirror) compareSourceDestManifest() bool {
 		}
 		switch mediaType {
 		case u.MediaTypeManifestListV2:
-			// Compare the source image digest list and dest image digest list
-			srcDigests := m.SourceDigests()
-			dstDigests := m.DestinationDigests()
-			logrus.WithField("M_ID", m.MID).
-				Debugf("compareSourceDestManifest: ")
-			logrus.WithField("M_ID", m.MID).
-				Debugf("  srcDigests: %v", srcDigests)
-			logrus.WithField("M_ID", m.MID).
-				Debugf("  dstDigests: %v", dstDigests)
-			return slices.Compare(srcDigests, dstDigests) == 0
+			// Compare the source image manifest list with dest manifest list
+			srcSpecs := m.SourceManifestSpec()
+			dstSpecs := m.DestinationManifestSpec()
+			return CompareBuildxManifests(srcSpecs, dstSpecs)
 		case u.MediaTypeManifestV2:
 			// The destination manifest mediaType should be 'manifest.list.v2'
 			logrus.WithField("M_ID", m.MID).

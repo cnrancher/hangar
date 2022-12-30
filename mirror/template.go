@@ -176,3 +176,40 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 
 	return mirrorList, nil
 }
+
+func CompareBuildxManifests(src, dst []DockerBuildxManifest) bool {
+	if src == nil || dst == nil {
+		return false
+	}
+	if len(src) != len(dst) {
+		return false
+	}
+	for i := range src {
+		if !CompareBuildxManifest(&src[i], &dst[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func CompareBuildxManifest(src, dst *DockerBuildxManifest) bool {
+	if src == nil || dst == nil {
+		return false
+	}
+	if src.Digest != dst.Digest {
+		return false
+	}
+	if src.Platform.Architecture != dst.Platform.Architecture {
+		return false
+	}
+	if src.Platform.OS != dst.Platform.OS {
+		return false
+	}
+	if src.Platform.Variant != dst.Platform.Variant {
+		return false
+	}
+	if src.Platform.OsVersion != dst.Platform.OsVersion {
+		return false
+	}
+	return true
+}
