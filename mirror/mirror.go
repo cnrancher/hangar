@@ -368,6 +368,7 @@ func (m *Mirror) initImageListByListV2() error {
 	if images == 0 {
 		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
 			m.Source, m.ArchList)
+		return fmt.Errorf("initImageListByListV2: %w", u.ErrNoAvailableImage)
 	}
 
 	return nil
@@ -402,6 +403,7 @@ func (m *Mirror) initImageListByV2() error {
 	if !slices.Contains(m.ArchList, arch) {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip copy image %s arch %s", m.Source, arch)
+		return fmt.Errorf("initImageListByV2: %w", u.ErrNoAvailableImage)
 	}
 
 	sourceImage = fmt.Sprintf("%s:%s", m.Source, m.Tag)

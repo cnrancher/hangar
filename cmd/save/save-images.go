@@ -190,18 +190,6 @@ func SaveImages() {
 		}
 
 		num++
-		sourceReg := u.GetRegistryName(u.ConstructRegistry(v[0], *cmdSourceReg))
-		registryMap := make(map[string]bool)
-		if usingStdin && !registryMap[sourceReg] {
-			user, passwd, err := registry.GetDockerPassword(sourceReg)
-			if err != nil {
-				user, passwd, _ = u.ReadUsernamePasswd()
-			}
-			if err = registry.DockerLogin(sourceReg, user, passwd); err != nil {
-				logrus.Warn(err)
-			}
-			registryMap[sourceReg] = true
-		}
 		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
 			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:       v[1],

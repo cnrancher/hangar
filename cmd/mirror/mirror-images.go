@@ -125,7 +125,7 @@ func MirrorImages() {
 				logrus.WithField("M_ID", m.MID).
 					Errorf("Failed to copy image [%s]", m.Source)
 				logrus.WithField("M_ID", m.MID).
-					Error("Mirror", err.Error())
+					Error(err.Error())
 				writeFileMutex.Lock()
 				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
 					m.Source, m.Destination, m.Tag))
