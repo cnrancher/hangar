@@ -2,7 +2,6 @@ package archive
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +10,7 @@ import (
 
 	"cnrancher.io/image-tools/archive/part"
 	"github.com/klauspost/compress/zstd"
+	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 )
 
