@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SavedTemplateVersion = "v1.0.1"
+	SavedTemplateVersion = "v1.1.0"
 )
 
 type SavedListTemplate struct {
