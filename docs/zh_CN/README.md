@@ -1,5 +1,8 @@
 # image-tools usage (CN)
 
+> 本仓库 `main` 分支的使用文档会随着版本更新而不断修改，若需要查看之前已发布的版本的使用文档，请切换至之前已发布的版本对应的 Tag:
+> `https://github.com/cnrancher/image-tools/blob/${TAG}/docs/zh_CN/README.md`
+
 ```
 ./image-tools COMMAND OPTIONS
 ```
@@ -15,6 +18,8 @@
 
 1. Linux 或 macOS 系统，架构为 amd64 或 arm64
 1. 确保 [skopeo](https://github.com/containers/skopeo/blob/main/install.md) 已安装
+
+    > skopeo 版本需大于等于 `0.1.40`
 
     openEuler:
 
@@ -69,8 +74,16 @@
 - [mirror](./mirror.md): 根据列表文件，将镜像拷贝至私有镜像仓库。
 - [save](./save.md): 根据列表文件，将镜像下载至本地，生成 `tar.gz` 压缩包。
 - [load](./load.md): （离线环境）读取压缩包，将压缩包内镜像上传至私有仓库。
-- [convert-list](./convert-list.md) 转换镜像列表格式。
+- [convert-list](./convert-list.md): 转换镜像列表格式。
+
+## 原理
+
+本工具使用 `skopeo` 命令拷贝镜像至目标镜像服务器或本地文件夹中，并使用 `docker-buildx` 为目标镜像服务器创建 Manifest 列表。
+
+本工具仅需要 `skopeo`，`docker` 客户端以及 `docker-buildx` 插件，不需要 Docker Daemon。
 
 ## Build
+
+> 可在本仓库的 [Release 页面](https://github.com/cnrancher/image-tools/releases) 获取已构建的稳定版本。
 
 构建可执行文件：[build.md](./build.md)

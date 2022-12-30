@@ -17,6 +17,10 @@ Usage of save:
         job number, async mode if larger than 1, maximum is 20 (default 1)
   -o string
         file name of the save failed image list (default "save-failed.txt")
+  -part
+        enable segment compress
+  -part-size string
+        segment part size (a number, or a string ended with 'K','M' or 'G') (default "2G")
   -s string
         override the source registry
 ```
@@ -70,6 +74,11 @@ rancher/rancher:v2.7.0
 # 使用 -j (jobs) 参数，指定协程池数量，并发下载镜像至本地（支持 1~20 个 jobs）
 ./image-tools save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
 
+# 使用 -part 参数，启用分卷压缩，默认每个卷的大小为 2G
+# 可使用 -part-size 参数设定卷大小
+# 开启分卷压缩后，将创建以 .part* 为后缀的文件
+./image-tools save -f ./list.txt -d saved-images.tar.gz -part -part-size=4G # 指定每个卷大小为 4G
+
 # 在不设定 -f 参数时，可手动按行输入镜像列表，下载某一个镜像
 # 此时将不支持并发拷贝
 # 注意在此模式下，使用 `Ctrl-D` 结束镜像列表的输入，不要使用 `Ctrl-C` 结束程序，否则将无法创建压缩包！
@@ -89,6 +98,38 @@ rancher/rancher:v2.7.0
 # 使用 -debug 参数，输出更详细的调试日志
 ./image-tools save -debug
 ```
+
+## Save 原理
+
+**本工具 Save 命令创建的压缩包与 `docker save` 创建的压缩包不通用。**
+
+本工具在执行 Save 时，首先将镜像列表中的镜像的 blobs 使用 `skopeo copy` 以 OCI 格式保存至本地的 `saved-image-cache` 文件夹中。
+
+镜像的 blobs 文件会保存至 `saved-image-cache/share` 共享文件夹内。
+
+待所有镜像下载完毕后，本工具会对 `saved-image-cache` 创建压缩包（使用 `-compress=dir` 参数除外）。
+
+创建完压缩包后，本工具不会自动删除 `saved-image-cache` 文件夹，请手动删除此文件夹以节省硬盘空间。
+
+## 分卷压缩
+
+可使用 `-part` 参数启用分卷压缩，并使用 `-part-size` 参数指定卷大小。
+
+启用分卷压缩后，创建的压缩包文件将以 `.part*` 后缀结尾。
+
+本工具创建的分卷压缩的原理与 Linux 命令 `split` 一致，除了可使用本工具的 `load` 命令解压外，还可以使用以下命令对分卷压缩包进行解压：
+
+```sh
+# 将所有分卷整合
+cat ./saved-images.tar.gz.part* > saved-images.tar.gz
+# 对整合后的压缩包解压
+tar -zxvf ./saved-images.tar.gz
+
+# 或使用以下命令一键解压
+cat ./saved-images.tar.gz.part* | tar -zxv
+```
+
+> 可使用镜像推送工具的 `load` 命令配合 `-compress=dir` 参数，从解压后的缓存文件夹中加载镜像上传至私有仓库。
 
 ## Logs
 
