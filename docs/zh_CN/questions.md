@@ -2,7 +2,14 @@
 
 1. 报错 `this tool does not support template version "va.b.c"`
 
-该工具 Load 时所加载的压缩包版本与当前工具所支持的版本不匹配。
+该工具 Load 时所加载的压缩包中保存的 Template Version 与当前工具所支持的版本不匹配。
+
+请确保 Save 镜像至压缩包时工具的版本与 Load 加载压缩包时工具的版本一致。
+
+| Template Version | `image-tools` 版本 |
+| :--------------: | :---------------: |
+| `v1.0.0`         | `v1.0.0` ~ `v1.2.3-rc1` |
+| `v1.1.0`         | `v1.3.0` ~ latest |
 
 2. 报错 `manifest unknown: manifest unknown"`
 
