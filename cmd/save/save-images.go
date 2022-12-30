@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -25,6 +26,8 @@ var (
 	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into destination file (directory or tar tarball)")
 	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")
 	cmdCompress  = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
+	cmdPart      = cmd.Bool("part", false, "enable segment compress")
+	cmdPartSize  = cmd.String("part-size", "2G", "segment part size (a number, or a string ended with 'K','M' or 'G')")
 	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
 )
@@ -71,9 +74,34 @@ func SaveImages() {
 	}
 
 	// Check cache image directory
+	var compressPartSize int = 0
 	if compressFormat != archive.CompressFormatDirectory {
 		if err := u.CheckCacheDirEmpty(); err != nil {
 			logrus.Fatal(err)
+		}
+		if *cmdPart {
+			// segment compress enabled
+			var err error
+			switch {
+			case strings.HasSuffix(*cmdPartSize, "G"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(*cmdPartSize, "G"))
+				compressPartSize *= archive.GB
+			case strings.HasSuffix(*cmdPartSize, "M"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(*cmdPartSize, "M"))
+				compressPartSize *= archive.MB
+			case strings.HasSuffix(*cmdPartSize, "K"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(*cmdPartSize, "K"))
+				compressPartSize *= archive.KB
+			default:
+				compressPartSize, err = strconv.Atoi(*cmdPartSize)
+			}
+			if err != nil {
+				logrus.Fatalf("Failed to get segment part size: %v", err)
+			}
+			logrus.Infof("Set compress segment part to %q", *cmdPartSize)
 		}
 	}
 
@@ -194,7 +222,13 @@ func SaveImages() {
 
 	if compressFormat != archive.CompressFormatDirectory {
 		logrus.Infof("Compressing %s...", *cmdDest)
-		err := archive.Compress(u.CacheImageDirectory, *cmdDest, compressFormat)
+
+		err := archive.Compress(
+			u.CacheImageDirectory,
+			*cmdDest,
+			compressFormat,
+			compressPartSize,
+		)
 		if err != nil {
 			logrus.Fatal(err)
 		}

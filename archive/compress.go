@@ -42,9 +42,12 @@ func (c CompressFormat) String() string {
 	return ""
 }
 
-func Compress(src string, dst string, format CompressFormat) error {
+func Compress(src, dst string, format CompressFormat, size int) error {
 	var err error
-	dstFile := part.NewPartHelper(dst, 20*MB) // split file part each 2 GB
+	dstFile := part.NewPartHelper(
+		dst,
+		size,
+	)
 	defer dstFile.Close()
 	var tw *tar.Writer
 	var zr io.WriteCloser

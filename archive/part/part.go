@@ -66,11 +66,8 @@ func NewPartHelper(file string, size int) *PartHelper {
 // Read implements io.Reader
 func (c *PartHelper) Read(p []byte) (int, error) {
 	if c.file == nil {
-		// first init
-		var err error
-		c.file, err = os.Open(c.partname)
-		if err != nil {
-			return 0, fmt.Errorf("Write: %w", err)
+		if err := c.initRead(); err != nil {
+			return 0, err
 		}
 	}
 	if c.readEOF {
@@ -96,7 +93,6 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 		err := c.openNextPart()
 		if err != nil && errors.Is(err, os.ErrNotExist) {
 			// next part does not exist, return
-			logrus.Info("c.readEOF = true")
 			c.readEOF = true
 			return start, nil
 		} else if err != nil {
@@ -110,11 +106,8 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 // Write implements io.Writer
 func (c *PartHelper) Write(p []byte) (int, error) {
 	if c.file == nil {
-		// first init
-		var err error
-		c.file, err = os.Create(c.partname)
-		if err != nil {
-			return 0, fmt.Errorf("Write: %w", err)
+		if err := c.initWrite(); err != nil {
+			return 0, err
 		}
 	}
 	if c.Size == 0 {
@@ -146,6 +139,40 @@ func (c *PartHelper) Write(p []byte) (int, error) {
 		c.writeBytes += num
 	}
 	return end, nil
+}
+
+func (c *PartHelper) initRead() error {
+	if c.file == nil {
+		// first init
+		var err error
+		c.file, err = os.Open(c.partname)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("initRead: %w", err)
+		} else if errors.Is(err, os.ErrNotExist) {
+			// failed to open .part*
+			c.file, err = os.Open(c.Filename)
+			if err != nil {
+				return fmt.Errorf("initRead: %w", err)
+			}
+			logrus.Infof("Read %q", c.Filename)
+		} else {
+			logrus.Infof("Read %q", c.partname)
+		}
+	}
+
+	return nil
+}
+
+func (c *PartHelper) initWrite() error {
+	if c.file == nil {
+		// first init
+		var err error
+		c.file, err = os.Create(c.partname)
+		if err != nil {
+			return fmt.Errorf("initWrite: %w", err)
+		}
+	}
+	return nil
 }
 
 // nextPartExists determines whether the next part exists or not.
