@@ -76,6 +76,10 @@
 - [load](./load.md): （离线环境）读取压缩包，将压缩包内镜像上传至私有仓库。
 - [convert-list](./convert-list.md): 转换镜像列表格式。
 
+## 常见问题
+
+常见报错信息及解释：[常见问题](./questions.md)
+
 ## 原理
 
 本工具使用 `skopeo` 命令拷贝镜像至目标镜像服务器或本地文件夹中，并使用 `docker-buildx` 为目标镜像服务器创建 Manifest 列表。
