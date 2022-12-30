@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"cnrancher.io/image-tools/image"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	SavedTemplateVersion = "1.0.0"
+	SavedTemplateVersion = "v1.0.1"
 )
 
 type SavedListTemplate struct {
@@ -114,13 +115,17 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
 	}
 
+	logrus.Debugf("savedList.Version: %v", savedList.Version)
 	sVersion := savedList.Version
-	if semver.Compare(sVersion, u.VERSION) > 0 {
-		logrus.Warnf("Template version in saved tar.gz is %q", sVersion)
-		logrus.Warnf("The maxium template version supported of this tool is %q",
+	if !strings.HasPrefix(sVersion, "v") {
+		sVersion = "v" + sVersion
+	}
+	if semver.Compare(sVersion, SavedTemplateVersion) != 0 {
+		logrus.Warnf("Template version in saved tarball is %q", sVersion)
+		logrus.Warnf("The template version supported of this tool is %q",
 			SavedTemplateVersion)
 		return nil, fmt.Errorf(
-			"this tool need to update to support template version %q",
+			"this tool does not support template version %q",
 			sVersion)
 	}
 
