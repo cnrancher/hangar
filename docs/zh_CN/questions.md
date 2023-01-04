@@ -31,3 +31,10 @@
 4. 报错 `no image available for specified arch list`
 
     待拷贝镜像的架构与 `-a` 参数指定的架构不匹配。
+
+5. 报错 `failed to read from destination repository <IMAGE>: 400 (Bad Request)`
+
+    此错误由 Harbor 产生，在 Mirror / Load 目标镜像时没有指明 Project。
+
+    可使用 `-repo-type=harbor` 参数设定目标镜像仓库的类型为 Harbor，并使用 `-default-project=library` 参数设定默认创建的 Project 名称。
+    当目标镜像没有指明 Project 时，会自动为镜像名称添加 `library` Project。
