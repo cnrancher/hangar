@@ -15,7 +15,7 @@ func (m *Mirror) StartLoad() error {
 		return fmt.Errorf("StartLoad: directory is empty string")
 	}
 	if m.Mode != MODE_LOAD {
-		return fmt.Errorf("StartSave: mirrorer is not in LOAD mode")
+		return fmt.Errorf("StartLoad: mirrorer is not in LOAD mode")
 	}
 
 	logrus.WithField("M_ID", m.MID).

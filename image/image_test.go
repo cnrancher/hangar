@@ -7,6 +7,7 @@ import (
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
+	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,18 +18,17 @@ func init() {
 
 func Test_NewImage(t *testing.T) {
 	var image *Image = NewImage(&ImageOptions{
-		Source:              "docker.io/example",
-		Destination:         "private.io/library/example",
-		Tag:                 "v1.0.0",
-		Arch:                "arm64",
-		Variant:             "v8",
-		OS:                  "linux",
-		Digest:              "sha256:" + u.Sha256Sum("ABC"),
-		Directory:           "test",
-		SavedFolder:         u.Sha256Sum("library/hello-world"),
-		SourceSchemaVersion: 2,
-		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 1,
+		Source:          "docker.io/example",
+		Destination:     "private.io/library/example",
+		Tag:             "v1.0.0",
+		Arch:            "arm64",
+		Variant:         "v8",
+		OS:              "linux",
+		Digest:          "sha256:" + u.Sha256Sum("ABC"),
+		Directory:       "test",
+		SavedFolder:     u.Sha256Sum("library/hello-world"),
+		SourceMediaType: manifest.DockerV2Schema2MediaType,
+		MID:             1,
 	})
 
 	if s := image.Source; s != "docker.io/example" {
@@ -71,16 +71,15 @@ func Test_Copy(t *testing.T) {
 	}
 
 	var imageV2 *Image = NewImage(&ImageOptions{
-		Source:              "docker.io/example",
-		Destination:         "private.io/library/example",
-		Tag:                 "v1.0.0",
-		Arch:                "arm64",
-		Variant:             "v8",
-		OS:                  "linux",
-		Digest:              "sha256:" + u.Sha256Sum("ABC"),
-		SourceSchemaVersion: 2,
-		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 1,
+		Source:          "docker.io/example",
+		Destination:     "private.io/library/example",
+		Tag:             "v1.0.0",
+		Arch:            "arm64",
+		Variant:         "v8",
+		OS:              "linux",
+		Digest:          "sha256:" + u.Sha256Sum("ABC"),
+		SourceMediaType: manifest.DockerV2Schema2MediaType,
+		MID:             1,
 	})
 
 	// fake skopeo copy, skopeo inspect func
@@ -100,16 +99,15 @@ func Test_Copy(t *testing.T) {
 	}
 
 	var imageV1 *Image = NewImage(&ImageOptions{
-		Source:              "docker.io/example",
-		Destination:         "private.io/library/example",
-		Tag:                 "v1.0.0",
-		Arch:                "arm64",
-		Variant:             "v8",
-		OS:                  "linux",
-		Digest:              "sha256:" + u.Sha256Sum("ABC"),
-		SourceSchemaVersion: 1,
-		SourceMediaType:     u.MediaTypeManifestV2,
-		MID:                 1,
+		Source:          "docker.io/example",
+		Destination:     "private.io/library/example",
+		Tag:             "v1.0.0",
+		Arch:            "arm64",
+		Variant:         "v8",
+		OS:              "linux",
+		Digest:          "sha256:" + u.Sha256Sum("ABC"),
+		SourceMediaType: manifest.DockerV2Schema2MediaType,
+		MID:             1,
 	})
 	if err := imageV1.Copy(); err != nil {
 		t.Error(err.Error())
@@ -130,16 +128,15 @@ func Test_Copy(t *testing.T) {
 	registry.RunCommandFunc = fake
 
 	var imageListV2 *Image = NewImage(&ImageOptions{
-		Source:              "docker.io/example",
-		Destination:         "private.io/library/example",
-		Tag:                 "v1.0.0",
-		Arch:                "arm64",
-		Variant:             "v8",
-		OS:                  "linux",
-		Digest:              "sha256:" + u.Sha256Sum("ABC"),
-		SourceSchemaVersion: 2,
-		SourceMediaType:     u.MediaTypeManifestListV2,
-		MID:                 1,
+		Source:          "docker.io/example",
+		Destination:     "private.io/library/example",
+		Tag:             "v1.0.0",
+		Arch:            "arm64",
+		Variant:         "v8",
+		OS:              "linux",
+		Digest:          "sha256:" + u.Sha256Sum("ABC"),
+		SourceMediaType: manifest.DockerV2ListMediaType,
+		MID:             1,
 	})
 	if err := imageListV2.Copy(); err != nil {
 		t.Error(err.Error())

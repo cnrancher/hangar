@@ -8,6 +8,7 @@ import (
 	"cnrancher.io/image-tools/image"
 	r "cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
+	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,16 +121,20 @@ func Test_S2V2(t *testing.T) {
 	// reset the override command function
 	r.RunCommandFunc = nil
 
+	// test MIME type
+	if m.sourceMIMEType != manifest.DockerV2Schema2MediaType {
+		t.Errorf("sourceMIMEType failed: %v", m.sourceMIMEType)
+	}
+
 	// test manifest schemaVersion
-	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
-		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
-		t.Error(err.Error())
+	if m.sourceSchema2.SchemaVersion != 2 {
+		t.Errorf("sourceManifestSchemaVersion failed, version: %v",
+			m.sourceSchema2.SchemaVersion)
 	}
 	// test manifest mediaType
-	if m, err := m.sourceManifestMediaType(); err != nil ||
-		m != u.MediaTypeManifestV2 {
-		t.Errorf("sourceManifestMediaType failed, mediaType: %v", m)
-		t.Error(err.Error())
+	if m.sourceSchema2.MediaType != manifest.DockerV2Schema2MediaType {
+		t.Errorf("sourceManifestMediaType failed, mediaType: %v",
+			m.sourceSchema2.MediaType)
 	}
 
 	// fake skopeo copy function
@@ -166,7 +171,7 @@ func Test_S2V2(t *testing.T) {
 	srcManifest, _ := testFs.ReadFile(TestS2V2FileName)
 	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
 	if srcSpec[0].Digest != sourceSum {
-		t.Errorf("SourceDigests should be %s, but got %s",
+		t.Errorf("SourceDigests should be %q, but got %q",
 			sourceSum, srcSpec[0].Digest)
 	}
 
@@ -188,8 +193,8 @@ func Test_S2V2(t *testing.T) {
 	}
 	// now the mirror operation of s2v2 is finished
 
-	// if dest image does not exists, destManifest is nil
-	m.destManifest = nil
+	// if dest manifest does not exists, dest MIME type is empty str
+	m.destMIMEType = ""
 	if list := m.DestinationManifestSpec(); len(list) != 0 {
 		t.Error("DestinationManifestSpec failed")
 	}
@@ -233,19 +238,23 @@ func Test_S2V2List(t *testing.T) {
 	}
 	r.RunCommandFunc = nil
 
-	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 2 {
-		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
-		t.Error(err.Error())
+	// test MIME Type
+	if m.sourceMIMEType != manifest.DockerV2ListMediaType {
+		t.Errorf("sourceMIMEType failed: %v", m.sourceMIMEType)
 	}
-	if m, err := m.sourceManifestMediaType(); err != nil ||
-		m != u.MediaTypeManifestListV2 {
-		t.Errorf("sourceManifestMediaType failed, mediaType: %v", m)
-		t.Error(err.Error())
+
+	if m.sourceSchema2List.SchemaVersion != 2 {
+		t.Errorf("sourceManifestSchemaVersion failed, version: %v",
+			m.sourceSchema2.SchemaVersion)
+	}
+	if m.sourceSchema2List.MediaType != manifest.DockerV2ListMediaType {
+		t.Errorf("sourceManifestMediaType failed, mediaType: %v",
+			m.sourceSchema2List.MediaType)
 	}
 
 	// generate images from source manifest list
-	if err := m.initImageListByListV2(); err != nil {
-		t.Error("initImageListByV2 failed:", err.Error())
+	if err := m.initSourceImageListByListV2(); err != nil {
+		t.Error("initSourceImageListByListV2 failed:", err.Error())
 	}
 
 	// simulate copy operation
@@ -286,6 +295,10 @@ func Test_S2V2List(t *testing.T) {
 		t.Error("DestinationManifestSpec failed")
 	}
 	if len(srcSpec) != len(dstSpec) {
+		t.Errorf("len(srcSpec): %d, len(dstSpec): %d",
+			len(srcSpec), len(dstSpec))
+		t.Errorf("srcSpec: %+v", srcSpec)
+		t.Errorf("dstSpec: %+v", dstSpec)
 		t.Error("the length of srcDigests and dstDigests should be same")
 	}
 
@@ -297,7 +310,7 @@ func Test_S2V2List(t *testing.T) {
 		t.Error("compareSourceDestManifest failed")
 	}
 
-	m.destManifest = nil
+	m.destMIMEType = ""
 	if m.compareSourceDestManifest() {
 		// should return false
 		t.Error("compareSourceDestManifest failed")
@@ -335,13 +348,19 @@ func Test_S1V2(t *testing.T) {
 		t.Error("initSourceDestinationManifest:", err.Error())
 	}
 
-	if v, err := m.sourceManifestSchemaVersion(); err != nil || v != 1 {
-		t.Errorf("sourceManifestSchemaVersion failed, version: %v", v)
-		t.Error(err.Error())
+	if m.sourceMIMEType != manifest.DockerV2Schema1MediaType &&
+		m.sourceMIMEType != manifest.DockerV2Schema1SignedMediaType {
+		t.Errorf("sourceMIMEType failed: %v", m.sourceMIMEType)
 	}
 
-	if m, err := m.sourceManifestMediaType(); err == nil || m != "" {
-		t.Errorf("sourceManifestMediaType failed, mediaType should be empty")
+	if m.sourceSchema1.SchemaVersion != 1 {
+		t.Errorf("SchemaVersion failed, version: %v",
+			m.sourceSchema1.SchemaVersion)
+	}
+
+	if m.sourceMIMEType != manifest.DockerV2Schema1MediaType &&
+		m.sourceMIMEType != manifest.DockerV2Schema1SignedMediaType {
+		t.Errorf("sourceMIMEType failed, sourceMIMEType %v", m.sourceMIMEType)
 	}
 
 	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
@@ -412,7 +431,7 @@ func Test_S1V2(t *testing.T) {
 		t.Error("compareSourceDestManifest failed")
 	}
 
-	m.destManifest = nil
+	m.destMIMEType = ""
 	if m.compareSourceDestManifest() {
 		// should return false
 		t.Error("compareSourceDestManifest failed")

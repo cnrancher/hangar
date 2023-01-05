@@ -45,16 +45,14 @@ var (
 )
 
 const (
-	DockerLoginURL          = "https://hub.docker.com/v2/users/login/"
-	DockerHubRegistry       = "docker.io"
-	DockerConfigFile        = ".docker/config.json"
-	MediaTypeManifestListV2 = "application/vnd.docker.distribution.manifest.list.v2+json"
-	MediaTypeManifestV2     = "application/vnd.docker.distribution.manifest.v2+json"
-	SavedImageListFile      = "saved-images-list.json"
-	CacheImageDirectory     = "saved-image-cache"
-	ETC_SSL_FILE            = "/etc/ssl/certs/ca-certificates.crt"
-	MAX_WORKER_NUM          = 20
-	MIN_WORKER_NUM          = 1
+	DockerLoginURL      = "https://hub.docker.com/v2/users/login/"
+	DockerHubRegistry   = "docker.io"
+	DockerConfigFile    = ".docker/config.json"
+	SavedImageListFile  = "saved-images-list.json"
+	CacheImageDirectory = "saved-image-cache"
+	ETC_SSL_FILE        = "/etc/ssl/certs/ca-certificates.crt"
+	MAX_WORKER_NUM      = 20
+	MIN_WORKER_NUM      = 1
 )
 
 var (

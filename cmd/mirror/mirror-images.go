@@ -155,7 +155,9 @@ func MirrorImages() {
 	for scanner.Scan() {
 		v := processImageListLine(scanner.Text())
 		if len(v) != 3 {
-			fmt.Printf(">>> ")
+			if usingStdin {
+				fmt.Printf(">>> ")
+			}
 			continue
 		}
 

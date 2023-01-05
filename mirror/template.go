@@ -10,6 +10,7 @@ import (
 
 	"cnrancher.io/image-tools/image"
 	u "cnrancher.io/image-tools/utils"
+	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"golang.org/x/mod/semver"
@@ -158,16 +159,13 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 				Source:      srcImageDir,
 				Destination: destImage,
 				// Directory is the decompressed folder path
-				Directory:   directory,
-				Tag:         mT.Tag,
-				Arch:        iT.Arch,
-				Variant:     iT.Variant,
-				OS:          iT.OS,
-				SavedFolder: iT.Folder,
-
-				// saved image manifest is already converted to v2s2
-				SourceSchemaVersion: 2,
-				SourceMediaType:     u.MediaTypeManifestV2,
+				Directory:       directory,
+				Tag:             mT.Tag,
+				Arch:            iT.Arch,
+				Variant:         iT.Variant,
+				OS:              iT.OS,
+				SavedFolder:     iT.Folder,
+				SourceMediaType: manifest.DockerV2Schema2MediaType,
 			})
 			m.AppendImage(img)
 		}

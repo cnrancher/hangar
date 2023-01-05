@@ -25,8 +25,7 @@ type Image struct {
 	Saved  bool
 	Loaded bool
 
-	SourceSchemaVersion int
-	SourceMediaType     string
+	SourceMediaType string
 
 	// IID is the ID of the Image
 	IID int
@@ -46,27 +45,25 @@ type ImageOptions struct {
 	Directory   string
 	SavedFolder string
 
-	SourceSchemaVersion int
-	SourceMediaType     string
+	SourceMediaType string
 
 	MID int
 }
 
 func NewImage(opts *ImageOptions) *Image {
 	return &Image{
-		Source:              opts.Source,
-		Destination:         opts.Destination,
-		Tag:                 opts.Tag,
-		Arch:                opts.Arch,
-		Variant:             opts.Variant,
-		OS:                  opts.OS,
-		OsVersion:           opts.OsVersion,
-		Digest:              opts.Digest,
-		Directory:           opts.Directory,
-		SavedFolder:         opts.SavedFolder,
-		SourceSchemaVersion: opts.SourceSchemaVersion,
-		SourceMediaType:     opts.SourceMediaType,
-		MID:                 opts.MID,
+		Source:          opts.Source,
+		Destination:     opts.Destination,
+		Tag:             opts.Tag,
+		Arch:            opts.Arch,
+		Variant:         opts.Variant,
+		OS:              opts.OS,
+		OsVersion:       opts.OsVersion,
+		Digest:          opts.Digest,
+		Directory:       opts.Directory,
+		SavedFolder:     opts.SavedFolder,
+		SourceMediaType: opts.SourceMediaType,
+		MID:             opts.MID,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
+	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +22,8 @@ func (img *Image) Copy() error {
 		return fmt.Errorf("Copy: %w", err)
 	}
 
-	if img.SourceSchemaVersion == 1 {
+	if img.SourceMediaType == manifest.DockerV2Schema1MediaType ||
+		img.SourceMediaType == manifest.DockerV2Schema1SignedMediaType {
 		// get digests from copied dest image
 		destImage := fmt.Sprintf("docker://%s", img.Destination)
 		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
