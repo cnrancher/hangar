@@ -60,7 +60,8 @@ const (
 	MODE_MIRROR
 	MODE_LOAD
 	MODE_SAVE
-	MODE_VALIDATE
+	MODE_MIRROR_VALIDATE
+	MODE_LOAD_VALIDATE
 )
 
 func NewMirror(opts *MirrorOptions) *Mirror {
@@ -264,7 +265,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	}
 
 	// Skip inspect destination image if not in mirror mode
-	if m.Mode != MODE_MIRROR {
+	if m.Mode != MODE_MIRROR && m.Mode != MODE_MIRROR_VALIDATE {
 		return nil
 	}
 
@@ -297,7 +298,7 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	for _, manifest := range m.sourceSchema2List.Manifests {
 		if !slices.Contains(m.ArchList, manifest.Platform.Architecture) {
 			logrus.WithField("M_ID", m.MID).
-				Debugf("skip copy image %s arch %s",
+				Debugf("skip image %s arch %s",
 					m.Source, manifest.Platform.Architecture)
 			continue
 		}
@@ -349,7 +350,7 @@ func (m *Mirror) initImageListByV2() error {
 
 	if !slices.Contains(m.ArchList, m.sourceSchema2V1Image.Architecture) {
 		logrus.WithField("M_ID", m.MID).
-			Debugf("skip copy image %s arch %s",
+			Debugf("skip image %s arch %s",
 				m.Source, m.sourceSchema2V1Image.Architecture)
 		return fmt.Errorf("initImageListByV2: %w", u.ErrNoAvailableImage)
 	}
@@ -393,13 +394,13 @@ func (m *Mirror) initImageListByV1() error {
 
 	if !slices.Contains(m.ArchList, m.sourceSchema2V1Image.Architecture) {
 		logrus.WithField("M_ID", m.MID).
-			Debugf("skip copy image %s arch %s",
+			Debugf("skip image %s arch %s",
 				m.Source, m.sourceSchema2V1Image.Architecture)
 		return nil
 	}
 
 	// Calculate sha256sum of source manifest
-	digest := "sha267:" + u.Sha256Sum(m.sourceManifestStr)
+	digest := "sha256:" + u.Sha256Sum(m.sourceManifestStr)
 	copiedTag := image.CopiedTag(
 		m.Tag, m.sourceSchema2V1Image.OS,
 		m.sourceSchema2V1Image.Architecture,

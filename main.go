@@ -7,6 +7,7 @@ import (
 	convertCMD "cnrancher.io/image-tools/cmd/convert"
 	loadCMD "cnrancher.io/image-tools/cmd/load"
 	mirrorCMD "cnrancher.io/image-tools/cmd/mirror"
+	mirrorValidateCMD "cnrancher.io/image-tools/cmd/mirror-validate"
 	saveCMD "cnrancher.io/image-tools/cmd/save"
 	u "cnrancher.io/image-tools/utils"
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -41,6 +42,9 @@ func main() {
 	case "convert-list":
 		convertCMD.Parse(os.Args[2:])
 		convertCMD.Convert()
+	case "mirror-validate":
+		mirrorValidateCMD.Parse(os.Args[2:])
+		mirrorValidateCMD.ValidateImages()
 	case "-v":
 		fallthrough
 	case "--version":
@@ -64,6 +68,7 @@ func showHelp() {
 	fmt.Printf("  load \t\tLoad image from saved tar.gz file.\n")
 	fmt.Printf("  save \t\tSave image from source registry to tar.gz file.\n")
 	fmt.Printf("  convert-list \tConvert image list to 'mirror' format.\n")
+	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
 	fmt.Printf("  version \tShow version.\n")
 }
 
