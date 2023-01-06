@@ -69,7 +69,7 @@ func (m *Mirror) validateImages() error {
 		}
 		if m.sourceSchema2V1Image.Variant !=
 			m.destSchema2List.Manifests[0].Platform.Variant {
-			return fmt.Errorf("source os %q != dest os %q",
+			return fmt.Errorf("source Variant %q != dest Variant %q",
 				m.sourceSchema2V1Image.Variant,
 				m.destSchema2List.Manifests[0].Platform.Variant)
 		}
@@ -111,7 +111,7 @@ func (m *Mirror) validateImages() error {
 		}
 		if m.sourceSchema2V1Image.Variant !=
 			m.destSchema2List.Manifests[0].Platform.Variant {
-			return fmt.Errorf("source os %q != dest os %q",
+			return fmt.Errorf("source Variant %q != dest Variant %q",
 				m.sourceSchema2V1Image.Variant,
 				m.destSchema2List.Manifests[0].Platform.Variant)
 		}
