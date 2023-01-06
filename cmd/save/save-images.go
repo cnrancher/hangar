@@ -220,6 +220,13 @@ func SaveImages() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
+		if !*cmdPart {
+			// if part compress not enabled,
+			// rename file name without .part extension
+			if err := os.Rename(*cmdDest+".part0", *cmdDest); err != nil {
+				logrus.Warn(err)
+			}
+		}
 	} else {
 		err := os.Rename(u.CacheImageDirectory, *cmdDest)
 		if err != nil {

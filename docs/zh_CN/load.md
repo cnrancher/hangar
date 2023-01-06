@@ -79,6 +79,30 @@ Usage of load:
 ./image-tools load -s ./saved-images.tar.gz -debug
 ```
 
+## 加载分卷压缩包
+
+Load 子命令支持加载 Save 生成的分卷 (part) 压缩包，文件名应当以 `.part*` 为后缀，以 `.part0`、`.part1`、`.part2`……顺序排列。在加载分卷压缩包时，`-s` 参数指定的源文件名应当不包含 `.part*` 后缀（例如 `saved-images.tar.gz`），该工具会自动识别分卷压缩包并按顺序从 `part0`、`part1`……读取数据解压。
+
+```console
+$ ls -alh
+drwxr-xr-x   6 root  root   192B  1  6 18:00 .
+drwxr-x---+ 70 root  root   2.2K  1  6 18:00 ..
+-rw-r--r--   1 root  root    50M  1  6 17:59 saved-images.tar.gz.part0
+-rw-r--r--   1 root  root    50M  1  6 17:59 saved-images.tar.gz.part1
+-rw-r--r--   1 root  root    50M  1  6 17:59 saved-images.tar.gz.part2
+-rw-r--r--   1 root  root   5.3M  1  6 17:59 saved-images.tar.gz.part3
+
+$ image-tools load -s saved-images.tar.gz -d private.registry.io
+18:01:28 [INFO] Decompressing saved-images.tar.gz...
+18:01:28 [INFO] Read "saved-images.tar.gz.part0"
+18:01:28 [INFO] Read "saved-images.tar.gz.part1"
+18:01:28 [INFO] Read "saved-images.tar.gz.part2"
+18:01:28 [INFO] Read "saved-images.tar.gz.part3"
+......
+```
+
+> 请不要尝试单独 Load 某一个 Part 文件，会遇到解压失败的错误，并导致解压出来的文件是受损的。
+
 ## Logs
 
 执行该工具输出的日志包含了 “时间、日志的等级”，在并发拷贝镜像时每行日志的 `M_ID`（对应导入的第 N 个 Manifest 列表）和 `IMG_ID`（该 Manifest 列表中的第 N 个镜像）可用来跟踪具体是哪个镜像拷贝失败。

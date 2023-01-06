@@ -82,28 +82,28 @@ Usage of mirror-validate:
 
     可使用 `skopeo inspect docker://<dest-image>:<tag> --raw` 查看目标镜像的 Manifest List 列表。
 
-1. 报错：`source * != dest *` 表示当源镜像与目标镜像的某些信息不匹配，例如 Arch、Variant、OS 等。
+1. 报错：`source * != dest *` 表示源镜像与目标镜像的某些信息不匹配，例如 Arch、Variant、OS 等。
 
 1. 遇到下面报错：
 
     ```text
     11:22:33 [ERRO] [M_ID:1] srcSpec: [
-    {
-        "digest": "sha256:9997c2f450f51e5c5402854899c42354b7968ca8298815df812b00409533527c",
-        "platform": {
-            "architecture": "amd64",
-            "os": "linux"
+        {
+            "digest": "sha256:9997c2f450f51e5c5402854899c42354b7968ca8298815df812b00409533527c",
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
         }
-    }
     ]
     11:22:33 [ERRO] [M_ID:1] dstSpec: [
-    {
-        "digest": "sha256:8ace038ea3a18057e865b81e5ccd12d75ddeec0fdbd331555d877d39ac3f45bb",
-        "platform": {
-            "architecture": "amd64",
-            "os": "linux"
+        {
+            "digest": "sha256:8ace038ea3a18057e865b81e5ccd12d75ddeec0fdbd331555d877d39ac3f45bb",
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
         }
-    }
     ]
     11:22:33 [ERRO] [M_ID:1] Validate failed: source manifest "docker.io/library/name" != dest "docker.io/library/name", tag "latest"
     ```
@@ -116,4 +116,4 @@ Usage of mirror-validate:
 
 ## Output
 
-若校验过程中某个校验拷贝失败，那么该工具会将校验失败的镜像列表输出至 `mirror-validate-failed.txt`，可使用 `-o` 参数设定校验失败的镜像列表的文件名称。
+若校验过程中某个镜像校验失败，那么该工具会将校验失败的镜像列表输出至 `mirror-validate-failed.txt`，可使用 `-o` 参数设定校验失败的镜像列表的文件名称。

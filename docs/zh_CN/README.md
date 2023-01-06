@@ -72,7 +72,7 @@
 ## COMMANDS
 
 - [mirror](./mirror.md): 根据列表文件，将镜像拷贝至私有镜像仓库。
-- [save](./save.md): 根据列表文件，将镜像下载至本地，生成 `tar.gz` 压缩包。
+- [save](./save.md): 根据列表文件，将镜像下载至本地，生成压缩包。
 - [load](./load.md): （离线环境）读取压缩包，将压缩包内镜像上传至私有仓库。
 - [convert-list](./convert-list.md): 转换镜像列表格式。
 - [mirror-validate](./mirror-validate.md): 对已 Mirror 过的镜像校验。
