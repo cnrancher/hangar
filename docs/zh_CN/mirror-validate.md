@@ -70,8 +70,4 @@ Usage of mirror-validate:
 
 ## Output
 
-若拷贝过程中某个镜像拷贝失败，那么该工具会将拷贝失败的镜像列表输出至 `mirror-failed.txt`，可使用 `-o` 参数设定拷贝失败的镜像列表的文件名称。
-
-## Output
-
 若校验过程中某个校验拷贝失败，那么该工具会将校验失败的镜像列表输出至 `mirror-validate-failed.txt`，可使用 `-o` 参数设定校验失败的镜像列表的文件名称。

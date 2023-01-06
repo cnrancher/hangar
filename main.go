@@ -51,6 +51,9 @@ func main() {
 		fallthrough
 	case "version":
 		showVersion()
+	case "-h", "--help":
+		showHelp()
+		os.Exit(0)
 	default:
 		logrus.Errorf("unrecognized command %q", os.Args[1])
 		showHelp()
@@ -64,12 +67,12 @@ func showHelp() {
 	fmt.Printf("Run '%s COMMAND --help' for more information on a command.\n", os.Args[0])
 	fmt.Println()
 	fmt.Printf("Commands: \n")
-	fmt.Printf("  mirror \tMirror image from source registry to destination registry.\n")
-	fmt.Printf("  load \t\tLoad image from saved tar.gz file.\n")
-	fmt.Printf("  save \t\tSave image from source registry to tar.gz file.\n")
-	fmt.Printf("  convert-list \tConvert image list to 'mirror' format.\n")
+	fmt.Printf("  mirror \t\tMirror image from source registry to destination registry.\n")
+	fmt.Printf("  load \t\t\tLoad image from saved tar.gz file.\n")
+	fmt.Printf("  save \t\t\tSave image from source registry to tar.gz file.\n")
+	fmt.Printf("  convert-list \t\tConvert image list to 'mirror' format.\n")
 	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
-	fmt.Printf("  version \tShow version.\n")
+	fmt.Printf("  version \t\tShow version.\n")
 }
 
 func showVersion() {
