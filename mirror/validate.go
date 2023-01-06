@@ -35,15 +35,15 @@ func (m *Mirror) validateImages() error {
 	switch m.destMIMEType {
 	case manifest.DockerV2ListMediaType:
 		if len(m.destSchema2List.Manifests) == 0 {
-			return fmt.Errorf("%q: destination manifest list is empty",
-				m.Destination)
+			return fmt.Errorf("[%s:%s]: destination manifest list is empty",
+				m.Destination, m.Tag)
 		}
 	case "":
-		return fmt.Errorf("%q: destination manifest does not exists",
-			m.Destination)
+		return fmt.Errorf("[%s:%s]: destination manifest does not exists",
+			m.Destination, m.Tag)
 	default:
-		return fmt.Errorf("%q: destination manifest MIME type unknow: %v",
-			m.Destination, m.destMIMEType)
+		return fmt.Errorf("[%s:%s]: destination manifest MIME type unknow: %v",
+			m.Destination, m.Tag, m.destMIMEType)
 	}
 	switch m.sourceMIMEType {
 	case manifest.DockerV2Schema1MediaType,
@@ -93,8 +93,8 @@ func (m *Mirror) validateImages() error {
 		destImage := fmt.Sprintf("docker://%s@%s", m.Destination, dstDigest)
 		_, err := registry.SkopeoInspect(destImage, "--raw")
 		if err != nil {
-			return fmt.Errorf("failed to inspect dest image %s: %v",
-				m.Destination, err)
+			return fmt.Errorf("failed to inspect dest image [%s:%s]: %v",
+				m.Destination, m.Tag, err)
 		}
 		// compare image arch, os, variant, etc...
 		if m.sourceSchema2V1Image.Architecture !=
@@ -132,11 +132,11 @@ func (m *Mirror) validateImages() error {
 			srcJson, _ := json.MarshalIndent(srcSpecs, "", "  ")
 			dstJson, _ := json.MarshalIndent(dstSpecs, "", "  ")
 			logrus.WithField("M_ID", m.MID).
-				Errorf("srcSpec: %+v", srcJson)
+				Errorf("srcSpec: %+v", string(srcJson))
 			logrus.WithField("M_ID", m.MID).
-				Errorf("dstSpec: %+v", dstJson)
-			return fmt.Errorf("source manifest %q != dest %q",
-				m.Source, m.Destination)
+				Errorf("dstSpec: %+v", string(dstJson))
+			return fmt.Errorf("source manifest %q != dest %q, tag %q",
+				m.Source, m.Destination, m.Tag)
 		}
 		failed := false
 		failedImages := make([]string, 0, 4)
@@ -146,8 +146,8 @@ func (m *Mirror) validateImages() error {
 			_, err := registry.SkopeoInspect(destImage, "--raw")
 			if err != nil {
 				logrus.WithField("M_ID", m.MID).
-					Errorf("failed to inspect dest image %s: %v",
-						m.Destination, err)
+					Errorf("failed to inspect dest image [%s:%s]: %v",
+						m.Destination, m.Tag, err)
 				failedImages = append(failedImages, destImage)
 				failed = true
 			}
