@@ -3,7 +3,6 @@ package image
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
@@ -18,20 +17,13 @@ func (img *Image) Save() error {
 	var err error
 	var ok bool
 
-	var destImage string
-	if strings.Contains(img.Source, "@sha256:") {
-		destImage = img.Source
-	} else {
-		destImage = fmt.Sprintf("%s:%s",
-			img.Source, CopiedTag(img.Tag, img.OS, img.Arch, img.Variant))
-	}
-	img.SavedFolder = u.Sha256Sum(destImage)
+	img.SavedFolder = u.Sha256Sum(img.Destination)
 	share := filepath.Join(img.Directory, "share")
 	img.Directory = filepath.Join(img.Directory, img.SavedFolder)
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
-		Debugf("SavedFolder: sha256sum(%s)", img.SavedFolder)
+		Debugf("SavedFolder: sha256sum(%s)", img.Destination)
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
@@ -63,7 +55,7 @@ func (img *Image) Save() error {
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
-		Infof("Saved image %q", destImage)
+		Infof("Saved image %q", img.Source)
 
 	return nil
 }

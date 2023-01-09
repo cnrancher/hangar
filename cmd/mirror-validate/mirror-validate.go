@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
 	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
@@ -77,35 +76,15 @@ func ValidateImages() {
 	u.WorkerNum = *cmdJobs
 	u.DeleteIfExist(*cmdFailed)
 
-	var writeFileMutex sync.Mutex
-	var wg sync.WaitGroup
-	worker := func(id int, ch chan *mirror.Mirror) {
-		defer wg.Done()
-		for m := range ch {
-			err := m.StartValidate()
-			if err != nil {
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Validate failed: %v", err)
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s %s %s", m.Source, m.Destination, m.Tag))
-				writeFileMutex.Unlock()
-			}
-
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
+	ch, wg := command.Worker(*cmdJobs, *cmdFailed, func(m *mirror.Mirror) {
+		if usingStdin {
+			fmt.Printf(">>> ")
 		}
-	}
-	ch := make(chan *mirror.Mirror)
-	for i := 0; i < *cmdJobs; i++ {
-		wg.Add(1)
-		go worker(i+1, ch)
-	}
-
+	})
 	var num int = 0
 	for scanner.Scan() {
-		v := processImageListLine(scanner.Text())
+		l := scanner.Text()
+		v := processImageListLine(l)
 		if len(v) != 3 {
 			if usingStdin {
 				fmt.Printf(">>> ")
@@ -119,6 +98,7 @@ func ValidateImages() {
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
 			ArchList:    strings.Split(*cmdArch, ","),
+			Line:        l,
 			Mode:        mirror.MODE_MIRROR_VALIDATE,
 			ID:          num,
 		})

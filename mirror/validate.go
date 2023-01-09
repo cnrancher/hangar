@@ -55,22 +55,22 @@ func (m *Mirror) validateImages() error {
 		// do not compare digests since the digest of schemaVersion1 is
 		// different with schemaVersion2, compare arch, os, variant,
 		// os.version, etc...
-		if m.sourceSchema2V1Image.Architecture !=
+		if m.sourceImageInfo.Architecture !=
 			m.destSchema2List.Manifests[0].Platform.Architecture {
 			return fmt.Errorf("source arch %q != dest arch %q",
-				m.sourceSchema2V1Image.Architecture,
+				m.sourceImageInfo.Architecture,
 				m.destSchema2List.Manifests[0].Platform.Architecture)
 		}
-		if m.sourceSchema2V1Image.OS !=
+		if m.sourceImageInfo.Os !=
 			m.destSchema2List.Manifests[0].Platform.OS {
 			return fmt.Errorf("source os %q != dest os %q",
-				m.sourceSchema2V1Image.OS,
+				m.sourceImageInfo.Os,
 				m.destSchema2List.Manifests[0].Platform.OS)
 		}
-		if m.sourceSchema2V1Image.Variant !=
+		if m.sourceImageInfo.Variant !=
 			m.destSchema2List.Manifests[0].Platform.Variant {
 			return fmt.Errorf("source Variant %q != dest Variant %q",
-				m.sourceSchema2V1Image.Variant,
+				m.sourceImageInfo.Variant,
 				m.destSchema2List.Manifests[0].Platform.Variant)
 		}
 		if m.destSchema2List.Manifests[0].Platform.OSVersion != "" {
@@ -97,22 +97,22 @@ func (m *Mirror) validateImages() error {
 				m.Destination, m.Tag, err)
 		}
 		// compare image arch, os, variant, etc...
-		if m.sourceSchema2V1Image.Architecture !=
+		if m.sourceImageInfo.Architecture !=
 			m.destSchema2List.Manifests[0].Platform.Architecture {
 			return fmt.Errorf("source arch %q != dest arch %q",
-				m.sourceSchema2V1Image.Architecture,
+				m.sourceImageInfo.Architecture,
 				m.destSchema2List.Manifests[0].Platform.Architecture)
 		}
-		if m.sourceSchema2V1Image.OS !=
+		if m.sourceImageInfo.Os !=
 			m.destSchema2List.Manifests[0].Platform.OS {
 			return fmt.Errorf("source os %q != dest os %q",
-				m.sourceSchema2V1Image.OS,
+				m.sourceImageInfo.Os,
 				m.destSchema2List.Manifests[0].Platform.OS)
 		}
-		if m.sourceSchema2V1Image.Variant !=
+		if m.sourceImageInfo.Variant !=
 			m.destSchema2List.Manifests[0].Platform.Variant {
 			return fmt.Errorf("source Variant %q != dest Variant %q",
-				m.sourceSchema2V1Image.Variant,
+				m.sourceImageInfo.Variant,
 				m.destSchema2List.Manifests[0].Platform.Variant)
 		}
 		if m.destSchema2List.Manifests[0].Platform.OSVersion != "" {

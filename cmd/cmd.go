@@ -2,7 +2,9 @@ package command
 
 import (
 	"fmt"
+	"sync"
 
+	"cnrancher.io/image-tools/mirror"
 	"cnrancher.io/image-tools/registry"
 	u "cnrancher.io/image-tools/utils"
 	"github.com/sirupsen/logrus"
@@ -44,4 +46,36 @@ func DockerLoginRegistry(reg string) error {
 		username, passwd, _ = u.ReadUsernamePasswd()
 	}
 	return registry.DockerLogin(reg, username, passwd)
+}
+
+func Worker(num int, failList string, cb func(m *mirror.Mirror)) (
+	chan *mirror.Mirror, *sync.WaitGroup) {
+
+	var writeFileMutex = new(sync.Mutex)
+	var wg = new(sync.WaitGroup)
+	worker := func(ch chan *mirror.Mirror) {
+		defer wg.Done()
+		for m := range ch {
+			err := m.Start()
+			if err != nil {
+				logrus.WithField("M_ID", m.MID).Errorf("FAILED [%s:%s]",
+					m.Source, m.Tag)
+				logrus.WithField("M_ID", m.MID).Error(err)
+				writeFileMutex.Lock()
+				if err := u.AppendFileLine(failList, m.Line); err != nil {
+					logrus.Error(err)
+				}
+				writeFileMutex.Unlock()
+			}
+			if cb != nil {
+				cb(m)
+			}
+		}
+	}
+	ch := make(chan *mirror.Mirror)
+	for i := 0; i < num; i++ {
+		wg.Add(1)
+		go worker(ch)
+	}
+	return ch, wg
 }

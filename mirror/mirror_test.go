@@ -14,10 +14,9 @@ import (
 
 const (
 	TestS1V2FileName     = "test/s1v2.json"
-	TestS1V2RepoFileName = "test/s1v2-repo.json"
 	TestS2V2FileName     = "test/s2v2.json"
 	TestS2V2ListFileName = "test/s2v2-list.json"
-	TestS2V2OciFileName  = "test/s2v2-oci.json"
+	TestS2V2OciFileName  = "test/s2v2-config.json"
 )
 
 //go:embed test/*
@@ -38,7 +37,6 @@ func Test_NewMirror(t *testing.T) {
 		Tag:         "v1.0.0",
 		Directory:   ".saved-cache",
 		ArchList:    []string{"amd64", "arm64"},
-		RepoType:    REPO_TYPE_DEFAULT,
 		Mode:        MODE_MIRROR,
 	})
 
@@ -365,7 +363,7 @@ func Test_S1V2(t *testing.T) {
 
 	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
 		// inspect func return S1V2 json manifest
-		s1v2, err := testFs.ReadFile(TestS1V2RepoFileName)
+		s1v2, err := testFs.ReadFile(TestS1V2FileName)
 		if err != nil {
 			return err
 		}

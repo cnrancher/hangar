@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"cnrancher.io/image-tools/archive"
 	command "cnrancher.io/image-tools/cmd"
@@ -45,6 +44,10 @@ func LoadImages() {
 		logrus.Fatal("Failed to load images.")
 	}
 
+	if err := registry.SelfCheckSkopeo(); err != nil {
+		logrus.Error("registry self check skopeo failed.")
+		logrus.Fatal(err)
+	}
 	if err := registry.SelfCheckBuildX(); err != nil {
 		logrus.Error("registry self check failed.")
 		logrus.Fatal(err)
@@ -109,44 +112,11 @@ func LoadImages() {
 		logrus.Fatalf("'%s' is not a directory", directory)
 	}
 
+	u.DeleteIfExist(*cmdFailed)
 	u.CheckWorkerNum(false, cmdJobs)
 	logrus.Infof("Creating %d job workers", *cmdJobs)
 	u.WorkerNum = *cmdJobs
-
-	u.DeleteIfExist(*cmdFailed)
-	var writeFileMutex sync.Mutex
-	var wg sync.WaitGroup
-	// worker function for goroutine pool
-	worker := func(id int, ch chan *mirror.Mirror) {
-		defer wg.Done()
-		for m := range ch {
-			err := m.StartLoad()
-			if err != nil {
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Failed to load image [%s]", m.Destination)
-				logrus.WithField("M_ID", m.MID).
-					Error("Mirror", err.Error())
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s", m.Destination, m.Tag))
-				writeFileMutex.Unlock()
-			} else if m.ImageNum()-m.Loaded() != 0 {
-				// if there are some images load failed in this mirrorer
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Some images failed to load: %s", m.Source)
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s", m.Destination, m.Tag))
-				writeFileMutex.Unlock()
-			}
-		}
-	}
-	mChan := make(chan *mirror.Mirror)
-	for i := 0; i < *cmdJobs; i++ {
-		wg.Add(1)
-		go worker(i+1, mChan)
-	}
-
+	ch, wg := command.Worker(*cmdJobs, *cmdFailed, nil)
 	if err := command.DockerLoginRegistry(*cmdDestReg); err != nil {
 		logrus.Error(err)
 	}
@@ -189,9 +159,9 @@ func LoadImages() {
 	}
 
 	for _, m := range mList {
-		mChan <- m
+		ch <- m
 	}
 
-	close(mChan)
+	close(ch)
 	wg.Wait()
 }

@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 
 	command "cnrancher.io/image-tools/cmd"
 	"cnrancher.io/image-tools/mirror"
@@ -112,48 +111,17 @@ func MirrorImages() {
 		fmt.Printf(">>> ")
 	}
 	u.WorkerNum = *cmdJobs
-
 	u.DeleteIfExist(*cmdFailed)
-	var writeFileMutex sync.Mutex
-	var wg sync.WaitGroup
-	// worker function for goroutine pool
-	worker := func(id int, ch chan *mirror.Mirror) {
-		defer wg.Done()
-		for m := range ch {
-			err := m.StartMirror()
-			if err != nil {
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Failed to copy image [%s]", m.Source)
-				logrus.WithField("M_ID", m.MID).
-					Error(err.Error())
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
-					m.Source, m.Destination, m.Tag))
-				writeFileMutex.Unlock()
-			} else if m.ImageNum()-m.Copied() != 0 {
-				// if there are some images copy failed in this mirrorer
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Some images failed to mirror: %s", m.Source)
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed, fmt.Sprintf("%s %s %s",
-					m.Source, m.Destination, m.Tag))
-				writeFileMutex.Unlock()
-			}
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
+	ch, wg := command.Worker(*cmdJobs, *cmdFailed, func(m *mirror.Mirror) {
+		if usingStdin {
+			fmt.Println(">>> ")
 		}
-	}
-	mirrorChan := make(chan *mirror.Mirror)
-	for i := 0; i < *cmdJobs; i++ {
-		wg.Add(1)
-		go worker(i+1, mirrorChan)
-	}
-
+	})
 	var destProjects map[string]bool = make(map[string]bool)
 	var num int = 0
 	for scanner.Scan() {
-		v := processImageListLine(scanner.Text())
+		l := scanner.Text()
+		v := processImageListLine(l)
 		if len(v) != 3 {
 			if usingStdin {
 				fmt.Printf(">>> ")
@@ -176,6 +144,7 @@ func MirrorImages() {
 			Destination: u.ConstructRegistry(v[1], *cmdDestReg),
 			Tag:         v[2],
 			ArchList:    strings.Split(*cmdArch, ","),
+			Line:        l,
 			Mode:        mirror.MODE_MIRROR,
 			ID:          num,
 		})
@@ -208,10 +177,10 @@ func MirrorImages() {
 				destProjects[destProj] = true
 			}
 		}
-		mirrorChan <- m
+		ch <- m
 	}
 
-	close(mirrorChan)
+	close(ch)
 	wg.Wait()
 	if usingStdin {
 		fmt.Println()

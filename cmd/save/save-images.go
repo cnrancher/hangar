@@ -132,52 +132,19 @@ func SaveImages() {
 
 	u.DeleteIfExist(*cmdFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
-	var writeFileMutex sync.Mutex
 	var appendListMutex sync.Mutex
-	var wg sync.WaitGroup
-	// worker function for goroutine pool
-	worker := func(id int, ch chan *mirror.Mirror) {
-		defer wg.Done()
-		for m := range ch {
-			if err := m.StartSave(); err != nil {
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Failed to save image [%s]", m.Source)
-				logrus.WithField("M_ID", m.MID).
-					Error(err.Error())
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s", m.Source, m.Tag))
-				writeFileMutex.Unlock()
-			} else if m.ImageNum()-m.Saved() != 0 {
-				// if there are some images save failed in this mirrorer
-				logrus.WithField("M_ID", m.MID).
-					Errorf("Some images failed to save: %s", m.Source)
-				writeFileMutex.Lock()
-				u.AppendFileLine(*cmdFailed,
-					fmt.Sprintf("%s:%s", m.Source, m.Tag))
-				writeFileMutex.Unlock()
-			} else {
-				// if image saved successfully
-				appendListMutex.Lock()
-				savedTemplate.Append(m.GetSavedImageTemplate())
-				if usingStdin {
-					dir := filepath.Join(
-						u.CacheImageDirectory, u.SavedImageListFile)
-					u.SaveJson(savedTemplate, dir)
-				}
-				appendListMutex.Unlock()
-			}
-
-			if usingStdin {
-				fmt.Printf(">>> ")
-			}
+	ch, wg := command.Worker(*cmdJobs, *cmdFailed, func(m *mirror.Mirror) {
+		// if image saved successfully
+		appendListMutex.Lock()
+		savedTemplate.Append(m.GetSavedImageTemplate())
+		if usingStdin {
+			// Write saved image json
+			f := filepath.Join(u.CacheImageDirectory, u.SavedImageListFile)
+			u.SaveJson(savedTemplate, f)
+			fmt.Printf(">>> ")
 		}
-	}
-	mirrorChan := make(chan *mirror.Mirror)
-	for i := 0; i < *cmdJobs; i++ {
-		wg.Add(1)
-		go worker(i+1, mirrorChan)
-	}
+		appendListMutex.Unlock()
+	})
 
 	var num int = 0
 	for scanner.Scan() {
@@ -190,22 +157,23 @@ func SaveImages() {
 		}
 
 		num++
-		mirrorChan <- mirror.NewMirror(&mirror.MirrorOptions{
-			Source:    u.ConstructRegistry(v[0], *cmdSourceReg),
-			Tag:       v[1],
-			Directory: u.CacheImageDirectory,
-			ArchList:  strings.Split(*cmdArch, ","),
-			Mode:      mirror.MODE_SAVE,
-			ID:        num,
+		ch <- mirror.NewMirror(&mirror.MirrorOptions{
+			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
+			Destination: u.ConstructRegistry(v[0], *cmdSourceReg),
+			Tag:         v[1],
+			Directory:   u.CacheImageDirectory,
+			ArchList:    strings.Split(*cmdArch, ","),
+			Mode:        mirror.MODE_SAVE,
+			ID:          num,
 		})
 	}
-	close(mirrorChan)
+	close(ch)
 	wg.Wait()
 
 	// Write saved image json
 	if len(savedTemplate.List) > 0 {
-		dir := filepath.Join(u.CacheImageDirectory, u.SavedImageListFile)
-		u.SaveJson(savedTemplate, dir)
+		f := filepath.Join(u.CacheImageDirectory, u.SavedImageListFile)
+		u.SaveJson(savedTemplate, f)
 	}
 
 	if compressFormat != archive.CompressFormatDirectory {

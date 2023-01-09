@@ -34,11 +34,17 @@ func (m *Mirror) StartSave() error {
 	// Save images into local dir
 	for _, img := range m.images {
 		if err := img.Save(); err != nil {
-			logrus.WithFields(logrus.Fields{"M_ID": m.MID}).Error(err.Error())
+			logrus.WithFields(logrus.Fields{"M_ID": m.MID}).Error(err)
 		}
 	}
-	logrus.WithField("M_ID", m.MID).
-		Infof("Successfully saved [%s:%s]", m.Source, m.Tag)
+	if m.Saved() != m.ImageNum() {
+		img := []string{}
+		for i := range m.images {
+			img = append(img, m.images[i].Source)
+		}
+		return fmt.Errorf("some images failed to save: %v", img)
+	}
+	logrus.WithField("M_ID", m.MID).Infof("SAVED [%s:%s]", m.Source, m.Tag)
 
 	return nil
 }
