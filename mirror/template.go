@@ -34,10 +34,12 @@ type SavedMirrorTemplate struct {
 }
 
 type SavedImagesTemplate struct {
-	Arch    string
-	OS      string
-	Variant string
-	Folder  string
+	Digest    string
+	Arch      string
+	OS        string
+	OsVersion string
+	Variant   string
+	Folder    string
 }
 
 type DockerBuildxManifest struct {
@@ -84,10 +86,12 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 			mT.ArchList = append(mT.ArchList, img.Arch)
 		}
 		iT := SavedImagesTemplate{
-			Arch:    img.Arch,
-			OS:      img.OS,
-			Variant: img.Variant,
-			Folder:  img.SavedFolder,
+			Digest:    img.Digest,
+			Arch:      img.Arch,
+			Variant:   img.Variant,
+			OS:        img.OS,
+			OsVersion: img.OsVersion,
+			Folder:    img.SavedFolder,
 		}
 		mT.Images = append(mT.Images, iT)
 	}
@@ -164,6 +168,7 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 				Arch:            iT.Arch,
 				Variant:         iT.Variant,
 				OS:              iT.OS,
+				OsVersion:       iT.OsVersion,
 				SavedFolder:     iT.Folder,
 				SourceMediaType: manifest.DockerV2Schema2MediaType,
 			})

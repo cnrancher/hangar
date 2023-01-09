@@ -1,8 +1,7 @@
-package loader
+package loadvalidate
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,15 +15,13 @@ import (
 )
 
 var (
-	cmd            = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdSource      = cmd.String("s", "", "saved file to load (tar tarball or a directory)")
-	cmdDestReg     = cmd.String("d", "", "target private registry:port")
-	cmdFailed      = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
-	cmdCompress    = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
-	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
-	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	cmd         = flag.NewFlagSet("mirror-validate", flag.ExitOnError)
+	cmdSource   = cmd.String("s", "", "saved file to load (tar tarball or a directory)")
+	cmdDestReg  = cmd.String("d", "", "target private registry:port")
+	cmdFailed   = cmd.String("o", "load-validate-failed.txt", "file name of the validate failed image list")
+	cmdCompress = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
+	cmdDebug    = cmd.Bool("debug", false, "enable the debug output")
+	cmdJobs     = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
 
 	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest repo type is harbor and dest project is empty")
 )
@@ -33,28 +30,22 @@ func Parse(args []string) {
 	cmd.Parse(args)
 }
 
-func LoadImages() {
-	var err error
+func LoadValidate() {
 	if *cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	if *cmdSource == "" {
 		logrus.Error("saved file not specified.")
 		logrus.Error("Use '-s' to specify the file name (tarball or directory)")
-		logrus.Fatal("Failed to load images.")
+		logrus.Fatal("Failed to validate images.")
 	}
 	if *cmdDestReg == "" {
 		logrus.Error("dest registry not specified.")
 		logrus.Errorf("Use '-d' to specify the dest registry:port")
-		logrus.Fatal("Failed to load images.")
+		logrus.Fatal("Failed to validate images.")
 	}
-
 	if err := registry.SelfCheckSkopeo(); err != nil {
 		logrus.Error("registry self check skopeo failed.")
-		logrus.Fatal(err)
-	}
-	if err := registry.SelfCheckBuildX(); err != nil {
-		logrus.Error("registry self check failed.")
 		logrus.Fatal(err)
 	}
 
@@ -69,7 +60,6 @@ func LoadImages() {
 	default:
 		compressFormat = archive.CompressFormatGzip
 	}
-
 	// Check cache image directory
 	if compressFormat != archive.CompressFormatDirectory {
 		if err := u.CheckCacheDirEmpty(); err != nil {
@@ -85,6 +75,7 @@ func LoadImages() {
 		logrus.Error(err)
 	}
 
+	var err error
 	directory := "."
 	if directory, err = u.GetAbsPath(directory); err != nil {
 		logrus.Fatal(err)
@@ -116,8 +107,6 @@ func LoadImages() {
 	if !info.IsDir() {
 		logrus.Fatalf("'%s' is not a directory", directory)
 	}
-
-	u.DeleteIfExist(*cmdFailed)
 	u.CheckWorkerNum(false, cmdJobs)
 	logrus.Infof("Creating %d job workers", *cmdJobs)
 	u.WorkerNum = *cmdJobs
@@ -125,48 +114,22 @@ func LoadImages() {
 	if err := command.DockerLoginRegistry(*cmdDestReg); err != nil {
 		logrus.Error(err)
 	}
-
-	var mList []*mirror.Mirror
-	if *cmdRepoType == "harbor" {
-		// Set default project name if dest repo is harbor
-		mList, err = mirror.LoadSavedTemplates(
-			directory, *cmdDestReg, *cmdDefaultProject)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		var projMap = make(map[string]bool, 0)
-		for _, m := range mList {
-			// create harbor project before load
-			proj := u.GetProjectName(m.Destination)
-			if projMap[proj] {
-				continue
-			}
-			projMap[proj] = true
-			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
-			if *cmdHarborHttps {
-				url = "https://" + url
-			} else {
-				url = "http://" + url
-			}
-			user, passwd, _ := registry.GetDockerPassword(*cmdDestReg)
-			err := registry.CreateHarborProject(proj, url, user, passwd)
-			if err != nil {
-				logrus.Errorf("Failed to create harbor project %q: %q",
-					proj, err)
-			}
-		}
-	} else {
-		// Do not set default project name if dest repo is not harbor
-		mList, err = mirror.LoadSavedTemplates(directory, *cmdDestReg, "")
-		if err != nil {
-			logrus.Fatal(err)
-		}
+	mList, err := mirror.LoadSavedTemplates(directory, *cmdDestReg, "")
+	if err != nil {
+		logrus.Fatal(err)
 	}
-
-	for _, m := range mList {
-		ch <- m
+	for i := range mList {
+		mList[i].Mode = mirror.MODE_LOAD_VALIDATE
+		if u.GetProjectName(mList[i].Source) == "" {
+			mList[i].Source = u.ReplaceProjectName(
+				mList[i].Source, *cmdDefaultProject)
+		}
+		if u.GetProjectName(mList[i].Destination) == "" {
+			mList[i].Destination = u.ReplaceProjectName(
+				mList[i].Destination, *cmdDefaultProject)
+		}
+		ch <- mList[i]
 	}
-
 	close(ch)
 	wg.Wait()
 }

@@ -1,4 +1,4 @@
-package validator
+package mirrorvalidate
 
 import (
 	"bufio"
@@ -29,7 +29,7 @@ func Parse(args []string) {
 	cmd.Parse(args)
 }
 
-func ValidateImages() {
+func MirrorValidate() {
 	if *cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}

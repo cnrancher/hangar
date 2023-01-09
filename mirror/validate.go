@@ -10,28 +10,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (m *Mirror) StartValidate() error {
+func (m *Mirror) MirrorValidate() error {
 	if m == nil {
-		return fmt.Errorf("StartValidate: %w", u.ErrNilPointer)
+		return fmt.Errorf("MirrorValidate: %w", u.ErrNilPointer)
 	}
 
 	if m.Mode != MODE_MIRROR_VALIDATE {
-		return fmt.Errorf("StartValidate: mirrorer is not in VALIDATE mode")
+		return fmt.Errorf("MirrorValidate: not in MIRROR_VALIDATE mode")
 	}
 
 	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
-		return fmt.Errorf("StartValidate: %w", err)
+		return fmt.Errorf("MirrorValidate: %w", err)
 	}
 
-	if err := m.validateImages(); err != nil {
-		return err
-	}
-
-	return nil
+	return m.validateMirrorImages()
 }
 
-func (m *Mirror) validateImages() error {
+func (m *Mirror) validateMirrorImages() error {
 	switch m.destMIMEType {
 	case manifest.DockerV2ListMediaType:
 		if len(m.destSchema2List.Manifests) == 0 {
@@ -159,6 +155,91 @@ func (m *Mirror) validateImages() error {
 	logrus.WithField("M_ID", m.MID).
 		Infof("PASS [%s:%s] == [%s:%s]",
 			m.Source, m.Tag, m.Destination, m.Tag)
+
+	return nil
+}
+
+func (m *Mirror) LoadValidate() error {
+	if m == nil {
+		return u.ErrNilPointer
+	}
+	if m.Mode != MODE_LOAD_VALIDATE {
+		return fmt.Errorf("LoadValidate: not in LOAD_VALIDATE mode")
+	}
+
+	return m.validateLoadImages()
+}
+
+func (m *Mirror) validateLoadImages() error {
+	// source image list is already initialized, need to inspect dest image
+	// Get destination manifest
+	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.Destination, m.Tag)
+	out, err := registry.SkopeoInspect(inspectDestImage, "--raw")
+	if err != nil {
+		return fmt.Errorf("[%s:%s]: destination manifest does not exists",
+			m.Destination, m.Tag)
+	}
+
+	m.destMIMEType = manifest.GuessMIMEType([]byte(out))
+	switch m.destMIMEType {
+	case manifest.DockerV2ListMediaType: // schemaVersion 2 manifest.list.v2
+		m.destSchema2List, err = manifest.Schema2ListFromManifest([]byte(out))
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("[%s:%s]: destination manifest MIME type unknow: %v",
+			m.Destination, m.Tag, m.destMIMEType)
+	}
+	m.destManifestStr = out
+
+	for i := range m.images {
+		m.images[i].Copied = true
+	}
+	// validate load images
+	srcSpecs := m.SourceManifestSpec()
+	dstSpecs := m.DestinationManifestSpec()
+	valid := true
+	if len(srcSpecs) == len(dstSpecs) {
+		for i := range srcSpecs {
+			src := srcSpecs[i]
+			dst := dstSpecs[i]
+			// do not compare digest since the digest of schema1 is different
+			// with schema2
+			// if src.Digest != dst.Digest {
+			// 	valid = false
+			// }
+			if src.Platform.Architecture != dst.Platform.Architecture {
+				valid = false
+			}
+			if src.Platform.OS != dst.Platform.OS {
+				valid = false
+			}
+			if src.Platform.Variant != dst.Platform.Variant {
+				valid = false
+			}
+			if src.Platform.OsVersion != dst.Platform.OsVersion {
+				valid = false
+			}
+			if !valid {
+				break
+			}
+		}
+	} else {
+		valid = false
+	}
+	if !valid {
+		srcJson, _ := json.MarshalIndent(srcSpecs, "", "  ")
+		dstJson, _ := json.MarshalIndent(dstSpecs, "", "  ")
+		logrus.WithField("M_ID", m.MID).
+			Errorf("srcSpec: %+v", string(srcJson))
+		logrus.WithField("M_ID", m.MID).
+			Errorf("dstSpec: %+v", string(dstJson))
+		return fmt.Errorf("source manifest %q != dest %q, tag %q",
+			m.Source, m.Destination, m.Tag)
+	}
+	logrus.WithField("M_ID", m.MID).Infof("PASS [%s:%s] == [%s:%s]",
+		m.Source, m.Tag, m.Destination, m.Tag)
 
 	return nil
 }

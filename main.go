@@ -6,6 +6,7 @@ import (
 
 	convertCMD "cnrancher.io/image-tools/cmd/convert"
 	loadCMD "cnrancher.io/image-tools/cmd/load"
+	loadValidateCMD "cnrancher.io/image-tools/cmd/load-validate"
 	mirrorCMD "cnrancher.io/image-tools/cmd/mirror"
 	mirrorValidateCMD "cnrancher.io/image-tools/cmd/mirror-validate"
 	saveCMD "cnrancher.io/image-tools/cmd/save"
@@ -44,7 +45,10 @@ func main() {
 		convertCMD.Convert()
 	case "mirror-validate":
 		mirrorValidateCMD.Parse(os.Args[2:])
-		mirrorValidateCMD.ValidateImages()
+		mirrorValidateCMD.MirrorValidate()
+	case "load-validate":
+		loadValidateCMD.Parse(os.Args[2:])
+		loadValidateCMD.LoadValidate()
 	case "-v":
 		fallthrough
 	case "--version":

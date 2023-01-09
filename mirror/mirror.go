@@ -84,9 +84,9 @@ func (m *Mirror) Start() error {
 	case MODE_SAVE:
 		return m.StartSave()
 	case MODE_MIRROR_VALIDATE:
-		return m.StartValidate()
+		return m.MirrorValidate()
 	case MODE_LOAD_VALIDATE:
-		return nil
+		return m.LoadValidate()
 	}
 	return fmt.Errorf("unknow mirror mode")
 }
