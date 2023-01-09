@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	cmd         = flag.NewFlagSet("mirror-validate", flag.ExitOnError)
+	cmd         = flag.NewFlagSet("load-validate", flag.ExitOnError)
 	cmdSource   = cmd.String("s", "", "saved file to load (tar tarball or a directory)")
 	cmdDestReg  = cmd.String("d", "", "target private registry:port")
 	cmdFailed   = cmd.String("o", "load-validate-failed.txt", "file name of the validate failed image list")

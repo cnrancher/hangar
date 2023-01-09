@@ -76,6 +76,7 @@ func showHelp() {
 	fmt.Printf("  save \t\t\tSave image from source registry to tar.gz file.\n")
 	fmt.Printf("  convert-list \t\tConvert image list to 'mirror' format.\n")
 	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
+	fmt.Printf("  load-validate \tValidate loaded images.\n")
 	fmt.Printf("  version \t\tShow version.\n")
 }
 

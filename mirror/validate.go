@@ -199,36 +199,17 @@ func (m *Mirror) validateLoadImages() error {
 	// validate load images
 	srcSpecs := m.SourceManifestSpec()
 	dstSpecs := m.DestinationManifestSpec()
-	valid := true
-	if len(srcSpecs) == len(dstSpecs) {
-		for i := range srcSpecs {
-			src := srcSpecs[i]
-			dst := dstSpecs[i]
-			// do not compare digest since the digest of schema1 is different
-			// with schema2
-			// if src.Digest != dst.Digest {
-			// 	valid = false
-			// }
-			if src.Platform.Architecture != dst.Platform.Architecture {
-				valid = false
-			}
-			if src.Platform.OS != dst.Platform.OS {
-				valid = false
-			}
-			if src.Platform.Variant != dst.Platform.Variant {
-				valid = false
-			}
-			if src.Platform.OsVersion != dst.Platform.OsVersion {
-				valid = false
-			}
-			if !valid {
-				break
-			}
-		}
-	} else {
-		valid = false
+	// do not compare digests, if source image is schema1,
+	// the dest image is schema2, the digest won't be equal.
+	// and we cannot inspect digest from images saved directory because the
+	// saved image format is OCI, and dest image format is s2v2.
+	for i := range srcSpecs {
+		srcSpecs[i].Digest = ""
 	}
-	if !valid {
+	for i := range dstSpecs {
+		dstSpecs[i].Digest = ""
+	}
+	if !CompareBuildxManifests(srcSpecs, dstSpecs) {
 		srcJson, _ := json.MarshalIndent(srcSpecs, "", "  ")
 		dstJson, _ := json.MarshalIndent(dstSpecs, "", "  ")
 		logrus.WithField("M_ID", m.MID).
