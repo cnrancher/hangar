@@ -4,21 +4,27 @@ ARG VERSION
 ARG GOPROXY=https://goproxy.io,direct
 ARG DRONE_TAG
 ARG DRONE_COMMIT_SHA
+ARG DOCKER_USERNAME
+ARG DOCKER_PASSWORD
 
-RUN go env -w GO111MODULE=on
-RUN go env -w GOPROXY=${GOPROXY}
+# Add docker cli
+COPY --from=docker.io/library/docker:20.10.21 /usr/local/bin/docker /usr/local/bin/
 
 ENV DRONE_TAG=${DRONE_TAG}
 ENV DRONE_COMMIT_SHA=${DRONE_COMMIT_SHA}
 ENV DAPPER_SOURCE /source
 ENV VERSION=${VERSION}
 ENV DAPPER_OUTPUT build
+ENV DOCKER_USERNAME=${DOCKER_USERNAME}
+ENV DOCKER_PASSWORD=${DOCKER_PASSWORD}
+ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
-
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+RUN go env -w GO111MODULE=on && \
+    go env -w GOPROXY=${GOPROXY} && \
+    go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
 CMD ["ci"]

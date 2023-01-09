@@ -11,8 +11,6 @@ steps:
   - name: ci
     image: rancher/dapper:v0.6.0
     environment:
-      PROXY:
-        from_secret: proxy
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
@@ -35,6 +33,7 @@ steps:
       - sha256
       files:
       - "build/image-tools-*"
+      title: "${DRONE_TAG}"
     when:
       event:
       - tag
@@ -64,10 +63,122 @@ steps:
         - "refs/tags/*rc*"
         - "refs/tags/*alpha*"
 
+  - name: docker-publish-amd64
+    pull: default
+    image: rancher/dapper:v0.6.0
+    environment:
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      REGISTRY: "docker.io/cnrancher"
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper docker
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - tag
+
 volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
+
+node:
+  instance: agent-amd64
+
+---
+kind: pipeline
+name: ci-pipeline-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+  - name: ci
+    image: rancher/dapper:v0.6.0
+    environment:
+      PROXY:
+        from_secret: proxy
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper ci
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - push
+      - pull_request
+      - tag
+  - name: docker-publish-arm64
+    pull: default
+    image: rancher/dapper:v0.6.0
+    environment:
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      REGISTRY: "docker.io/cnrancher"
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper docker
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - tag
+
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+node:
+  instance: agent-arm64
+
+---
+
+kind: pipeline
+name: manifest
+
+steps:
+  - name: docker-publish-manifest
+    pull: default
+    image: rancher/dapper:v0.6.0
+    environment:
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      REGISTRY: "docker.io/cnrancher"
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper docker-manifest
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+      - tag
+
+volumes:
+  - name: docker
+    host:
+      path: /var/run/docker.sock
+
+depends_on:
+  - ci-pipeline-amd64
+  - ci-pipeline-arm64
 
 node:
   instance: agent-amd64

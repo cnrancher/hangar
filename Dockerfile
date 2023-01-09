@@ -1,5 +1,4 @@
-ARG SKOPEO_DIGEST
-FROM quay.io/skopeo/stable@${SKOPEO_DIGEST}
+FROM quay.io/skopeo/stable
 
 RUN yum -y update && \
     yum -y install jq vim && \
