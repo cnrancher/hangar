@@ -172,6 +172,10 @@ func Test_CopiedTag(t *testing.T) {
 	if CopiedTag("1", "windows", "arm64", "v8") != "1-windows-arm64" {
 		t.Error("CopiedTag failed")
 	}
+	if CopiedTag("1", "windows", "amd64", "", "1.0.1234") !=
+		"1-windows-amd64-1.0.1234" {
+		t.Error("CopiedTag failed")
+	}
 }
 
 func Test_Load(t *testing.T) {

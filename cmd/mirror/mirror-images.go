@@ -149,15 +149,14 @@ func MirrorImages() {
 			ID:          num,
 		})
 
+		// If the dest image project name is empty
+		if u.GetProjectName(m.Destination) == "" {
+			logrus.Warnf("The project of %q is empty, set to default %q",
+				m.Destination, *cmdDefaultProject)
+			m.Destination = u.ReplaceProjectName(
+				m.Destination, *cmdDefaultProject)
+		}
 		if *cmdRepoType == "harbor" {
-			// If the dest image project name is empty
-			if u.GetProjectName(m.Destination) == "" {
-				logrus.Warnf("The project of %q is empty, set to default %q",
-					m.Destination, *cmdDefaultProject)
-				m.Destination = u.ReplaceProjectName(
-					m.Destination, *cmdDefaultProject)
-			}
-
 			destReg := u.GetRegistryName(m.Destination)
 			destProj := u.GetProjectName(m.Destination)
 			// Create the project name

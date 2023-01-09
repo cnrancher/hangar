@@ -153,7 +153,13 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 		})
 
 		for _, iT := range mT.Images {
-			copiedTag := image.CopiedTag(mT.Tag, iT.OS, iT.Arch, iT.Variant)
+			var copiedTag string
+			if iT.OsVersion == "" {
+				copiedTag = image.CopiedTag(mT.Tag, iT.OS, iT.Arch, iT.Variant)
+			} else {
+				copiedTag = image.CopiedTag(
+					mT.Tag, iT.OS, iT.Arch, iT.Variant, iT.OsVersion)
+			}
 			// Source is a directory
 			srcImageDir := filepath.Join(directory, iT.Folder)
 			// Destination is the dest registry

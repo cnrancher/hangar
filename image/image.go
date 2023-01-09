@@ -1,6 +1,9 @@
 package image
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Image struct {
 	Source      string
@@ -18,7 +21,6 @@ type Image struct {
 	Directory string
 
 	// SavedFolder is the folder name of the saved image
-	// folder name format is: sha256sum( SOURCE:CopiedTag() )
 	SavedFolder string
 
 	Copied bool
@@ -68,11 +70,14 @@ func NewImage(opts *ImageOptions) *Image {
 }
 
 // CopiedTag gets the tag of the copied image,
-// the format should be: ${VERSION}-${ARCH}${VARIANT}
+// the format should be: ${VERSION}-${ARCH}${VARIANT}${EXTRA}
 //
 // If the OS is not linux, such as windows, darwin, etc
 // the format should be: ${VERSION}-${OS}-${ARCH}${VARIANT}
-func CopiedTag(tag, OS, arch, variant string) string {
+//
+// If the extra is not empty, the tag format should be:
+// ${VERSION}-${OS}-${ARCH}${VARIANT}-${EXTRA}
+func CopiedTag(tag, OS, arch, variant string, extra ...string) string {
 	var (
 		prefix string // ${VERSION}-${OS} or // ${VERSION} only if linux
 		suffix string // ${ARCH}${VARIANT} (variant can be empty)
@@ -98,6 +103,9 @@ func CopiedTag(tag, OS, arch, variant string) string {
 	default:
 		// other arch: s390x, ppc64...
 		suffix = fmt.Sprintf("%s%s", arch, variant)
+	}
+	if len(extra) > 0 {
+		suffix = fmt.Sprintf("%s-%s", suffix, strings.Join(extra, "-"))
 	}
 
 	return fmt.Sprintf("%s-%s", prefix, suffix)

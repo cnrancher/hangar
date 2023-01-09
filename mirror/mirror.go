@@ -329,11 +329,17 @@ func (m *Mirror) initSourceImageListByListV2() error {
 					m.Source, manifest.Platform.Architecture)
 			continue
 		}
+		extra := []string{}
+		if manifest.Platform.OSVersion != "" {
+			extra = append(extra, manifest.Platform.OSVersion)
+		}
 		copiedTag := image.CopiedTag(
 			m.Tag,
 			manifest.Platform.OS,
 			manifest.Platform.Architecture,
-			manifest.Platform.Variant)
+			manifest.Platform.Variant,
+			extra...,
+		)
 		sourceImage := fmt.Sprintf("%s@%s", m.Source, manifest.Digest)
 		destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
 		// create a new image object and append it into image list

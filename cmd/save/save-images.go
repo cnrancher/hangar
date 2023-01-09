@@ -157,7 +157,7 @@ func SaveImages() {
 		}
 
 		num++
-		ch <- mirror.NewMirror(&mirror.MirrorOptions{
+		m := mirror.NewMirror(&mirror.MirrorOptions{
 			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
 			Destination: u.ConstructRegistry(v[0], *cmdSourceReg),
 			Tag:         v[1],
@@ -166,6 +166,11 @@ func SaveImages() {
 			Mode:        mirror.MODE_SAVE,
 			ID:          num,
 		})
+		if u.GetProjectName(m.Source) == "" {
+			m.Source = u.ReplaceProjectName(m.Source, "library")
+			m.Destination = u.ReplaceProjectName(m.Destination, "library")
+		}
+		ch <- m
 	}
 	close(ch)
 	wg.Wait()
