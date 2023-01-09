@@ -93,7 +93,6 @@ hello-world library/hello-world latest
 ./image-tools mirror -f ./list.txt -repo-type=harbor
 
 # 使用 -default-project 参数指定默认的 project 名称
-# 仅当目标仓库类型为 harbor 且镜像没有 project 时，为镜像添加默认的 project 名称
 # 默认值为 library
 # 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
 ./image-tools mirror -f ./list.txt -repo-type=harbor -default-project=library

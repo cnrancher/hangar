@@ -105,10 +105,9 @@ Usage of mirror-validate:
             }
         }
     ]
-    11:22:33 [ERRO] [M_ID:1] Validate failed: source manifest "docker.io/library/name" != dest "docker.io/library/name", tag "latest"
     ```
 
-    表示源镜像的 Manifest List 与目标镜像的 Manifest List 不符合，如果是 `digest` 不匹配，表示上游镜像已更新，私有仓库中的镜像还没有被更新，可重新运行 `mirror` 命令；若是其他字段不匹配 (`variant`, `os.version`) 等，也可通过重新运行 `mirror` 命令尝试修复。
+    表示源镜像 (srcSpec) 的 Manifest List 与目标镜像 (dstSpec) 的 Manifest List 不符合，如果是 `digest` 不匹配，表示上游镜像已更新，私有仓库中的镜像还没有被更新，可重新运行 `mirror` 命令；若是其他字段不匹配 (`variant`, `os.version`) 等，也可通过重新运行 `mirror` 命令尝试修复。
 
 # Logs
 

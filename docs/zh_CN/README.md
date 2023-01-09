@@ -75,7 +75,8 @@
 - [save](./save.md): 根据列表文件，将镜像下载至本地，生成压缩包。
 - [load](./load.md): （离线环境）读取压缩包，将压缩包内镜像上传至私有仓库。
 - [convert-list](./convert-list.md): 转换镜像列表格式。
-- [mirror-validate](./mirror-validate.md): 对已 Mirror 过的镜像校验。
+- [mirror-validate](./mirror-validate.md): 对已 Mirror 的镜像校验。
+- [load-validate](./load-validate.md): 对已 Load 的镜像校验。
 
 ## 常见问题
 
