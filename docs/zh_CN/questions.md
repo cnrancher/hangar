@@ -17,7 +17,7 @@
 
     尝试使用 `skopeo inspect docker://<image> --raw | jq` 检查是否能获取到该镜像的 Manifest。
 
-3. 报错 `invalid media type`
+3. 报错 `unsupported MIME type`
 
     源镜像的 Manifest 的 `mediaType` 格式不被支持。
 
@@ -25,6 +25,7 @@
 
     - `application/vnd.docker.distribution.manifest.list.v2+json`
     - `application/vnd.docker.distribution.manifest.v2+json`
+    - `application/vnd.docker.distribution.manifest.v1+json`
 
     可使用 `skopeo inspect docker://<image> --raw | jq` 获取源镜像的 Manifest 的 `mediaType`。
 
