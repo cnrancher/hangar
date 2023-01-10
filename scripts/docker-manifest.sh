@@ -35,8 +35,8 @@ echo "${DOCKER_PASSWORD}" | docker login \
     --username ${DOCKER_USERNAME} \
     --password-stdin
 
-export TAG=${TAG:="image-tools"}
-export VERSION=${VERSION:=$(git describe --tags 2>/dev/null || echo "")}
+export TAG=${TAG:-"image-tools"}
+export VERSION=${VERSION:-$(git describe --tags 2>/dev/null || echo "")}
 export REGISTRY=${REGISTRY:-"docker.io/cnrancher"}
 if [[ "${VERSION}" = "" ]]; then
     if [[ "${DRONE_TAG}" != "" ]]; then
@@ -53,3 +53,10 @@ echo "TAG: ${TAG}:${VERSION}"
 docker buildx imagetools create --tag "${REGISTRY}/${TAG}:${VERSION}" \
     "${REGISTRY}/${TAG}:${VERSION}-arm64" \
     "${REGISTRY}/${TAG}:${VERSION}-amd64"
+
+# update latest tag
+if [[ "${SKIP_LATEST_TAG}" != "1" ]]; then
+    docker buildx imagetools create --tag "${REGISTRY}/${TAG}:latest" \
+        "${REGISTRY}/${TAG}:${VERSION}-arm64" \
+        "${REGISTRY}/${TAG}:${VERSION}-amd64"
+fi

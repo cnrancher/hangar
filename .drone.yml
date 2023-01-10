@@ -148,7 +148,7 @@ node:
 ---
 
 kind: pipeline
-name: manifest
+name: ci-manifest-amd64
 
 steps:
   - name: docker-publish-manifest
@@ -170,6 +170,37 @@ steps:
     when:
       event:
       - tag
+      ref:
+        include:
+        - "refs/tags/v*"
+        exclude:
+        - "refs/tags/*rc*"
+        - "refs/tags/*alpha*"
+
+  - name: docker-publish-manifest-prerelease
+    pull: default
+    image: rancher/dapper:v0.6.0
+    environment:
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      DOCKER_PASSWORD:
+        from_secret: docker_password
+      SKIP_LATEST_TAG: "1"
+      REGISTRY: "docker.io/cnrancher"
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper docker-manifest
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+        - tag
+      ref:
+        include:
+        - "refs/tags/*rc*"
+        - "refs/tags/*alpha*"
 
 volumes:
   - name: docker
