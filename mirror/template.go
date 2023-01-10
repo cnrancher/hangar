@@ -148,6 +148,7 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 			Directory:   directory,
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
+			Line:        fmt.Sprintf("%s:%s", mT.Source, mT.Tag),
 			Mode:        MODE_LOAD,
 			ID:          i + 1,
 		})

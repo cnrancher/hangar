@@ -148,7 +148,8 @@ func SaveImages() {
 
 	var num int = 0
 	for scanner.Scan() {
-		v := processImageListLine(scanner.Text())
+		l := scanner.Text()
+		v := processImageListLine(l)
 		if len(v) != 2 {
 			if usingStdin {
 				fmt.Printf(">>> ")
@@ -163,6 +164,7 @@ func SaveImages() {
 			Tag:         v[1],
 			Directory:   u.CacheImageDirectory,
 			ArchList:    strings.Split(*cmdArch, ","),
+			Line:        l,
 			Mode:        mirror.MODE_SAVE,
 			ID:          num,
 		})
