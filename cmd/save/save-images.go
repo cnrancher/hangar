@@ -183,6 +183,11 @@ func SaveImages() {
 		u.SaveJson(savedTemplate, f)
 	}
 
+	if len(savedTemplate.List) == 0 {
+		logrus.Error("No images saved into local directory, skip.")
+		os.Exit(1)
+	}
+
 	if compressFormat != archive.CompressFormatDirectory {
 		logrus.Infof("Compressing %s...", *cmdDest)
 
