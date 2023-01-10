@@ -10,7 +10,7 @@ Usage of load:
   -debug
         enable the debug output
   -default-project string
-        project name when dest repo type is harbor and dest project is empty (default "library")
+        project name when project is empty (default "library")
   -harbor-https
         use HTTPS by default when create harbor project (default true)
   -j int

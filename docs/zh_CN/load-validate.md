@@ -10,7 +10,7 @@ Usage of load-validate:
   -debug
         enable the debug output
   -default-project string
-        project name when dest repo type is harbor and dest project is empty (default "library")
+        project name when project is empty (default "library")
   -j int
         job number, async mode if larger than 1, maximun is 20 (default 1)
   -o string

@@ -23,7 +23,7 @@ var (
 	cmdDebug    = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs     = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
 
-	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest repo type is harbor and dest project is empty")
+	cmdDefaultProject = cmd.String("default-project", "library", "project name when project is empty")
 )
 
 func Parse(args []string) {

@@ -21,17 +21,7 @@ $ docker pull cnrancher/image-tools:${VERSION}
 
 $ docker run cnrancher/image-tools:${VERSION} --help
 Usage:	image-tools COMMAND [OPTIONS]
-
-Run 'image-tools COMMAND --help' for more information on a command.
-
-Commands:
-  mirror 		    Mirror image from source registry to destination registry.
-  load 			    Load image from saved tar.gz file.
-  save 			    Save image from source registry to tar.gz file.
-  convert-list 		Convert image list to 'mirror' format.
-  mirror-validate 	Validate mirrored images.
-  load-validate 	Validate loaded images.
-  version 		    Show version.
+......
 
 $ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/image-tools:${VERSION}
 ```

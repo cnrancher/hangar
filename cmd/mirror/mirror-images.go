@@ -29,7 +29,7 @@ var (
 	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
 	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
 
-	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest repo type is harbor and dest project is empty")
+	cmdDefaultProject = cmd.String("default-project", "library", "project name when dest project is empty")
 )
 
 func Parse(args []string) {

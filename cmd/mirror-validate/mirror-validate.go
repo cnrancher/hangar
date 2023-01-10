@@ -23,6 +23,8 @@ var (
 	cmdFailed    = cmd.String("o", "mirror-validate-failed.txt", "file name of the validate failed image list")
 	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
 	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximun is 20")
+
+	cmdDefaultProject = cmd.String("default-project", "library", "default project name when dest project is empty")
 )
 
 func Parse(args []string) {
@@ -102,6 +104,10 @@ func MirrorValidate() {
 			Mode:        mirror.MODE_MIRROR_VALIDATE,
 			ID:          num,
 		})
+		if u.GetProjectName(m.Destination) == "" {
+			m.Destination = u.ReplaceProjectName(
+				m.Destination, *cmdDefaultProject)
+		}
 		ch <- m
 	}
 
