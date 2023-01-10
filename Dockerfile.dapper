@@ -6,6 +6,7 @@ ARG DRONE_TAG
 ARG DRONE_COMMIT_SHA
 ARG DOCKER_USERNAME
 ARG DOCKER_PASSWORD
+ARG SKIP_LATEST_TAG
 
 # Add docker cli
 COPY --from=docker.io/library/docker:20.10.21 /usr/local/bin/docker /usr/local/bin/
@@ -18,6 +19,7 @@ ENV DAPPER_OUTPUT build
 ENV DOCKER_USERNAME=${DOCKER_USERNAME}
 ENV DOCKER_PASSWORD=${DOCKER_PASSWORD}
 ENV DAPPER_DOCKER_SOCKET=true
+ENV SKIP_LATEST_TAG=${SKIP_LATEST_TAG}
 WORKDIR ${DAPPER_SOURCE}
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
