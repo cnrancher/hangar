@@ -73,12 +73,12 @@ func SaveImages() {
 		logrus.Error(err)
 	}
 
+	if err := u.CheckCacheDirEmpty(); err != nil {
+		logrus.Fatal(err)
+	}
 	// Check cache image directory
 	var compressPartSize int = 0
 	if compressFormat != archive.CompressFormatDirectory {
-		if err := u.CheckCacheDirEmpty(); err != nil {
-			logrus.Fatal(err)
-		}
 		if *cmdPart {
 			// segment compress enabled
 			var err error
