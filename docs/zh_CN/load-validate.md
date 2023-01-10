@@ -76,7 +76,7 @@ Usage of load-validate:
     ```text
     11:22:33 [ERRO] [M_ID:1] srcSpec: [
         {
-            "digest": "sha256:9997c2f450f51e5c5402854899c42354b7968ca8298815df812b00409533527c",
+            "digest": "",
             "platform": {
                 "architecture": "amd64",
                 "os": "linux"
@@ -85,16 +85,17 @@ Usage of load-validate:
     ]
     11:22:33 [ERRO] [M_ID:1] dstSpec: [
         {
-            "digest": "sha256:8ace038ea3a18057e865b81e5ccd12d75ddeec0fdbd331555d877d39ac3f45bb",
+            "digest": "",
             "platform": {
                 "architecture": "amd64",
-                "os": "linux"
+                "os": "windows"
+                "os.version": "1.0.10"
             }
         }
     ]
     ```
 
-    表示本地的镜像 (srcSpec) 于私有服务器中的镜像 (dstSpec) 的某些字段不符合
+    表示本地的镜像 (srcSpec) 与服务器中的镜像 (dstSpec) 的某些字段不符合
 
 # Logs
 

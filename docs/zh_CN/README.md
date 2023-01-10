@@ -16,6 +16,10 @@
 
 ## 运行环境
 
+本工具支持在容器内运行，有关 `image-tools` Docker 镜像的使用方式请参考 [docker-images.md](./docker-images.md)。
+
+若需要在本地运行本工具，请按照以下内容安装 `skopeo`、`docker` 和 `docker-buildx`。
+
 1. Linux 或 macOS 系统，架构为 amd64 或 arm64
 1. 确保 [skopeo](https://github.com/containers/skopeo/blob/main/install.md) 已安装
 
