@@ -1,10 +1,10 @@
 # image-tools
 
-`image-tools` is a tool for mirror/copy multi-arch container images from the public registry to your own personal registry with manifest list support.
+`image-tools` is a tool for mirroring/copying multi-arch container images from the public registry to your own personal registry with manifest list support.
 
-You can use `image-tools mirror` command to mirror images from source registry to your own registry.
+You can use the `image-tools mirror` command to mirror images from the source registry to your own registry.
 
-Or you can use `image-tools save` and `image-tools load` commands to save the images from public registry to `tar.gz` tarball and then load it into your private registry in air-gap mode.
+Or you can use the `image-tools save` and `image-tools load` commands to save the images from the public registry to the tar archive and then load them into your private registry in air-gap mode.
 
 ## Docs
 
@@ -32,7 +32,7 @@ You can download the latest compiled binary `image-tools-${OS}-${ARCH}-${VERSION
 # Get help message
 ./image-tools -h
 
-# Get help message of each command
+# Get help message for each command
 ./image-tools mirror -h
 ./image-tools save -h
 ......
