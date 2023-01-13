@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"cnrancher.io/image-tools/registry"
-	u "cnrancher.io/image-tools/utils"
+	"github.com/cnrancher/image-tools/pkg/registry"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

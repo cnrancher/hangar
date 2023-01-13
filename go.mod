@@ -1,4 +1,4 @@
-module cnrancher.io/image-tools
+module github.com/cnrancher/image-tools
 
 go 1.19
 

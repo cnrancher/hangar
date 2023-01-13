@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	command "cnrancher.io/image-tools/cmd"
-	"cnrancher.io/image-tools/mirror"
-	"cnrancher.io/image-tools/registry"
-	u "cnrancher.io/image-tools/utils"
+	command "github.com/cnrancher/image-tools/cmd"
+	"github.com/cnrancher/image-tools/pkg/mirror"
+	"github.com/cnrancher/image-tools/pkg/registry"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"cnrancher.io/image-tools/image"
-	"cnrancher.io/image-tools/registry"
-	u "cnrancher.io/image-tools/utils"
+	"github.com/cnrancher/image-tools/pkg/image"
+	"github.com/cnrancher/image-tools/pkg/registry"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"

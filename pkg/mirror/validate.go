@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"cnrancher.io/image-tools/registry"
-	u "cnrancher.io/image-tools/utils"
+	"github.com/cnrancher/image-tools/pkg/registry"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 )

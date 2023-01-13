@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"cnrancher.io/image-tools/image"
+	"github.com/cnrancher/image-tools/pkg/image"
 )
 
 func Test_NewSavedListTemplate(t *testing.T) {

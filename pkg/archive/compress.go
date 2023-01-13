@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"cnrancher.io/image-tools/archive/part"
+	"github.com/cnrancher/image-tools/pkg/archive/part"
 	"github.com/klauspost/compress/zstd"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	convertCMD "cnrancher.io/image-tools/cmd/convert"
-	loadCMD "cnrancher.io/image-tools/cmd/load"
-	loadValidateCMD "cnrancher.io/image-tools/cmd/load-validate"
-	mirrorCMD "cnrancher.io/image-tools/cmd/mirror"
-	mirrorValidateCMD "cnrancher.io/image-tools/cmd/mirror-validate"
-	saveCMD "cnrancher.io/image-tools/cmd/save"
-	u "cnrancher.io/image-tools/utils"
 	nested "github.com/antonfisher/nested-logrus-formatter"
+	convertCMD "github.com/cnrancher/image-tools/cmd/convert"
+	loadCMD "github.com/cnrancher/image-tools/cmd/load"
+	loadValidateCMD "github.com/cnrancher/image-tools/cmd/load-validate"
+	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
+	mirrorValidateCMD "github.com/cnrancher/image-tools/cmd/mirror-validate"
+	saveCMD "github.com/cnrancher/image-tools/cmd/save"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

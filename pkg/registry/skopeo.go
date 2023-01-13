@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	u "cnrancher.io/image-tools/utils"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

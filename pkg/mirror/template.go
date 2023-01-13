@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"cnrancher.io/image-tools/image"
-	u "cnrancher.io/image-tools/utils"
+	"github.com/cnrancher/image-tools/pkg/image"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"

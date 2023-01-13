@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"cnrancher.io/image-tools/registry"
+	"github.com/cnrancher/image-tools/pkg/registry"
 )
 
 func Test_StartSave(t *testing.T) {
