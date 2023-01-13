@@ -10,8 +10,8 @@ files=(
 )
 
 for f in ${files[@]}; do
-    if [ -e "$f" ]; then
-        # echo "Delete: $f"
+    if [[ -e "$f" ]]; then
+        echo "Delete: $f"
         rm -r $WORKINGDIR/$f &> /dev/null
     fi
 done

@@ -4,7 +4,7 @@ set -e
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
-if [ -e ./scripts/$1.sh ]; then
+if [[ -e ./scripts/$1.sh ]]; then
     ./scripts/"$1.sh"
 else
     exec "$@"
