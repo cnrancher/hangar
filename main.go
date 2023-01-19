@@ -6,6 +6,7 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	convertCMD "github.com/cnrancher/image-tools/cmd/convert"
+	generateListCMD "github.com/cnrancher/image-tools/cmd/generate-list"
 	loadCMD "github.com/cnrancher/image-tools/cmd/load"
 	loadValidateCMD "github.com/cnrancher/image-tools/cmd/load-validate"
 	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
@@ -49,6 +50,9 @@ func main() {
 	case "load-validate":
 		loadValidateCMD.Parse(os.Args[2:])
 		loadValidateCMD.LoadValidate()
+	case "generate-list":
+		generateListCMD.Parse(os.Args[2:])
+		generateListCMD.GenerateList()
 	case "-v":
 		fallthrough
 	case "--version":
@@ -77,6 +81,7 @@ func showHelp() {
 	fmt.Printf("  convert-list \t\tConvert image list to 'mirror' format.\n")
 	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
 	fmt.Printf("  load-validate \tValidate loaded images.\n")
+	fmt.Printf("  generate-list \tGenerate list from KDM data / chart path")
 	fmt.Printf("  version \t\tShow version.\n")
 }
 

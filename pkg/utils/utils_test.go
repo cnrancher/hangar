@@ -108,6 +108,7 @@ func Test_GetAbsPath(t *testing.T) {
 // EnsureDirExists should be test manually
 // DeleteIfExist   should be test manually
 // SaveJson        should be test manually
+// SaveSlice       should be test manually
 
 func Test_CheckWorkerNum(t *testing.T) {
 	var num int = 1

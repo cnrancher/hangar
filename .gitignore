@@ -9,6 +9,7 @@ skopeo
 *.tar.gz
 *.zstd
 *.part*
+data.json
 
 # default save image directory
 /saved-image-cache/

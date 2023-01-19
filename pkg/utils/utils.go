@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -195,6 +196,26 @@ func SaveJson(data interface{}, fileName string) error {
 	err = savedImageFile.Close()
 	if err != nil {
 		return fmt.Errorf("SaveJson: %w", err)
+	}
+	return nil
+}
+
+func SaveSlice(fileName string, data ...interface{}) error {
+	var buffer bytes.Buffer
+	for i := range data {
+		_, err := buffer.WriteString(fmt.Sprintf("%v\n", data[i]))
+		if err != nil {
+			return fmt.Errorf("SaveSlice: %w", err)
+		}
+	}
+	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("SaveSlice: %w", err)
+	}
+	defer f.Close()
+	_, err = f.WriteString(buffer.String())
+	if err != nil {
+		return fmt.Errorf("SaveSlice: %w", err)
 	}
 	return nil
 }
@@ -414,4 +435,20 @@ func CheckCacheDirEmpty() error {
 		return err
 	}
 	return nil
+}
+
+func AddSourceToImage(
+	imagesSet map[string]map[string]bool,
+	image string,
+	sources ...string,
+) {
+	if image == "" {
+		return
+	}
+	for _, source := range sources {
+		if imagesSet[source] == nil {
+			imagesSet[source] = make(map[string]bool)
+		}
+		imagesSet[source][image] = true
+	}
 }
