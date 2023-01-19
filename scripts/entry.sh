@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
+
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 

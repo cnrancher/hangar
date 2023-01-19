@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
@@ -14,18 +14,11 @@ echo "${DOCKER_PASSWORD}" | docker login \
     --username ${DOCKER_USERNAME} \
     --password-stdin
 
+source ${WORKINGDIR}/scripts/env.sh
+
 export TAG=${TAG:="image-tools"}
-export VERSION=${VERSION:=$(git describe --tags 2>/dev/null || echo "")}
 export REGISTRY=${REGISTRY:-"docker.io/cnrancher"}
-if [[ "${VERSION}" = "" ]]; then
-    if [[ "${DRONE_TAG}" != "" ]]; then
-        echo "DRONE_TAG: ${DRONE_TAG}"
-        VERSION=${DRONE_TAG}
-    else
-        echo "DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}"
-        VERSION=${DRONE_COMMIT_SHA:0:8}
-    fi
-fi
+export VERSION=${VERSION}
 echo "version: ${VERSION}"
 echo "TAG: ${TAG}:${VERSION}"
 

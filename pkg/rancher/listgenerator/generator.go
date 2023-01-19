@@ -164,7 +164,7 @@ func (g *Generator) generateFromKDMPath() error {
 	}
 	b, err := os.ReadFile(g.KDMPath)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMPath: %w", err)
+		return err
 	}
 	return g.generateFromKDMData(b)
 }

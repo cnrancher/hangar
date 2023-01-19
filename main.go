@@ -12,7 +12,7 @@ import (
 	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
 	mirrorValidateCMD "github.com/cnrancher/image-tools/cmd/mirror-validate"
 	saveCMD "github.com/cnrancher/image-tools/cmd/save"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,8 +76,8 @@ func showHelp() {
 	fmt.Println()
 	fmt.Printf("Commands: \n")
 	fmt.Printf("  mirror \t\tMirror image from source registry to destination registry.\n")
-	fmt.Printf("  load \t\t\tLoad image from saved tar.gz file.\n")
-	fmt.Printf("  save \t\t\tSave image from source registry to tar.gz file.\n")
+	fmt.Printf("  save \t\t\tSave image from source registry to local file.\n")
+	fmt.Printf("  load \t\t\tLoad image from saved local file.\n")
 	fmt.Printf("  convert-list \t\tConvert image list to 'mirror' format.\n")
 	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
 	fmt.Printf("  load-validate \tValidate loaded images.\n")
@@ -86,5 +86,9 @@ func showHelp() {
 }
 
 func showVersion() {
-	fmt.Printf("%s v%s\n", os.Args[0], u.VERSION)
+	if utils.GitCommit != "" {
+		fmt.Printf("%s %s - %s\n", os.Args[0], utils.Version, utils.GitCommit)
+	} else {
+		fmt.Printf("%s %s\n", os.Args[0], utils.Version)
+	}
 }

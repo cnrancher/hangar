@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
 files=(
     "image-tools"
     "build/"
-    "archive/part/test/test*"
+    "pkg/archive/part/test/test*"
+    "pkg/rancher/chart/test/*"
 )
 
 for f in ${files[@]}; do

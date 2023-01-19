@@ -1,4 +1,4 @@
-FROM golang:1.19.4
+FROM registry.suse.com/bci/golang:1.19
 
 ARG VERSION
 ARG GOPROXY=https://goproxy.io,direct
@@ -9,7 +9,8 @@ ARG DOCKER_PASSWORD
 ARG SKIP_LATEST_TAG
 
 # Add docker cli
-COPY --from=docker.io/library/docker:20.10.21 /usr/local/bin/docker /usr/local/bin/
+RUN zypper in -y -f docker && \
+    zypper clean
 
 ENV DRONE_TAG=${DRONE_TAG}
 ENV DRONE_COMMIT_SHA=${DRONE_COMMIT_SHA}

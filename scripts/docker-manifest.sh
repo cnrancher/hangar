@@ -1,8 +1,11 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
-if [[ -z "${DOCKER_USERNAME}" || -z "${DOCKER_PASSWORD}" ]]; then
+cd $(dirname $0)/../
+WORKINGDIR=$(pwd)
+
+if [[ -z "${DOCKER_USERNAME:-}" || -z "${DOCKER_PASSWORD:-}" ]]; then
     echo "DOCKER_USERNAME or DOCKER_PASSWORD not set"
     exit 1
 fi
@@ -35,18 +38,11 @@ echo "${DOCKER_PASSWORD}" | docker login \
     --username ${DOCKER_USERNAME} \
     --password-stdin
 
+source ${WORKINGDIR}/scripts/env.sh
+
 export TAG=${TAG:-"image-tools"}
-export VERSION=${VERSION:-$(git describe --tags 2>/dev/null || echo "")}
 export REGISTRY=${REGISTRY:-"docker.io/cnrancher"}
-if [[ "${VERSION}" = "" ]]; then
-    if [[ "${DRONE_TAG}" != "" ]]; then
-        echo "DRONE_TAG: ${DRONE_TAG}"
-        VERSION=${DRONE_TAG}
-    else
-        echo "DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}"
-        VERSION=${DRONE_COMMIT_SHA:0:8}
-    fi
-fi
+export VERSION=${VERSION}
 echo "version: ${VERSION}"
 echo "TAG: ${TAG}:${VERSION}"
 
@@ -55,7 +51,7 @@ docker buildx imagetools create --tag "${REGISTRY}/${TAG}:${VERSION}" \
     "${REGISTRY}/${TAG}:${VERSION}-amd64"
 
 # update latest tag
-if [[ "${SKIP_LATEST_TAG}" != "1" ]]; then
+if [[ "${SKIP_LATEST_TAG:-}" != "1" ]]; then
     docker buildx imagetools create --tag "${REGISTRY}/${TAG}:latest" \
         "${REGISTRY}/${TAG}:${VERSION}-arm64" \
         "${REGISTRY}/${TAG}:${VERSION}-amd64"

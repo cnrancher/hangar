@@ -1,4 +1,4 @@
-FROM quay.io/skopeo/stable
+FROM quay.io/skopeo/stable:v1.10.0
 
 RUN yum -y update && \
     yum -y install jq vim && \
@@ -12,7 +12,7 @@ COPY --from=docker.io/library/docker:20.10.21 /usr/local/bin/docker /usr/local/b
 ARG ARCH
 RUN mkdir -p /root/.docker/cli-plugins/ && \
     curl -sLo /root/.docker/cli-plugins/docker-buildx \
-        https://github.com/docker/buildx/releases/download/v0.9.1/buildx-v0.9.1.linux-${ARCH} && \
+        https://github.com/docker/buildx/releases/download/v0.10.0/buildx-v0.10.0.linux-${ARCH} && \
     chmod +x /root/.docker/cli-plugins/docker-buildx
 
 WORKDIR /usr/local/bin

@@ -1,5 +1,6 @@
 package utils
 
-const (
-	VERSION = "1.3.0"
+var (
+	Version   = "v1.3.0"
+	GitCommit = ""
 )

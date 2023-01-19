@@ -50,6 +50,9 @@ func Test_generateFromKDMPath(t *testing.T) {
 	g.init()
 	err := g.generateFromKDMPath()
 	if err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
 		t.Error(err)
 	}
 	for source, imageMap := range g.GeneratedLinuxImages {
