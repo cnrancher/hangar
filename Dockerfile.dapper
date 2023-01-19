@@ -1,7 +1,6 @@
 FROM registry.suse.com/bci/golang:1.19
 
 ARG VERSION
-ARG GOPROXY=https://goproxy.io,direct
 ARG DRONE_TAG
 ARG DRONE_COMMIT_SHA
 ARG DOCKER_USERNAME
@@ -26,7 +25,6 @@ WORKDIR ${DAPPER_SOURCE}
 # and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
 RUN go env -w GO111MODULE=on && \
-    go env -w GOPROXY=${GOPROXY} && \
     go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
