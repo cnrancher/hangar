@@ -1,5 +1,7 @@
 # image-tools
 
+[![Build Status](https://drone-pandaria.cnrancher.com/api/badges/cnrancher/image-tools/status.svg?ref=refs/heads/main)](https://drone-pandaria.cnrancher.com/cnrancher/image-tools)
+
 `image-tools` is a tool for mirroring/copying multi-arch container images from the public registry to your own personal registry with manifest list support.
 
 You can use the `image-tools mirror` command to mirror images from the source registry to your own registry.
