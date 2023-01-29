@@ -200,7 +200,7 @@ func SaveJson(data interface{}, fileName string) error {
 	return nil
 }
 
-func SaveSlice(fileName string, data ...interface{}) error {
+func SaveSlice(fileName string, data []string) error {
 	var buffer bytes.Buffer
 	for i := range data {
 		_, err := buffer.WriteString(fmt.Sprintf("%v\n", data[i]))

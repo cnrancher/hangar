@@ -1,5 +1,4 @@
-// converter converts image list from 'single' format to 'mirror' format
-package converter
+package convert
 
 import (
 	"bufio"
@@ -19,28 +18,32 @@ const (
 )
 
 var (
-	cmd          = flag.NewFlagSet("convert-list", flag.ExitOnError)
-	cmdInput     = cmd.String("i", "", "input image list")
-	cmdOutput    = cmd.String("o", "", "output image list")
-	cmdSourceReg = cmd.String("s", "", "specify the source registry")
-	cmdDestReg   = cmd.String("d", "", "specify the dest registry")
+	cmdInput     string
+	cmdOutput    string
+	cmdSourceReg string
+	cmdDestReg   string
+	flagSet      = flag.NewFlagSet("convert-list", flag.ExitOnError)
 )
 
 func Parse(args []string) {
-	cmd.Parse(args)
+	flagSet.StringVar(&cmdInput, "i", "", "input image list")
+	flagSet.StringVar(&cmdOutput, "o", "", "output image list")
+	flagSet.StringVar(&cmdSourceReg, "s", "", "specify the source registry")
+	flagSet.StringVar(&cmdDestReg, "d", "", "specify the dest registry")
+	flagSet.Parse(args)
 }
 
 func Convert() {
-	if *cmdInput == "" {
+	if cmdInput == "" {
 		logrus.Error("Use '-i' to specify the input image list")
-		cmd.Usage()
+		flagSet.Usage()
 		os.Exit(1)
 	}
-	if *cmdOutput == "" {
-		*cmdOutput = *cmdInput + ".converted"
+	if cmdOutput == "" {
+		cmdOutput = cmdInput + ".converted"
 	}
 
-	f, err := os.Open(*cmdInput)
+	f, err := os.Open(cmdInput)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -48,7 +51,7 @@ func Convert() {
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
 
-	u.DeleteIfExist(*cmdOutput)
+	u.DeleteIfExist(cmdOutput)
 	for scanner.Scan() {
 		l := scanner.Text()
 		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
@@ -82,16 +85,16 @@ func Convert() {
 		}
 
 		var srcImage string
-		if *cmdSourceReg == "" {
+		if cmdSourceReg == "" {
 			srcImage = spec[0]
 		} else {
-			srcImage = u.ConstructRegistry(spec[0], *cmdSourceReg)
+			srcImage = u.ConstructRegistry(spec[0], cmdSourceReg)
 		}
-		destImage := u.ConstructRegistry(spec[0], *cmdDestReg)
+		destImage := u.ConstructRegistry(spec[0], cmdDestReg)
 		outputLine := fmt.Sprintf("%s %s %s", srcImage, destImage, spec[1])
-		u.AppendFileLine(*cmdOutput, outputLine)
+		u.AppendFileLine(cmdOutput, outputLine)
 	}
-	logrus.Infof("Converted %q to %q", *cmdInput, *cmdOutput)
+	logrus.Infof("Converted %q to %q", cmdInput, cmdOutput)
 }
 
 func checkLineFormat(line string) int {

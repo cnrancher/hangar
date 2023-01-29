@@ -5,15 +5,16 @@ import (
 	"os"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
-	convertCMD "github.com/cnrancher/image-tools/cmd/convert"
-	generateListCMD "github.com/cnrancher/image-tools/cmd/generate-list"
-	loadCMD "github.com/cnrancher/image-tools/cmd/load"
-	loadValidateCMD "github.com/cnrancher/image-tools/cmd/load-validate"
-	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
-	mirrorValidateCMD "github.com/cnrancher/image-tools/cmd/mirror-validate"
-	saveCMD "github.com/cnrancher/image-tools/cmd/save"
 	"github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
+
+	convertCMD "github.com/cnrancher/image-tools/cmd/convert"
+	generateListCMD "github.com/cnrancher/image-tools/cmd/generatelist"
+	loadCMD "github.com/cnrancher/image-tools/cmd/load"
+	loadValidateCMD "github.com/cnrancher/image-tools/cmd/loadvalidate"
+	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
+	mirrorValidateCMD "github.com/cnrancher/image-tools/cmd/mirrorvalidate"
+	saveCMD "github.com/cnrancher/image-tools/cmd/save"
 )
 
 func init() {
@@ -53,15 +54,10 @@ func main() {
 	case "generate-list":
 		generateListCMD.Parse(os.Args[2:])
 		generateListCMD.GenerateList()
-	case "-v":
-		fallthrough
-	case "--version":
-		fallthrough
-	case "version":
+	case "-v", "--version", "version":
 		showVersion()
-	case "-h", "--help":
+	case "-h", "--help", "help":
 		showHelp()
-		os.Exit(0)
 	default:
 		logrus.Errorf("unrecognized command %q", os.Args[1])
 		showHelp()

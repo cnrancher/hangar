@@ -7,10 +7,6 @@ ARG DOCKER_USERNAME
 ARG DOCKER_PASSWORD
 ARG SKIP_LATEST_TAG
 
-# Add docker cli
-RUN zypper in -y -f docker && \
-    zypper clean
-
 ENV DRONE_TAG=${DRONE_TAG}
 ENV DRONE_COMMIT_SHA=${DRONE_COMMIT_SHA}
 ENV DAPPER_SOURCE /source
@@ -21,10 +17,16 @@ ENV DOCKER_PASSWORD=${DOCKER_PASSWORD}
 ENV DAPPER_DOCKER_SOCKET=true
 ENV SKIP_LATEST_TAG=${SKIP_LATEST_TAG}
 WORKDIR ${DAPPER_SOURCE}
+
+# Add docker cli
+RUN zypper in -y -f docker wget && \
+    zypper clean
+
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
 RUN go env -w GO111MODULE=on && \
+    go env -w GOPROXY=${GOPROXY} && \
     go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]

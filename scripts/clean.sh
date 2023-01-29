@@ -9,13 +9,14 @@ files=(
     "image-tools"
     "build/"
     "pkg/archive/part/test/test*"
-    "pkg/rancher/chart/test/*"
+    "pkg/rancher/chartimages/test/*"
+    "pkg/rancher/kdmimages/test/*"
 )
 
 for f in ${files[@]}; do
     if [[ -e "$f" ]]; then
         echo "Delete: $f"
-        rm -r $WORKINGDIR/$f &> /dev/null
+        rm -rf $WORKINGDIR/$f
     fi
 done
 

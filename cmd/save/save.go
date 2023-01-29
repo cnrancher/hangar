@@ -1,4 +1,4 @@
-package saver
+package save
 
 import (
 	"bufio"
@@ -19,25 +19,37 @@ import (
 )
 
 var (
-	cmd          = flag.NewFlagSet("save", flag.ExitOnError)
-	cmdFile      = cmd.String("f", "", "image list file")
-	cmdArch      = cmd.String("a", "amd64,arm64", "architecture list of images, separate with ','")
-	cmdSourceReg = cmd.String("s", "", "override the source registry")
-	cmdDest      = cmd.String("d", "saved-images.tar.gz", "Output saved images into destination file (directory or tar tarball)")
-	cmdFailed    = cmd.String("o", "save-failed.txt", "file name of the save failed image list")
-	cmdCompress  = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
-	cmdPart      = cmd.Bool("part", false, "enable segment compress")
-	cmdPartSize  = cmd.String("part-size", "2G", "segment part size (a number, or a string ended with 'K','M' or 'G')")
-	cmdDebug     = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs      = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
+	flagSet     = flag.NewFlagSet("save", flag.ExitOnError)
+	cmdFile     string
+	cmdArch     string
+	cmdSource   string
+	cmdDest     string
+	cmdFailed   string
+	cmdCompress string
+	cmdPart     bool
+	cmdPartSize string
+	cmdDebug    bool
+	cmdJobs     int
 )
 
 func Parse(args []string) {
-	cmd.Parse(args)
+	flagSet.StringVar(&cmdFile, "f", "", "image list file")
+	flagSet.StringVar(&cmdArch, "a", "amd64,arm64", "architecture list of images, separate with ','")
+	flagSet.StringVar(&cmdSource, "s", "", "override the source registry")
+	flagSet.StringVar(&cmdDest, "d", "saved-images.tar.gz",
+		"Output saved images into destination file (directory or tar tarball)")
+	flagSet.StringVar(&cmdFailed, "o", "save-failed.txt", "file name of the save failed image list")
+	flagSet.StringVar(&cmdCompress, "compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
+	flagSet.BoolVar(&cmdPart, "part", false, "enable segment compress")
+	flagSet.StringVar(&cmdPartSize, "part-size", "2G",
+		"segment part size (number, or a string with 'K','M','G' suffix)")
+	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
+	flagSet.IntVar(&cmdJobs, "j", 1, "job number, async mode if larger than 1, maximum is 20")
+	flagSet.Parse(args)
 }
 
 func SaveImages() {
-	if *cmdDebug {
+	if cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	if err := registry.SelfCheckSkopeo(); err != nil {
@@ -48,17 +60,17 @@ func SaveImages() {
 		logrus.Fatal(err)
 	}
 
-	if *cmdSourceReg == "" && u.EnvSourceRegistry != "" {
-		*cmdSourceReg = u.EnvSourceRegistry
+	if cmdSource == "" && u.EnvSourceRegistry != "" {
+		cmdSource = u.EnvSourceRegistry
 	}
-	if *cmdSourceReg != "" {
-		logrus.Infof("Set source registry to [%s]", *cmdSourceReg)
+	if cmdSource != "" {
+		logrus.Infof("Set source registry to [%s]", cmdSource)
 	} else {
 		logrus.Infof("Set source registry to [%s]", u.DockerHubRegistry)
 	}
 
 	var compressFormat archive.CompressFormat = archive.CompressFormatGzip
-	switch *cmdCompress {
+	switch cmdCompress {
 	case "gzip":
 		compressFormat = archive.CompressFormatGzip
 	case "zstd":
@@ -79,42 +91,54 @@ func SaveImages() {
 	// Check cache image directory
 	var compressPartSize int = 0
 	if compressFormat != archive.CompressFormatDirectory {
-		if *cmdPart {
+		if cmdPart {
 			// segment compress enabled
 			var err error
 			switch {
-			case strings.HasSuffix(*cmdPartSize, "G"):
+			case strings.HasSuffix(cmdPartSize, "G"):
 				compressPartSize, err = strconv.Atoi(
-					strings.TrimSuffix(*cmdPartSize, "G"))
+					strings.TrimSuffix(cmdPartSize, "G"))
 				compressPartSize *= archive.GB
-			case strings.HasSuffix(*cmdPartSize, "M"):
+			case strings.HasSuffix(cmdPartSize, "g"):
 				compressPartSize, err = strconv.Atoi(
-					strings.TrimSuffix(*cmdPartSize, "M"))
+					strings.TrimSuffix(cmdPartSize, "g"))
+				compressPartSize *= archive.GB
+			case strings.HasSuffix(cmdPartSize, "M"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(cmdPartSize, "M"))
 				compressPartSize *= archive.MB
-			case strings.HasSuffix(*cmdPartSize, "K"):
+			case strings.HasSuffix(cmdPartSize, "m"):
 				compressPartSize, err = strconv.Atoi(
-					strings.TrimSuffix(*cmdPartSize, "K"))
+					strings.TrimSuffix(cmdPartSize, "m"))
+				compressPartSize *= archive.MB
+			case strings.HasSuffix(cmdPartSize, "K"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(cmdPartSize, "K"))
+				compressPartSize *= archive.KB
+			case strings.HasSuffix(cmdPartSize, "k"):
+				compressPartSize, err = strconv.Atoi(
+					strings.TrimSuffix(cmdPartSize, "k"))
 				compressPartSize *= archive.KB
 			default:
-				compressPartSize, err = strconv.Atoi(*cmdPartSize)
+				compressPartSize, err = strconv.Atoi(cmdPartSize)
 			}
 			if err != nil {
 				logrus.Fatalf("Failed to get segment part size: %v", err)
 			}
-			logrus.Infof("Set compress segment part to %q", *cmdPartSize)
+			logrus.Infof("Set compress segment part to %q", cmdPartSize)
 		}
 	}
 
 	var scanner *bufio.Scanner
 	var usingStdin bool
-	if *cmdFile == "" {
+	if cmdFile == "" {
 		// read line from stdin
 		scanner = bufio.NewScanner(os.Stdin)
 		usingStdin = true
 		logrus.Info("Reading '<SOURCE>:<TAG>' from stdin")
 		logrus.Info("Use 'Ctrl+D' to exit.")
 	} else {
-		readFile, err := os.Open(*cmdFile)
+		readFile, err := os.Open(cmdFile)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -122,18 +146,18 @@ func SaveImages() {
 		scanner = bufio.NewScanner(readFile)
 		scanner.Split(bufio.ScanLines)
 	}
-	u.CheckWorkerNum(usingStdin, cmdJobs)
+	u.CheckWorkerNum(usingStdin, &cmdJobs)
 	if !usingStdin {
-		logrus.Infof("Creating %d job workers", *cmdJobs)
+		logrus.Infof("Creating %d job workers", cmdJobs)
 	} else {
 		fmt.Printf(">>> ")
 	}
-	u.WorkerNum = *cmdJobs
+	u.WorkerNum = cmdJobs
 
-	u.DeleteIfExist(*cmdFailed)
+	u.DeleteIfExist(cmdFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
 	var appendListMutex sync.Mutex
-	ch, wg := command.Worker(*cmdJobs, *cmdFailed, func(m *mirror.Mirror) {
+	ch, wg := command.Worker(cmdJobs, cmdFailed, func(m *mirror.Mirror) {
 		// if image saved successfully
 		appendListMutex.Lock()
 		savedTemplate.Append(m.GetSavedImageTemplate())
@@ -159,11 +183,11 @@ func SaveImages() {
 
 		num++
 		m := mirror.NewMirror(&mirror.MirrorOptions{
-			Source:      u.ConstructRegistry(v[0], *cmdSourceReg),
-			Destination: u.ConstructRegistry(v[0], *cmdSourceReg),
+			Source:      u.ConstructRegistry(v[0], cmdSource),
+			Destination: u.ConstructRegistry(v[0], cmdSource),
 			Tag:         v[1],
 			Directory:   u.CacheImageDirectory,
-			ArchList:    strings.Split(*cmdArch, ","),
+			ArchList:    strings.Split(cmdArch, ","),
 			Line:        l,
 			Mode:        mirror.MODE_SAVE,
 			ID:          num,
@@ -189,31 +213,31 @@ func SaveImages() {
 	}
 
 	if compressFormat != archive.CompressFormatDirectory {
-		logrus.Infof("Compressing %s...", *cmdDest)
+		logrus.Infof("Compressing %s...", cmdDest)
 
 		err := archive.Compress(
 			u.CacheImageDirectory,
-			*cmdDest,
+			cmdDest,
 			compressFormat,
 			compressPartSize,
 		)
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		if !*cmdPart {
+		if !cmdPart {
 			// if part compress not enabled,
 			// rename file name without .part extension
-			if err := os.Rename(*cmdDest+".part0", *cmdDest); err != nil {
+			if err := os.Rename(cmdDest+".part0", cmdDest); err != nil {
 				logrus.Warn(err)
 			}
 		}
 	} else {
-		err := os.Rename(u.CacheImageDirectory, *cmdDest)
+		err := os.Rename(u.CacheImageDirectory, cmdDest)
 		if err != nil {
 			logrus.Warn(err)
 		}
 	}
-	logrus.Infof("Saved images into %q", *cmdDest)
+	logrus.Infof("Saved images into %q", cmdDest)
 
 	if usingStdin {
 		fmt.Println()

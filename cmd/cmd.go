@@ -1,7 +1,9 @@
-package command
+package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/cnrancher/image-tools/pkg/mirror"
@@ -78,4 +80,54 @@ func Worker(num int, failList string, cb func(m *mirror.Mirror)) (
 		go worker(ch)
 	}
 	return ch, wg
+}
+
+// StringSlice implements flag.Value interface
+type StringSlice []string
+
+func (ss *StringSlice) String() string {
+	if ss == nil {
+		return ""
+	}
+
+	var buffer bytes.Buffer
+	for _, v := range *ss {
+		buffer.WriteString(fmt.Sprintf("%s\n", v))
+	}
+	return buffer.String()
+}
+
+func (ss *StringSlice) Set(v string) error {
+	if ss == nil {
+		*ss = []string{}
+	}
+	*ss = append(*ss, v)
+	return nil
+}
+
+// IntSlice implements flag.Value interface
+type IntSlice []int
+
+func (is *IntSlice) String() string {
+	if is == nil {
+		return ""
+	}
+
+	var buffer bytes.Buffer
+	for _, v := range *is {
+		buffer.WriteString(fmt.Sprintf("%d\n", v))
+	}
+	return buffer.String()
+}
+
+func (ss *IntSlice) Set(v string) error {
+	if ss == nil {
+		*ss = []int{}
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return err
+	}
+	*ss = append(*ss, i)
+	return nil
 }

@@ -9,7 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/image-tools/pkg/rancher/chart"
+	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
+	"github.com/cnrancher/image-tools/pkg/rancher/kdmimages"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
@@ -18,10 +19,11 @@ import (
 
 // Generator is a generator to generate image list from charts, KDM data, etc.
 type Generator struct {
-	RancherVersion string // rancher version
+	RancherVersion string // rancher version, should be va.b.c
+	MinKubeVersion string // minimum kube verision, should be va.b.c
 
-	ChartsPaths map[string]chart.ChartRepoType
-	ChartURLs   map[string]chart.ChartRepoType
+	ChartsPaths map[string]chartimages.ChartRepoType
+	ChartURLs   map[string]chartimages.ChartRepoType
 
 	KDMPath string // the path of KDM data.json file
 	KDMURL  string // the remote URL of KDM data.json
@@ -95,9 +97,9 @@ func (g *Generator) generateFromChartPaths() error {
 		return nil
 	}
 	for path := range g.ChartsPaths {
-		c := chart.Chart{
+		c := chartimages.Chart{
 			RancherVersion: g.RancherVersion,
-			OS:             chart.Linux,
+			OS:             chartimages.Linux,
 			Type:           g.ChartsPaths[path],
 			Path:           path,
 		}
@@ -110,7 +112,7 @@ func (g *Generator) generateFromChartPaths() error {
 			}
 		}
 		// fetch windows images
-		c.OS = chart.Windows
+		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
 		if err := c.FetchImages(); err != nil {
 			logrus.Error(err)
@@ -129,9 +131,9 @@ func (g *Generator) generateFromChartURLs() error {
 		return nil
 	}
 	for url := range g.ChartURLs {
-		c := chart.Chart{
+		c := chartimages.Chart{
 			RancherVersion: g.RancherVersion,
-			OS:             chart.Linux,
+			OS:             chartimages.Linux,
 			Type:           g.ChartURLs[url],
 			URL:            url,
 		}
@@ -144,7 +146,7 @@ func (g *Generator) generateFromChartURLs() error {
 			}
 		}
 		// fetch windows images
-		c.OS = chart.Windows
+		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
 		if err := c.FetchImages(); err != nil {
 			logrus.Error(err)
@@ -198,13 +200,13 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
 	// get k3s/rke2 upgrade images
-	eg := UpgradeGenerator{
-		Source:         K3S,
+	ug := kdmimages.UpgradeGenerator{
+		Source:         kdmimages.K3S,
 		RancherVersion: g.RancherVersion,
-		MinKubeVersion: "v1.21.0",
+		MinKubeVersion: g.MinKubeVersion,
 		Data:           data.K3S,
 	}
-	k3sUpgradeImages, err := eg.GetImages()
+	k3sUpgradeImages, err := ug.GetImages()
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
@@ -217,9 +219,9 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		g.GeneratedLinuxImages[image]["k3sUpgrade"] = true
 	}
 
-	eg.Source = RKE2
-	eg.Data = data.RKE2
-	rke2UpgradeImages, err := eg.GetImages()
+	ug.Source = kdmimages.RKE2
+	ug.Data = data.RKE2
+	rke2UpgradeImages, err := ug.GetImages()
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}

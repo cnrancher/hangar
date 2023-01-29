@@ -1,4 +1,4 @@
-package chart
+package chartimages
 
 import (
 	"archive/tar"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	// msemver "github.com/Masterminds/semver"
+	constraint "github.com/Masterminds/semver"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
@@ -27,6 +27,7 @@ const RancherVersionAnnotationKey = "catalog.cattle.io/rancher-version"
 // a chart in airgap setups. If a chart is not defined here, only the latest
 // version of it will be checked for images.
 // INFO: CRD charts need to be added as well.
+//
 // TODO: hard-code chart names in map is not good idea.
 var (
 	ChartsToCheckConstraints       = map[string]bool{}
@@ -202,47 +203,44 @@ func (c Chart) checkChartVersionConstraint(
 
 // compareRancherVersionToConstraint returns true if the rancher-version
 // satisfies constraintStr, false otherwise.
-//
-// TODO: Remove third-party semver dependency!
 func compareRancherVersionToConstraint(
 	rancherVersion, constraintStr string,
 ) (bool, error) {
-	// if constraintStr == "" {
-	// 	return false, fmt.Errorf("invalid constraint format: %q", constraintStr)
-	// }
-	// constraint, err := msemver.NewConstraint(constraintStr)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// rancherSemVer, err := msemver.NewVersion(rancherVersion)
-	// if err != nil {
-	// 	return false, err
-	// }
-	// // When the exporter is ran in a dev environment, we replace
-	// // the rancher version with a dev version (e.g 2.X.99).
-	// // This breaks the semver compare logic for exporting because
-	// // we use the Rancher version constraint < 2.X.99-0 in
-	// // many of our charts and since 2.X.99 > 2.X.99-0 the comparison
-	// // returns false which is not the desired behavior.
-	// patch := rancherSemVer.Patch()
-	// if patch == 99 {
-	// 	patch = 98
-	// }
-	// // All pre-release versions are removed because the semver
-	// // comparison will not yield the desired behavior unless
-	// // the constraint has a pre-release too. Since the exporter
-	// // for charts can treat pre-releases and releases equally,
-	// // is cleaner to remove it. E.g. comparing rancherVersion
-	// // 2.6.4-rc1 and constraint 2.6.3 - 2.6.5 yields false because
-	// // the versions in the contraint do not have a pre-release.
-	// // This behavior comes from the semver module and is intentional.
-	// rSemVer, err := msemver.NewVersion(fmt.Sprintf("%d.%d.%d",
-	// 	rancherSemVer.Major(), rancherSemVer.Minor(), patch))
-	// if err != nil {
-	// 	return false, err
-	// }
-	// return constraint.Check(rSemVer), nil
-	return false, nil
+	if constraintStr == "" {
+		return false, fmt.Errorf("constraint is empty string")
+	}
+	c, err := constraint.NewConstraint(constraintStr)
+	if err != nil {
+		return false, err
+	}
+	rancherSemVer, err := constraint.NewVersion(rancherVersion)
+	if err != nil {
+		return false, err
+	}
+	// When the exporter is ran in a dev environment, we replace
+	// the rancher version with a dev version (e.g 2.X.99).
+	// This breaks the semver compare logic for exporting because
+	// we use the Rancher version constraint < 2.X.99-0 in
+	// many of our charts and since 2.X.99 > 2.X.99-0 the comparison
+	// returns false which is not the desired behavior.
+	patch := rancherSemVer.Patch()
+	if patch == 99 {
+		patch = 98
+	}
+	// All pre-release versions are removed because the semver
+	// comparison will not yield the desired behavior unless
+	// the constraint has a pre-release too. Since the exporter
+	// for charts can treat pre-releases and releases equally,
+	// is cleaner to remove it. E.g. comparing rancherVersion
+	// 2.6.4-rc1 and constraint 2.6.3 - 2.6.5 yields false because
+	// the versions in the contraint do not have a pre-release.
+	// This behavior comes from the semver module and is intentional.
+	rSemVer, err := constraint.NewVersion(fmt.Sprintf("%d.%d.%d",
+		rancherSemVer.Major(), rancherSemVer.Minor(), patch))
+	if err != nil {
+		return false, err
+	}
+	return c.Check(rSemVer), nil
 }
 
 // pickImagesFromValuesMap walks a values map to find images,

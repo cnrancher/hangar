@@ -3,6 +3,7 @@ module github.com/cnrancher/image-tools
 go 1.19
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/containers/image/v5 v5.23.1
 	github.com/klauspost/compress v1.15.13

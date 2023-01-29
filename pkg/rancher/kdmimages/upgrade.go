@@ -1,4 +1,4 @@
-package listgenerator
+package kdmimages
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-package loader
+package load
 
 import (
 	"flag"
@@ -16,34 +16,43 @@ import (
 )
 
 var (
-	cmd            = flag.NewFlagSet("load", flag.ExitOnError)
-	cmdSource      = cmd.String("s", "", "saved file to load (tar tarball or a directory)")
-	cmdDestReg     = cmd.String("d", "", "target private registry:port")
-	cmdFailed      = cmd.String("o", "load-failed.txt", "file name of the load failed image list")
-	cmdRepoType    = cmd.String("repo-type", "", "repository type, can be 'harbor' or empty")
-	cmdCompress    = cmd.String("compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
-	cmdHarborHttps = cmd.Bool("harbor-https", true, "use HTTPS by default when create harbor project")
-	cmdDebug       = cmd.Bool("debug", false, "enable the debug output")
-	cmdJobs        = cmd.Int("j", 1, "job number, async mode if larger than 1, maximum is 20")
-
-	cmdDefaultProject = cmd.String("default-project", "library", "project name when project is empty")
+	cmdSource         string
+	cmdDestReg        string
+	cmdFailed         string
+	cmdRepoType       string
+	cmdCompress       string
+	cmdHarborHttps    bool
+	cmdDebug          bool
+	cmdJobs           int
+	cmdDefaultProject string
+	flagSet           = flag.NewFlagSet("load", flag.ExitOnError)
 )
 
 func Parse(args []string) {
-	cmd.Parse(args)
+	flagSet.StringVar(&cmdSource, "s", "", "saved file to load (tar tarball or a directory)")
+	flagSet.StringVar(&cmdDestReg, "d", "", "target private registry:port")
+	flagSet.StringVar(&cmdFailed, "o", "load-failed.txt", "file name of the load failed image list")
+	flagSet.StringVar(&cmdRepoType, "repo-type", "", "repository type, can be 'harbor' or empty")
+	flagSet.StringVar(&cmdCompress, "compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
+	flagSet.StringVar(&cmdDefaultProject, "default-project", "library", "project name when project is empty")
+	flagSet.BoolVar(&cmdHarborHttps, "harbor-https", true, "use HTTPS by default when create harbor project")
+	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
+	flagSet.IntVar(&cmdJobs, "j", 1, "job number, async mode if larger than 1, maximum is 20")
+
+	flagSet.Parse(args)
 }
 
 func LoadImages() {
 	var err error
-	if *cmdDebug {
+	if cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	if *cmdSource == "" {
+	if cmdSource == "" {
 		logrus.Error("saved file not specified.")
 		logrus.Error("Use '-s' to specify the file name (tarball or directory)")
 		logrus.Fatal("Failed to load images.")
 	}
-	if *cmdDestReg == "" {
+	if cmdDestReg == "" {
 		logrus.Error("dest registry not specified.")
 		logrus.Errorf("Use '-d' to specify the dest registry:port")
 		logrus.Fatal("Failed to load images.")
@@ -59,7 +68,7 @@ func LoadImages() {
 	}
 
 	var compressFormat archive.CompressFormat = archive.CompressFormatGzip
-	switch *cmdCompress {
+	switch cmdCompress {
 	case "gzip":
 		compressFormat = archive.CompressFormatGzip
 	case "zstd":
@@ -67,6 +76,7 @@ func LoadImages() {
 	case "dir":
 		compressFormat = archive.CompressFormatDirectory
 	default:
+		logrus.Warnf("Unknow compress format %q, set to gzip", cmdCompress)
 		compressFormat = archive.CompressFormatGzip
 	}
 
@@ -78,8 +88,8 @@ func LoadImages() {
 	}
 
 	// Command line parameter is prior than environment variable
-	if *cmdDestReg == "" && u.EnvDestRegistry != "" {
-		*cmdDestReg = u.EnvDestRegistry
+	if cmdDestReg == "" && u.EnvDestRegistry != "" {
+		cmdDestReg = u.EnvDestRegistry
 	}
 	if err := command.ProcessDockerLoginEnv(); err != nil {
 		logrus.Error(err)
@@ -93,21 +103,21 @@ func LoadImages() {
 	if compressFormat != archive.CompressFormatDirectory {
 		// decompress input tar.* tarball
 		// if filename already have '.part*' extention
-		ext := filepath.Ext(*cmdSource)
+		ext := filepath.Ext(cmdSource)
 		if strings.Contains(ext, "part") {
-			logrus.Warnf("File name %q contains 'part*' extention", *cmdSource)
-			*cmdSource = strings.TrimRight(*cmdSource, ext)
-			logrus.Warnf("Rename it to %q", *cmdSource)
+			logrus.Warnf("File name %q contains 'part*' extention", cmdSource)
+			cmdSource = strings.TrimRight(cmdSource, ext)
+			logrus.Warnf("Rename it to %q", cmdSource)
 		}
-		logrus.Infof("Decompressing %s...", *cmdSource)
-		err := archive.Decompress(*cmdSource, directory, compressFormat)
+		logrus.Infof("Decompressing %s...", cmdSource)
+		err := archive.Decompress(cmdSource, directory, compressFormat)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 		directory = filepath.Join(directory, u.CacheImageDirectory)
 		logrus.Debugf("Decompressed directory: %s", directory)
 	} else {
-		directory = filepath.Join(directory, *cmdSource)
+		directory = filepath.Join(directory, cmdSource)
 	}
 	info, err := os.Stat(directory)
 	if err != nil {
@@ -117,20 +127,20 @@ func LoadImages() {
 		logrus.Fatalf("'%s' is not a directory", directory)
 	}
 
-	u.DeleteIfExist(*cmdFailed)
-	u.CheckWorkerNum(false, cmdJobs)
-	logrus.Infof("Creating %d job workers", *cmdJobs)
-	u.WorkerNum = *cmdJobs
-	ch, wg := command.Worker(*cmdJobs, *cmdFailed, nil)
-	if err := command.DockerLoginRegistry(*cmdDestReg); err != nil {
+	u.DeleteIfExist(cmdFailed)
+	u.CheckWorkerNum(false, &cmdJobs)
+	logrus.Infof("Creating %d job workers", cmdJobs)
+	u.WorkerNum = cmdJobs
+	ch, wg := command.Worker(cmdJobs, cmdFailed, nil)
+	if err := command.DockerLoginRegistry(cmdDestReg); err != nil {
 		logrus.Error(err)
 	}
 
 	var mList []*mirror.Mirror
-	if *cmdRepoType == "harbor" {
+	if cmdRepoType == "harbor" {
 		// Set default project name if dest repo is harbor
 		mList, err = mirror.LoadSavedTemplates(
-			directory, *cmdDestReg, *cmdDefaultProject)
+			directory, cmdDestReg, cmdDefaultProject)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -142,13 +152,13 @@ func LoadImages() {
 				continue
 			}
 			projMap[proj] = true
-			url := fmt.Sprintf("%s/api/v2.0/projects", *cmdDestReg)
-			if *cmdHarborHttps {
+			url := fmt.Sprintf("%s/api/v2.0/projects", cmdDestReg)
+			if cmdHarborHttps {
 				url = "https://" + url
 			} else {
 				url = "http://" + url
 			}
-			user, passwd, _ := registry.GetDockerPassword(*cmdDestReg)
+			user, passwd, _ := registry.GetDockerPassword(cmdDestReg)
 			err := registry.CreateHarborProject(proj, url, user, passwd)
 			if err != nil {
 				logrus.Errorf("Failed to create harbor project %q: %q",
@@ -157,7 +167,7 @@ func LoadImages() {
 		}
 	} else {
 		// Do not set default project name if dest repo is not harbor
-		mList, err = mirror.LoadSavedTemplates(directory, *cmdDestReg, "")
+		mList, err = mirror.LoadSavedTemplates(directory, cmdDestReg, "")
 		if err != nil {
 			logrus.Fatal(err)
 		}

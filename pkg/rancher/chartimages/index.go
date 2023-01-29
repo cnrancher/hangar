@@ -1,4 +1,4 @@
-package chart
+package chartimages
 
 import (
 	"fmt"
@@ -57,7 +57,7 @@ func BuildOrGetIndex(dir string) (*repo.IndexFile, error) {
 
 		err = builtIndex.MustAdd(metadata, rel, "", "")
 		if err != nil {
-			logrus.Warn(err)
+			logrus.Warnf("failed to add %q into index file: %v", rel, err)
 		}
 		return filepath.SkipDir
 	})
