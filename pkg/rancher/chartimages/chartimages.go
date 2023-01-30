@@ -9,11 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	constraint "github.com/Masterminds/semver"
+	"github.com/Masterminds/semver"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/repo"
 )
@@ -81,7 +80,7 @@ type Chart struct {
 	Type           ChartRepoType // chart type: default, system, etc...
 	Path           string
 	URL            string
-	ImageSet       map[string]map[string]bool // map[source]map[image]
+	ImageSet       map[string]map[string]bool // map[image]map[source]
 }
 
 type Questions struct {
@@ -115,6 +114,12 @@ func (c *Chart) fetchChartsFromPath() error {
 		}
 		// Always append the latest version of the chart.
 		latestVersion, latestVersionIndex := pickLatestChartVersion(versions)
+		if latestVersionIndex == -1 || latestVersion == nil {
+			logrus.Warnf("Failed to get maximum version of chart %q",
+				versions[0].Name)
+			latestVersion = versions[0]
+			latestVersionIndex = 0
+		}
 		filteredVersions = append(filteredVersions, latestVersion)
 		// Append the remaining versions of the chart if the chart exists in
 		// the chartsToCheckConstraints map and the given Rancher version
@@ -209,11 +214,11 @@ func compareRancherVersionToConstraint(
 	if constraintStr == "" {
 		return false, fmt.Errorf("constraint is empty string")
 	}
-	c, err := constraint.NewConstraint(constraintStr)
+	c, err := semver.NewConstraint(constraintStr)
 	if err != nil {
 		return false, err
 	}
-	rancherSemVer, err := constraint.NewVersion(rancherVersion)
+	rancherSemVer, err := semver.NewVersion(rancherVersion)
 	if err != nil {
 		return false, err
 	}
@@ -235,7 +240,7 @@ func compareRancherVersionToConstraint(
 	// 2.6.4-rc1 and constraint 2.6.3 - 2.6.5 yields false because
 	// the versions in the contraint do not have a pre-release.
 	// This behavior comes from the semver module and is intentional.
-	rSemVer, err := constraint.NewVersion(fmt.Sprintf("%d.%d.%d",
+	rSemVer, err := semver.NewVersion(fmt.Sprintf("%d.%d.%d",
 		rancherSemVer.Major(), rancherSemVer.Minor(), patch))
 	if err != nil {
 		return false, err
@@ -397,10 +402,18 @@ func pickLatestChartVersion(vs repo.ChartVersions) (*repo.ChartVersion, int) {
 	maximumVersion := vs[0].Version
 	maximumIndex := -1
 	for i := range vs {
-		if semver.Compare(vs[i].Version, maximumVersion) >= 0 {
-			maximumVersion = vs[i].Version
+		currVersion, err := semver.NewVersion(vs[i].Version)
+		if err != nil {
+			return nil, -1
 		}
-		maximumIndex = i
+		maxVersion, err := semver.NewVersion(maximumVersion)
+		if err != nil {
+			return nil, -1
+		}
+		if currVersion.Compare(maxVersion) >= 0 {
+			maximumVersion = vs[i].Version
+			maximumIndex = i
+		}
 	}
 	return vs[maximumIndex], maximumIndex
 }

@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/semver"
 	"golang.org/x/term"
 )
 
@@ -437,6 +438,7 @@ func CheckCacheDirEmpty() error {
 	return nil
 }
 
+// AddSourceToImage adds image into map[image][source]bool
 func AddSourceToImage(
 	imagesSet map[string]map[string]bool,
 	image string,
@@ -445,10 +447,35 @@ func AddSourceToImage(
 	if image == "" {
 		return
 	}
-	for _, source := range sources {
-		if imagesSet[source] == nil {
-			imagesSet[source] = make(map[string]bool)
-		}
-		imagesSet[source][image] = true
+	if imagesSet[image] == nil {
+		imagesSet[image] = make(map[string]bool)
 	}
+	for i := range sources {
+		imagesSet[image][sources[i]] = true
+	}
+}
+
+// SemverCompare compares two semvers
+func SemverCompare(a, b string) (int, error) {
+	if !semver.IsValid(a) {
+		if !semver.IsValid("v" + a) {
+			return 0, fmt.Errorf("%q is not a valid semver", a)
+		}
+		a = "v" + a
+	}
+	if !semver.IsValid(b) {
+		if !semver.IsValid("v" + b) {
+			return 0, fmt.Errorf("%q is not a valid semver", b)
+		}
+		b = "v" + b
+	}
+	return semver.Compare(a, b), nil
+}
+
+func ToObj(data interface{}, into interface{}) error {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, into)
 }

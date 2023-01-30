@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-type ReleaseVersions struct {
+type ReleaseImages struct {
 	Source string
 	Data   map[string]interface{}
 }
 
-func (r *ReleaseVersions) GetImages() ([]string, error) {
+func (r *ReleaseImages) GetImages() ([]string, error) {
 	if r.Data == nil {
 		return nil, fmt.Errorf("GetImages: Data is nil")
 	}
@@ -30,7 +30,7 @@ func (r *ReleaseVersions) GetImages() ([]string, error) {
 	return images, nil
 }
 
-func (r *ReleaseVersions) GetVersions() ([]string, error) {
+func (r *ReleaseImages) GetVersions() ([]string, error) {
 	var versions []string
 	releases, ok := r.Data["releases"].([]interface{})
 	if !ok {

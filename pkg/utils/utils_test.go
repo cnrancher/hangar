@@ -205,3 +205,21 @@ func Test_ReplaceProjectName(t *testing.T) {
 }
 
 // ReadUsernamePasswd should test manually
+
+func Test_SemverCompare(t *testing.T) {
+	if res, err := SemverCompare("1.0.0", "1.0.0"); res != 0 || err != nil {
+		t.Error("failed:", err, res)
+	}
+	if res, err := SemverCompare("v1.0.0", "v1.1.0"); res != -1 || err != nil {
+		t.Error("failed:", err, res)
+	}
+	if res, err := SemverCompare("1.1.0", "1.0.0"); res != 1 || err != nil {
+		t.Error("failed:", err, res)
+	}
+	if res, err := SemverCompare("1.0.0-rc", "1.0.0"); res != -1 || err != nil {
+		t.Error("failed:", err, res)
+	}
+	if res, err := SemverCompare("1.0.0-rc1", "1.0.0-rc2"); res != -1 || err != nil {
+		t.Error("failed:", err, res)
+	}
+}

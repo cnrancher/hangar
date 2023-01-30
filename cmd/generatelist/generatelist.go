@@ -11,11 +11,12 @@ import (
 	"github.com/cnrancher/image-tools/cmd"
 	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
 	"github.com/cnrancher/image-tools/pkg/rancher/listgenerator"
-	"github.com/cnrancher/image-tools/pkg/utils"
+	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
 var (
+	cmdRegistry       string
 	cmdKDM            string
 	cmdOutput         string
 	cmdOutputLinux    string
@@ -30,6 +31,7 @@ var (
 )
 
 func Parse(args []string) {
+	flagSet.StringVar(&cmdRegistry, "registry", "", "override the registry url")
 	flagSet.StringVar(&cmdKDM, "kdm", "", "kdm path/url")
 	flagSet.StringVar(&cmdOutput, "o", "generated-list.txt", "generated image list path (linux and windows images)")
 	flagSet.StringVar(&cmdOutputLinux, "output-linux", "", "generated linux image list")
@@ -113,62 +115,81 @@ func GenerateList() {
 	// merge windows images and linux images into one file
 	imagesLinuxSet := map[string]bool{}
 	imagesWindowsSet := map[string]bool{}
-	var imagesSourceList = make([]string, 0,
+	var imageSources = make([]string, 0,
 		len(generator.GeneratedLinuxImages)+
 			len(generator.GeneratedWindowsImages))
 
 	for image := range generator.GeneratedLinuxImages {
-		for source := range generator.GeneratedLinuxImages[image] {
-			imagesLinuxSet[image] = true
-			imagesSourceList = append(
-				imagesSourceList, fmt.Sprintf("%s %s", image, source))
+		imgWithRegistry := image
+		if cmdRegistry != "" {
+			imgWithRegistry = u.ConstructRegistry(image, cmdRegistry)
 		}
+		imagesLinuxSet[imgWithRegistry] = true
+		imageSources = append(imageSources,
+			fmt.Sprintf("%s %s", imgWithRegistry,
+				getSourcesList(generator.GeneratedLinuxImages[image])))
 	}
 	for image := range generator.GeneratedWindowsImages {
-		for source := range generator.GeneratedWindowsImages[image] {
-			imagesWindowsSet[image] = true
-			imagesSourceList = append(
-				imagesSourceList, fmt.Sprintf("%s %s", image, source))
+		imgWithRegistry := image
+		if cmdRegistry != "" {
+			imgWithRegistry = u.ConstructRegistry(image, cmdRegistry)
 		}
+		imagesWindowsSet[imgWithRegistry] = true
+		imageSources = append(imageSources,
+			fmt.Sprintf("%s %s", imgWithRegistry,
+				getSourcesList(generator.GeneratedWindowsImages[image])))
 	}
-	var imagesList = make([]string, 0,
-		len(imagesLinuxSet)+len(imagesWindowsSet))
+	var imagesAllSet = map[string]bool{}
 	var imagesLinuxList = make([]string, 0, len(imagesLinuxSet))
 	var imagesWindowsList = make([]string, 0, len(imagesWindowsSet))
 	for img := range imagesLinuxSet {
 		imagesLinuxList = append(imagesLinuxList, img)
-		imagesList = append(imagesList, img)
+		imagesAllSet[img] = true
 	}
 	for img := range imagesWindowsSet {
 		imagesWindowsList = append(imagesWindowsList, img)
+		imagesAllSet[img] = true
+	}
+	var imagesList = make([]string, 0,
+		len(imagesLinuxSet)+len(imagesWindowsSet))
+	for img := range imagesAllSet {
 		imagesList = append(imagesList, img)
 	}
 	sort.Strings(imagesList)
 	sort.Strings(imagesLinuxList)
 	sort.Strings(imagesWindowsList)
-	sort.Strings(imagesSourceList)
+	sort.Strings(imageSources)
 	if cmdOutput != "" {
-		err := utils.SaveSlice(cmdOutput, imagesList)
+		err := u.SaveSlice(cmdOutput, imagesList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
 	if cmdOutputLinux != "" {
-		err := utils.SaveSlice(cmdOutputLinux, imagesLinuxList)
+		err := u.SaveSlice(cmdOutputLinux, imagesLinuxList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
 	if cmdOutputWindows != "" {
-		err := utils.SaveSlice(cmdOutputWindows, imagesWindowsList)
+		err := u.SaveSlice(cmdOutputWindows, imagesWindowsList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
 	if cmdOutputSource != "" {
-		err := utils.SaveSlice(cmdOutputSource, imagesSourceList)
+		err := u.SaveSlice(cmdOutputSource, imageSources)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
+}
+
+func getSourcesList(imageSources map[string]bool) string {
+	var sources []string
+	for source := range imageSources {
+		sources = append(sources, source)
+	}
+	sort.Strings(sources)
+	return strings.Join(sources, ",")
 }

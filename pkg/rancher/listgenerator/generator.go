@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -199,18 +198,70 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
+	// get release images
+	r := kdmimages.ReleaseImages{
+		Source: kdmimages.K3S,
+		Data:   data.K3S,
+	}
+	k3sReleaseImages, err := r.GetImages()
+	if err != nil {
+		return fmt.Errorf("generateFromKDMData: %w", err)
+	}
+	for _, image := range k3sReleaseImages {
+		if g.GeneratedLinuxImages[image] == nil {
+			g.GeneratedLinuxImages[image] = make(map[string]bool)
+		}
+		g.GeneratedLinuxImages[image]["k3s-release"] = true
+	}
+
+	r.Source = kdmimages.RKE2
+	r.Data = data.RKE2
+	rke2ReleaseImages, err := r.GetImages()
+	if err != nil {
+		return fmt.Errorf("generateFromKDMData: %w", err)
+	}
+	for _, image := range rke2ReleaseImages {
+		if g.GeneratedLinuxImages[image] == nil {
+			g.GeneratedLinuxImages[image] = make(map[string]bool)
+		}
+		g.GeneratedLinuxImages[image]["rke2-release"] = true
+	}
+
+	// get system-images
+	s := kdmimages.SystemImages{
+		RancherVersion:    g.RancherVersion,
+		RkeSysImages:      data.K8sVersionRKESystemImages,
+		LinuxSvcOptions:   data.K8sVersionServiceOptions,
+		WindowsSvcOptions: data.K8sVersionWindowsServiceOptions,
+		RancherVersions:   data.K8sVersionInfo,
+	}
+	err = s.GetImages()
+	if err != nil {
+		return fmt.Errorf("generateFromKDMData: %w", err)
+	}
+	// clone generated system-images
+	for image := range s.LinuxImageSet {
+		for source := range s.LinuxImageSet[image] {
+			u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
+		}
+	}
+	for image := range s.WindowsImageSet {
+		for source := range s.WindowsImageSet[image] {
+			u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
+		}
+	}
+
 	// get k3s/rke2 upgrade images
-	ug := kdmimages.UpgradeGenerator{
+	u := kdmimages.UpgradeImages{
 		Source:         kdmimages.K3S,
 		RancherVersion: g.RancherVersion,
 		MinKubeVersion: g.MinKubeVersion,
 		Data:           data.K3S,
 	}
-	k3sUpgradeImages, err := ug.GetImages()
+	k3sUpgradeImages, err := u.GetImages()
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
-	sort.Strings(k3sUpgradeImages)
 
 	for _, image := range k3sUpgradeImages {
 		if g.GeneratedLinuxImages[image] == nil {
@@ -219,13 +270,12 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		g.GeneratedLinuxImages[image]["k3sUpgrade"] = true
 	}
 
-	ug.Source = kdmimages.RKE2
-	ug.Data = data.RKE2
-	rke2UpgradeImages, err := ug.GetImages()
+	u.Source = kdmimages.RKE2
+	u.Data = data.RKE2
+	rke2UpgradeImages, err := u.GetImages()
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
-	sort.Strings(rke2UpgradeImages)
 	for _, image := range rke2UpgradeImages {
 		if g.GeneratedLinuxImages[image] == nil {
 			g.GeneratedLinuxImages[image] = make(map[string]bool)

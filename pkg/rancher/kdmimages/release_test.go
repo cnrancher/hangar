@@ -33,7 +33,7 @@ func Test_GetVersions(t *testing.T) {
 		return
 	}
 	// Get RKE2 images
-	rv := kdmimages.ReleaseVersions{
+	rv := kdmimages.ReleaseImages{
 		Source: kdmimages.RKE2,
 		Data:   data.RKE2,
 	}
@@ -70,7 +70,7 @@ func Test_GetImages(t *testing.T) {
 		return
 	}
 	// Get RKE2 images
-	rv := kdmimages.ReleaseVersions{
+	rv := kdmimages.ReleaseImages{
 		Source: kdmimages.RKE2,
 		Data:   data.RKE2,
 	}

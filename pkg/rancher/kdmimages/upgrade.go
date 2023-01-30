@@ -23,15 +23,15 @@ const (
 	RKE2 = "rke2"
 )
 
-// UpgradeGenerator generates external image list from KDM RKE2/K3S data
-type UpgradeGenerator struct {
+// UpgradeImages generates external image list from KDM RKE2/K3S data
+type UpgradeImages struct {
 	Source         string
 	RancherVersion string
 	MinKubeVersion string
 	Data           map[string]interface{}
 }
 
-func (g *UpgradeGenerator) GetImages() ([]string, error) {
+func (g *UpgradeImages) GetImages() ([]string, error) {
 	if g.Source != K3S && g.Source != RKE2 {
 		return nil, fmt.Errorf("invalid source provided: %v", g.Source)
 	}
@@ -137,7 +137,7 @@ func (g *UpgradeGenerator) GetImages() ([]string, error) {
 	return externalImages, nil
 }
 
-func (e *UpgradeGenerator) getExternalList(release string) ([]string, error) {
+func (e *UpgradeImages) getExternalList(release string) ([]string, error) {
 	switch e.Source {
 	case RKE2:
 		linuxImages, err := getImageListFromURL(

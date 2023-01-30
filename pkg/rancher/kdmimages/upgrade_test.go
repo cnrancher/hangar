@@ -24,7 +24,7 @@ func Test_Upgrade_GetImages(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	ug := kdmimages.UpgradeGenerator{
+	ug := kdmimages.UpgradeImages{
 		Source:         kdmimages.RKE2,
 		RancherVersion: "v2.7.0",
 		MinKubeVersion: "v1.21.0",
