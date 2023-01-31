@@ -62,10 +62,6 @@ func fetchImages(
 		return nil
 	}
 	collectionImagesList := []interface{}{versionInfo.RKESystemImages}
-	// TODO:
-	// if s.Config.OsType == Linux {
-	// 	collectionImagesList = append(collectionImagesList, v32.ToolsSystemImages)
-	// }
 	images, err := flatImagesFromCollections(collectionImagesList...)
 	if err != nil {
 		return fmt.Errorf("fetchImages: %w", err)
@@ -120,10 +116,7 @@ func (s *SystemImages) getK8sVersionInfo() error {
 		}
 		curr, ok := maxVersionForMajorK8sVersion[majorVersion]
 		res, err := u.SemverCompare(k8sVersion, curr)
-		if err != nil {
-			logrus.Warn(err)
-		}
-		if !ok || res > 0 {
+		if err != nil || !ok || res > 0 {
 			maxVersionForMajorK8sVersion[majorVersion] = k8sVersion
 		}
 	}
@@ -183,24 +176,25 @@ func toIgnoreForAllK8s(
 	rancherVersionInfo rketypes.K8sVersionInfo,
 	rancherVersion string,
 ) bool {
-	res, err := u.SemverCompare(
-		rancherVersion, rancherVersionInfo.DeprecateRancherVersion)
-	if err != nil {
-		logrus.Warn(err)
+	if rancherVersionInfo.DeprecateRancherVersion != "" {
+		res, err := u.SemverCompare(
+			rancherVersion, rancherVersionInfo.DeprecateRancherVersion)
+		if err != nil {
+			logrus.Warn(err)
+		} else if res >= 0 {
+			return true
+		}
 	}
-	if err == nil && rancherVersionInfo.DeprecateRancherVersion != "" &&
-		res >= 0 {
-		return true
-	}
-	res, err = u.SemverCompare(
-		rancherVersion, rancherVersionInfo.MinRancherVersion)
-	if err != nil {
-		logrus.Warn(err)
-	}
-	if err == nil && rancherVersionInfo.MinRancherVersion != "" && res < 0 {
-		// only respect min versions, even if max is present
-		// we need to support upgraded clusters
-		return true
+	if rancherVersionInfo.MinRancherVersion != "" {
+		res, err := u.SemverCompare(
+			rancherVersion, rancherVersionInfo.MinRancherVersion)
+		if err != nil {
+			logrus.Warn(err)
+		} else if res < 0 {
+			// only respect min versions, even if max is present
+			// we need to support upgraded clusters
+			return true
+		}
 	}
 	return false
 }
@@ -209,14 +203,15 @@ func toIgnoreForK8sCurrent(
 	majorVersionInfo rketypes.K8sVersionInfo,
 	rancherVersion string,
 ) bool {
-	res, err := u.SemverCompare(
-		rancherVersion, majorVersionInfo.MaxRancherVersion)
-	if err != nil {
-		logrus.Warn(err)
-	}
-	if err == nil && majorVersionInfo.MaxRancherVersion != "" && res > 0 {
-		// include in K8sVersionCurrent only if less then max version
-		return true
+	if majorVersionInfo.MaxRancherVersion != "" {
+		res, err := u.SemverCompare(
+			rancherVersion, majorVersionInfo.MaxRancherVersion)
+		if err != nil {
+			logrus.Warn(err)
+		} else if res > 0 {
+			// include in K8sVersionCurrent only if less then max version
+			return true
+		}
 	}
 	return false
 }

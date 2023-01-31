@@ -37,7 +37,7 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdOutputLinux, "output-linux", "", "generated linux image list")
 	flagSet.StringVar(&cmdOutputWindows, "output-windows", "", "generated windows image list")
 	flagSet.StringVar(&cmdOutputSource, "output-source", "", "generate image list with image source")
-	flagSet.StringVar(&cmdRancherVersion, "rancher", "v2.7.0", "rancher version (senmantic version with 'v' prefix)")
+	flagSet.StringVar(&cmdRancherVersion, "rancher", "v2.7.0", "rancher version (semantic version with 'v' prefix)")
 	flagSet.StringVar(&cmdKubeVersion, "kubeversion", "v1.21.0", "minimum kuber version (semantic version with 'v' prefix)")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
 

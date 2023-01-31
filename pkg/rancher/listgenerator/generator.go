@@ -211,7 +211,7 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		if g.GeneratedLinuxImages[image] == nil {
 			g.GeneratedLinuxImages[image] = make(map[string]bool)
 		}
-		g.GeneratedLinuxImages[image]["k3s-release"] = true
+		g.GeneratedLinuxImages[image]["[k3s-release(rancher)]"] = true
 	}
 
 	r.Source = kdmimages.RKE2
@@ -224,7 +224,7 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		if g.GeneratedLinuxImages[image] == nil {
 			g.GeneratedLinuxImages[image] = make(map[string]bool)
 		}
-		g.GeneratedLinuxImages[image]["rke2-release"] = true
+		g.GeneratedLinuxImages[image]["[rke2-release(rancher)]"] = true
 	}
 
 	// get system-images

@@ -128,7 +128,6 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 
 	var externalImages []string
 	for imageName := range externalImagesMap {
-		logrus.Debugf("[%s] add image: %s", g.Source, imageName)
 		externalImages = append(externalImages, imageName)
 	}
 	sort.Strings(externalImages)

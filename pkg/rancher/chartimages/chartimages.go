@@ -26,8 +26,6 @@ const RancherVersionAnnotationKey = "catalog.cattle.io/rancher-version"
 // a chart in airgap setups. If a chart is not defined here, only the latest
 // version of it will be checked for images.
 // INFO: CRD charts need to be added as well.
-//
-// TODO: hard-code chart names in map is not good idea.
 var (
 	ChartsToCheckConstraints       = map[string]bool{}
 	SystemChartsToCheckConstraints = map[string]bool{
@@ -103,6 +101,8 @@ func (c *Chart) FetchImages() error {
 }
 
 func (c *Chart) fetchChartsFromPath() error {
+	logrus.Infof("Fetching %q chart images from %q",
+		c.OS.String(), c.Path)
 	index, err := BuildOrGetIndex(c.Path)
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func (c *Chart) fetchChartsFromPath() error {
 		// Append the remaining versions of the chart if the chart exists in
 		// the chartsToCheckConstraints map and the given Rancher version
 		// satisfies the chart's Rancher version constraint annotation.
-		chartName := versions[latestVersionIndex].Metadata.Name
+		chartName := versions[latestVersionIndex].Name
 		var checkConstraints map[string]bool
 		switch c.Type {
 		case RepoTypeDefault:
@@ -136,7 +136,7 @@ func (c *Chart) fetchChartsFromPath() error {
 				"fetchChartsFromPath: unrecognized chart type: %v", c.Type)
 		}
 		if _, ok := checkConstraints[chartName]; ok {
-			logrus.Debugf("check all constraints of chart %q", chartName)
+			logrus.Debugf("Check all constraints of chart %q", chartName)
 			checkVersions := append(
 				versions[0:latestVersionIndex],
 				versions[latestVersionIndex+1:]...)
@@ -145,8 +145,9 @@ func (c *Chart) fetchChartsFromPath() error {
 				if err != nil {
 					return fmt.Errorf("fetchChartsFromPath: "+
 						"failed to check constraint: %w", err)
-				} else if constraint {
-					logrus.Debugf("constraint: %v", version.Version)
+				}
+				if constraint {
+					// logrus.Debugf("constraint: %v", version.Version)
 					filteredVersions = append(filteredVersions, version)
 				}
 			}
@@ -171,11 +172,12 @@ func (c *Chart) fetchChartsFromPath() error {
 			logrus.Warn(err)
 			continue
 		}
-		chartNameAndVersion := fmt.Sprintf("%s:%s",
-			version.Name, version.Version)
+		chartRepoName := filepath.Base(c.Path)
+		chartSource := fmt.Sprintf("[%s;%s:%s]",
+			chartRepoName, version.Name, version.Version)
 		for _, values := range versionValues {
 			err := pickImagesFromValuesMap(
-				c.ImageSet, values, chartNameAndVersion, c.OS)
+				c.ImageSet, values, chartSource, c.OS)
 			if err != nil {
 				return err
 			}
@@ -185,16 +187,15 @@ func (c *Chart) fetchChartsFromPath() error {
 }
 
 func (c *Chart) fetchChartsFromURL() error {
-	logrus.Panic("fetchChartsFromURL is not supported yet")
-	return nil
+	// logrus.Panic("fetchChartsFromURL is not supported yet")
+	// return nil
+	return fmt.Errorf("fetchChartsFromURL is not supported yet")
 }
 
 // checkChartVersionConstraint retrieves the value of a chart's rancher-version
-// annotation, and returns true if the rancher-version in the export
-// configuration satisfies the chart's constraint, false otherwise.
-//
-// WARN: If a chart does not have a Rancher version annotation defined,
-// this function returns false.
+// annotation, or rancher_min/max_version in questions.yaml and returns true
+// if the rancher-version in the export configuration satisfies the chart's
+// constraint, false otherwise.
 func (c Chart) checkChartVersionConstraint(
 	version repo.ChartVersion,
 ) (bool, error) {
@@ -203,7 +204,58 @@ func (c Chart) checkChartVersionConstraint(
 		return compareRancherVersionToConstraint(
 			c.RancherVersion, constraintStr)
 	}
-	return false, nil
+	// if no rancher version annotation, check questions.yaml file
+	questionsPath := filepath.Join(
+		c.Path, version.URLs[0], "questions.yaml")
+	questions, err := decodeQuestionsFile(questionsPath)
+	if os.IsNotExist(err) {
+		questionsPath = filepath.Join(
+			c.Path, version.URLs[0], "questions.yml")
+		questions, err = decodeQuestionsFile(questionsPath)
+	}
+	if err != nil {
+		logrus.Warnf("Skip %s:%s does not have a questions file",
+			version.Name, version.Version)
+		return false, nil
+	}
+	constraintStr = minMaxToConstraintStr(
+		questions.RancherMinVersion, questions.RancherMaxVersion)
+	if constraintStr == "" {
+		logrus.Warnf("Failed to read RancherMin/MaxVersion from %s:%s",
+			version.Name, version.Version)
+		return false, nil
+	}
+	return compareRancherVersionToConstraint(
+		c.RancherVersion, constraintStr)
+}
+
+func decodeQuestionsFile(path string) (Questions, error) {
+	var questions Questions
+	file, err := os.Open(path)
+	if err != nil {
+		return Questions{}, err
+	}
+	defer file.Close()
+	if err := decodeYAMLFile(file, &questions); err != nil {
+		return Questions{}, err
+	}
+	return questions, nil
+}
+
+// minMaxToConstraintStr converts min and max Rancher version strings into a
+// constraint string
+// E.g min "2.6.3" max "2.6.4" -> constraintStr "2.6.3 - 2.6.4".
+func minMaxToConstraintStr(min, max string) string {
+	if min != "" && max != "" {
+		return fmt.Sprintf("%s - %s", min, max)
+	}
+	if min != "" {
+		return fmt.Sprintf(">= %s", min)
+	}
+	if max != "" {
+		return fmt.Sprintf("<= %s", max)
+	}
+	return ""
 }
 
 // compareRancherVersionToConstraint returns true if the rancher-version
@@ -253,7 +305,7 @@ func compareRancherVersionToConstraint(
 func pickImagesFromValuesMap(
 	imagesSet map[string]map[string]bool,
 	values map[interface{}]interface{},
-	chartNameAndVersion string,
+	chartSource string,
 	OS OsType,
 ) error {
 	walkMap(values, func(inputMap map[interface{}]interface{}) {
@@ -280,18 +332,18 @@ func pickImagesFromValuesMap(
 					imageName)
 			}
 			if OS == Linux {
-				u.AddSourceToImage(imagesSet, imageName, chartNameAndVersion)
+				u.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 		}
 		for _, os := range strings.Split(osList, ",") {
 			os = strings.TrimSpace(os)
 			if strings.EqualFold("windows", os) && OS == Windows {
-				u.AddSourceToImage(imagesSet, imageName, chartNameAndVersion)
+				u.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 			if strings.EqualFold("linux", os) && OS == Linux {
-				u.AddSourceToImage(imagesSet, imageName, chartNameAndVersion)
+				u.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 		}

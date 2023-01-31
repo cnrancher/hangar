@@ -44,6 +44,7 @@ var (
 	ErrDirNotEmpty          = errors.New("directory is not empty")
 	ErrCredsStore           = errors.New("docker config use credsStore to store password")
 	ErrCredsStoreUnsupport  = errors.New("unsupported credsStore, only 'deskstop' supported")
+	ErrVersionIsEmpty       = errors.New("version is empty string")
 )
 
 const (
@@ -457,6 +458,9 @@ func AddSourceToImage(
 
 // SemverCompare compares two semvers
 func SemverCompare(a, b string) (int, error) {
+	if a == "" || b == "" {
+		return 0, ErrVersionIsEmpty
+	}
 	if !semver.IsValid(a) {
 		if !semver.IsValid("v" + a) {
 			return 0, fmt.Errorf("%q is not a valid semver", a)
