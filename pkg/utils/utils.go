@@ -456,24 +456,65 @@ func AddSourceToImage(
 	}
 }
 
+func EnsureSemverValid(v string) (string, error) {
+	if !semver.IsValid(v) {
+		if !semver.IsValid("v" + v) {
+			return "", fmt.Errorf("%q is not a valid semver", v)
+		}
+		v = "v" + v
+	}
+	return v, nil
+}
+
 // SemverCompare compares two semvers
 func SemverCompare(a, b string) (int, error) {
 	if a == "" || b == "" {
 		return 0, ErrVersionIsEmpty
 	}
-	if !semver.IsValid(a) {
-		if !semver.IsValid("v" + a) {
-			return 0, fmt.Errorf("%q is not a valid semver", a)
-		}
-		a = "v" + a
+	a, err := EnsureSemverValid(a)
+	if err != nil {
+		return 0, err
 	}
-	if !semver.IsValid(b) {
-		if !semver.IsValid("v" + b) {
-			return 0, fmt.Errorf("%q is not a valid semver", b)
-		}
-		b = "v" + b
+	b, err = EnsureSemverValid(b)
+	if err != nil {
+		return 0, err
 	}
 	return semver.Compare(a, b), nil
+}
+
+func SemverMajorEqual(a, b string) (bool, error) {
+	if a == "" || b == "" {
+		return false, ErrVersionIsEmpty
+	}
+	a, err := EnsureSemverValid(a)
+	if err != nil {
+		return false, err
+	}
+	b, err = EnsureSemverValid(b)
+	if err != nil {
+		return false, err
+	}
+	if semver.Major(a) != semver.Major(b) {
+		return false, nil
+	}
+	return true, nil
+}
+func SemverMajorMinorEqual(a, b string) (bool, error) {
+	if a == "" || b == "" {
+		return false, ErrVersionIsEmpty
+	}
+	a, err := EnsureSemverValid(a)
+	if err != nil {
+		return false, err
+	}
+	b, err = EnsureSemverValid(b)
+	if err != nil {
+		return false, err
+	}
+	if semver.MajorMinor(a) != semver.MajorMinor(b) {
+		return false, nil
+	}
+	return true, nil
 }
 
 func ToObj(data interface{}, into interface{}) error {

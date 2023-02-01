@@ -2,15 +2,19 @@ package chartimages
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Masterminds/semver"
 	u "github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -78,7 +82,10 @@ type Chart struct {
 	Type           ChartRepoType // chart type: default, system, etc...
 	Path           string
 	URL            string
-	ImageSet       map[string]map[string]bool // map[image]map[source]
+	CloneBaseDir   string // directory to clone
+	Branch         string // git branch if in URL mode
+
+	ImageSet map[string]map[string]bool // map[image]map[source]
 }
 
 type Questions struct {
@@ -172,9 +179,9 @@ func (c *Chart) fetchChartsFromPath() error {
 			logrus.Warn(err)
 			continue
 		}
-		chartRepoName := filepath.Base(c.Path)
+		// chartRepoName := filepath.Base(c.Path)
 		chartSource := fmt.Sprintf("[%s;%s:%s]",
-			chartRepoName, version.Name, version.Version)
+			c.Path, version.Name, version.Version)
 		for _, values := range versionValues {
 			err := pickImagesFromValuesMap(
 				c.ImageSet, values, chartSource, c.OS)
@@ -186,10 +193,69 @@ func (c *Chart) fetchChartsFromPath() error {
 	return nil
 }
 
+// fetchChartsFromURL clones the chart git repo into current dir and generate
+// image list from it.
 func (c *Chart) fetchChartsFromURL() error {
-	// logrus.Panic("fetchChartsFromURL is not supported yet")
-	// return nil
-	return fmt.Errorf("fetchChartsFromURL is not supported yet")
+	urlWithoutExt := c.URL
+	if strings.HasSuffix(c.URL, ".git") {
+		urlWithoutExt = strings.TrimSuffix(c.URL, ".git")
+	}
+	urlParsed, err := url.Parse(urlWithoutExt)
+	if err != nil {
+		return fmt.Errorf("fetchChartsFromURL: %w", err)
+	}
+	option := git.CloneOptions{
+		URL:               c.URL,
+		RecurseSubmodules: git.NoRecurseSubmodules,
+		Depth:             1,
+	}
+	if c.Branch != "" {
+		option.ReferenceName = plumbing.NewBranchReferenceName(c.Branch)
+	}
+	directory := filepath.Join(
+		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
+	logrus.Infof("Cloning git repo into %q, branch %q",
+		directory, c.Branch)
+	r, err := git.PlainClone(directory, false, &option)
+	if err != nil {
+		if !errors.Is(err, git.ErrRepositoryAlreadyExists) {
+			return fmt.Errorf("fetchChartsFromURL: %w", err)
+		}
+	}
+	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+		logrus.Infof("Git repo %q already exists", directory)
+		r, err = git.PlainOpen(directory)
+		if err != nil {
+			return fmt.Errorf("fetchChartsFromURL: %w", err)
+		}
+	}
+	// remotes, err := r.Remotes()
+	// if err != nil {
+	// 	return fmt.Errorf("fetchChartsFromURL: remotes:  %w", err)
+	// }
+	// if len(remotes) == 0 {
+	// 	return fmt.Errorf("fetchChartsFromURL: remote is empty")
+	// }
+	// err = r.Fetch(&git.FetchOptions{
+	// 	RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+	// 	RemoteName: remotes[0].Config().Name,
+	// })
+	// if err != nil {
+	// 	return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
+	// }
+	worktree, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("fetchChartsFromURL: worktree: %w", err)
+	}
+	worktree.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(c.Branch),
+	})
+	if err != nil {
+		return fmt.Errorf("fetchChartsFromURL: checkout: %w", err)
+	}
+	c.Path = directory
+
+	return c.fetchChartsFromPath()
 }
 
 // checkChartVersionConstraint retrieves the value of a chart's rancher-version

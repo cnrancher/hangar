@@ -28,6 +28,8 @@ var (
 	cmdCharts         cmd.StringSlice
 	cmdSystemCharts   cmd.StringSlice
 	flagSet           = flag.NewFlagSet("generate-list", flag.ExitOnError)
+
+	IsRPMGC bool
 )
 
 func Parse(args []string) {
@@ -37,7 +39,7 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdOutputLinux, "output-linux", "", "generated linux image list")
 	flagSet.StringVar(&cmdOutputWindows, "output-windows", "", "generated windows image list")
 	flagSet.StringVar(&cmdOutputSource, "output-source", "", "generate image list with image source")
-	flagSet.StringVar(&cmdRancherVersion, "rancher", "v2.7.0", "rancher version (semantic version with 'v' prefix)")
+	flagSet.StringVar(&cmdRancherVersion, "rancher", "v2.7.0-ent", "rancher version (semantic version with 'v' prefix)")
 	flagSet.StringVar(&cmdKubeVersion, "kubeversion", "v1.21.0", "minimum kuber version (semantic version with 'v' prefix)")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
 
@@ -55,13 +57,13 @@ func GenerateList() {
 		logrus.Error("Use '-o' option to specify the output file")
 		os.Exit(1)
 	}
-	if len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 && cmdKDM == "" {
-		logrus.Error("No input specified")
-		logrus.Error("Please use '-kdm' or '-chart' or '-system-chart' " +
-			"to specify the input resource")
-		flagSet.Usage()
-		os.Exit(1)
-	}
+	// if len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 && cmdKDM == "" {
+	// 	logrus.Error("No input specified")
+	// 	logrus.Error("Please use '-kdm' or '-chart' or '-system-chart' " +
+	// 		"to specify the input resource")
+	// 	flagSet.Usage()
+	// 	os.Exit(1)
+	// }
 	if cmdKubeVersion == "" {
 		logrus.Error("minimum kube version not specified!")
 		logrus.Error("Use '-kubeversion' to specify the min kube version")
@@ -73,16 +75,24 @@ func GenerateList() {
 	if cmdRancherVersion == "" {
 		logrus.Error("rancher version not specified!")
 		logrus.Error("Use '-rancher' option to specify the rancher version")
+		logrus.Error("Version format example: 'v2.7.0'")
 		os.Exit(1)
 	}
 	if !strings.HasPrefix(cmdRancherVersion, "v") {
 		cmdRancherVersion = "v" + cmdRancherVersion
 	}
+	if strings.HasSuffix(cmdRancherVersion, "-ent") {
+		IsRPMGC = true
+		cmdRancherVersion = strings.TrimSuffix(cmdRancherVersion, "-ent")
+	}
 	generator := listgenerator.Generator{
 		RancherVersion: cmdRancherVersion,
 		MinKubeVersion: cmdKubeVersion,
 		ChartsPaths:    make(map[string]chartimages.ChartRepoType),
-		ChartURLs:      make(map[string]chartimages.ChartRepoType),
+		ChartURLs: make(map[string]struct {
+			Type   chartimages.ChartRepoType
+			Branch string
+		}),
 	}
 	if cmdKDM != "" {
 		if _, err := url.ParseRequestURI(cmdKDM); err != nil {
@@ -96,7 +106,13 @@ func GenerateList() {
 			if _, err := url.ParseRequestURI(chart); err != nil {
 				generator.ChartsPaths[chart] = chartimages.RepoTypeDefault
 			} else {
-				generator.ChartURLs[chart] = chartimages.RepoTypeDefault
+				generator.ChartURLs[chart] = struct {
+					Type   chartimages.ChartRepoType
+					Branch string
+				}{
+					Type:   chartimages.RepoTypeDefault,
+					Branch: "", // use default branch
+				}
 			}
 		}
 	}
@@ -105,8 +121,24 @@ func GenerateList() {
 			if _, err := url.ParseRequestURI(chart); err != nil {
 				generator.ChartsPaths[chart] = chartimages.RepoTypeSystem
 			} else {
-				generator.ChartURLs[chart] = chartimages.RepoTypeSystem
+				generator.ChartURLs[chart] = struct {
+					Type   chartimages.ChartRepoType
+					Branch string
+				}{
+					Type:   chartimages.RepoTypeSystem,
+					Branch: "",
+				}
 			}
+		}
+	}
+	// if no input specified, use default values
+	if cmdKDM == "" && len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 {
+		AddRPMCharts(cmdRancherVersion, &generator)
+		if IsRPMGC {
+			AddRPMGCCharts(cmdRancherVersion, &generator)
+			AddRPM_GC_KDM(cmdRancherVersion, &generator)
+		} else {
+			AddRPM_KDM(cmdRancherVersion, &generator)
 		}
 	}
 	if err := generator.Generate(); err != nil {

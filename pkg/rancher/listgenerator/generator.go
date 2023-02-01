@@ -21,8 +21,11 @@ type Generator struct {
 	RancherVersion string // rancher version, should be va.b.c
 	MinKubeVersion string // minimum kube verision, should be va.b.c
 
-	ChartsPaths map[string]chartimages.ChartRepoType
-	ChartURLs   map[string]chartimages.ChartRepoType
+	ChartsPaths map[string]chartimages.ChartRepoType // map[url]type
+	ChartURLs   map[string]struct {
+		Type   chartimages.ChartRepoType
+		Branch string
+	}
 
 	KDMPath string // the path of KDM data.json file
 	KDMURL  string // the remote URL of KDM data.json
@@ -52,7 +55,7 @@ func (g *Generator) selfCheck() error {
 		g.RancherVersion = "v" + g.RancherVersion
 	}
 	if !semver.IsValid(g.RancherVersion) {
-		return fmt.Errorf("%q is not a valid version", g.RancherVersion)
+		return fmt.Errorf("%q is not a valid Rancher version", g.RancherVersion)
 	}
 	if g.ChartURLs == nil && g.ChartsPaths == nil &&
 		g.KDMPath == "" && g.KDMURL == "" {
@@ -133,7 +136,8 @@ func (g *Generator) generateFromChartURLs() error {
 		c := chartimages.Chart{
 			RancherVersion: g.RancherVersion,
 			OS:             chartimages.Linux,
-			Type:           g.ChartURLs[url],
+			Type:           g.ChartURLs[url].Type,
+			Branch:         g.ChartURLs[url].Branch,
 			URL:            url,
 		}
 		if err := c.FetchImages(); err != nil {
@@ -175,7 +179,7 @@ func (g *Generator) generateFromKDMURL() error {
 		return nil
 	}
 	client := http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 15 * time.Second,
 	}
 	resp, err := client.Get(g.KDMURL)
 	if err != nil {

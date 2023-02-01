@@ -10,6 +10,8 @@ skopeo
 *.zstd
 *.part*
 data.json
+/rancher/
+/cnrancher/
 
 # default save image directory
 /saved-image-cache/
