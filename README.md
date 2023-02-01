@@ -14,6 +14,8 @@ For more detailed information about this project, please refer to the documents 
 
 > Simplified Chinese: [简体中文-使用文档](./docs/zh_CN/README.md)
 
+> [English](./docs/en_US/README.md)
+
 ## QuickStart
 
 You can run `image-tools` from docker image.
