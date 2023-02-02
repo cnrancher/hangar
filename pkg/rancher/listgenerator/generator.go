@@ -106,7 +106,7 @@ func (g *Generator) generateFromChartPaths() error {
 			Path:           path,
 		}
 		if err := c.FetchImages(); err != nil {
-			logrus.Error(err)
+			return err
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
@@ -117,7 +117,7 @@ func (g *Generator) generateFromChartPaths() error {
 		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
 		if err := c.FetchImages(); err != nil {
-			logrus.Error(err)
+			return err
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
@@ -141,7 +141,7 @@ func (g *Generator) generateFromChartURLs() error {
 			URL:            url,
 		}
 		if err := c.FetchImages(); err != nil {
-			logrus.Error(err)
+			return err
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
@@ -152,7 +152,7 @@ func (g *Generator) generateFromChartURLs() error {
 		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
 		if err := c.FetchImages(); err != nil {
-			logrus.Error(err)
+			return err
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {

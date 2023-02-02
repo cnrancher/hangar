@@ -11,10 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
@@ -128,7 +127,17 @@ func (c *Chart) fetchChartsFromPath() error {
 			latestVersion = versions[0]
 			latestVersionIndex = 0
 		}
-		filteredVersions = append(filteredVersions, latestVersion)
+		constraint, err := c.checkChartVersionConstraint(*latestVersion)
+		if err != nil {
+			return fmt.Errorf("fetchChartsFromPath: "+
+				"failed to check constraint of chart %q: %w",
+				latestVersion.Name, err)
+		}
+		if constraint {
+			// logrus.Debugf("constraint: %v, chart: %v",
+			// 	latestVersion.Version, latestVersion.Name)
+			filteredVersions = append(filteredVersions, latestVersion)
+		}
 		// Append the remaining versions of the chart if the chart exists in
 		// the chartsToCheckConstraints map and the given Rancher version
 		// satisfies the chart's Rancher version constraint annotation.
@@ -152,10 +161,12 @@ func (c *Chart) fetchChartsFromPath() error {
 				constraint, err := c.checkChartVersionConstraint(*version)
 				if err != nil {
 					return fmt.Errorf("fetchChartsFromPath: "+
-						"failed to check constraint: %w", err)
+						"failed to check constraint of chart %q: %w",
+						latestVersion.Name, err)
 				}
 				if constraint {
-					// logrus.Debugf("constraint: %v", version.Version)
+					// logrus.Debugf("constraint: %v, chart: %v",
+					// 	version.Version, version.Name)
 					filteredVersions = append(filteredVersions, version)
 				}
 			}
@@ -237,21 +248,22 @@ func (c *Chart) fetchChartsFromURL() error {
 	if len(remotes) == 0 {
 		return fmt.Errorf("fetchChartsFromURL: failed to get remotes")
 	}
-	err = r.Fetch(&git.FetchOptions{
-		RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
-		RemoteName: remotes[0].Config().Name,
-	})
-	if err != nil {
-		if !errors.Is(git.NoErrAlreadyUpToDate, err) {
-			return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
-		}
-	}
+	// err = r.Fetch(&git.FetchOptions{
+	// 	RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+	// 	RemoteName: remotes[0].Config().Name,
+	// })
+	// if err != nil {
+	// 	if !errors.Is(git.NoErrAlreadyUpToDate, err) {
+	// 		return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
+	// 	}
+	// }
 	worktree, err := r.Worktree()
 	if err != nil {
 		return fmt.Errorf("fetchChartsFromURL: worktree: %w", err)
 	}
 	err = worktree.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(c.Branch),
+		Branch: plumbing.NewRemoteReferenceName(
+			remotes[0].Config().Name, c.Branch),
 	})
 	if err != nil {
 		if !errors.Is(git.ErrBranchExists, err) && !errors.Is(io.EOF, err) {
@@ -272,6 +284,8 @@ func (c Chart) checkChartVersionConstraint(
 ) (bool, error) {
 	constraintStr, ok := version.Annotations[RancherVersionAnnotationKey]
 	if ok {
+		logrus.Debugf("%s:%s has rancher-version annotation",
+			version.Name, version.Version)
 		return compareRancherVersionToConstraint(
 			c.RancherVersion, constraintStr)
 	}
