@@ -36,7 +36,7 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 		return nil, fmt.Errorf("invalid source provided: %v", g.Source)
 	}
 
-	logrus.Infof("generating %s image list...", g.Source)
+	logrus.Infof("Generating %s upgrade images...", g.Source)
 	releases, ok := g.Data["releases"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("failed to get 'releases' from data")
@@ -131,7 +131,7 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 		externalImages = append(externalImages, imageName)
 	}
 	sort.Strings(externalImages)
-	logrus.Infof("finished generating %s image list...", g.Source)
+	logrus.Infof("Finished generating %s upgrade images", g.Source)
 
 	return externalImages, nil
 }

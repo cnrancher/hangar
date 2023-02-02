@@ -14,6 +14,7 @@ import (
 	"github.com/Masterminds/semver"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
@@ -229,29 +230,33 @@ func (c *Chart) fetchChartsFromURL() error {
 			return fmt.Errorf("fetchChartsFromURL: %w", err)
 		}
 	}
-	// remotes, err := r.Remotes()
-	// if err != nil {
-	// 	return fmt.Errorf("fetchChartsFromURL: remotes:  %w", err)
-	// }
-	// if len(remotes) == 0 {
-	// 	return fmt.Errorf("fetchChartsFromURL: remote is empty")
-	// }
-	// err = r.Fetch(&git.FetchOptions{
-	// 	RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
-	// 	RemoteName: remotes[0].Config().Name,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
-	// }
+	remotes, err := r.Remotes()
+	if err != nil {
+		return fmt.Errorf("fetchChartsFromURL: remotes:  %w", err)
+	}
+	if len(remotes) == 0 {
+		return fmt.Errorf("fetchChartsFromURL: failed to get remotes")
+	}
+	err = r.Fetch(&git.FetchOptions{
+		RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
+		RemoteName: remotes[0].Config().Name,
+	})
+	if err != nil {
+		if !errors.Is(git.NoErrAlreadyUpToDate, err) {
+			return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
+		}
+	}
 	worktree, err := r.Worktree()
 	if err != nil {
 		return fmt.Errorf("fetchChartsFromURL: worktree: %w", err)
 	}
-	worktree.Checkout(&git.CheckoutOptions{
+	err = worktree.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.NewBranchReferenceName(c.Branch),
 	})
 	if err != nil {
-		return fmt.Errorf("fetchChartsFromURL: checkout: %w", err)
+		if !errors.Is(git.ErrBranchExists, err) && !errors.Is(io.EOF, err) {
+			return fmt.Errorf("fetchChartsFromURL: checkout: %w", err)
+		}
 	}
 	c.Path = directory
 

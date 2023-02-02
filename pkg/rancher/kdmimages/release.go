@@ -3,6 +3,8 @@ package kdmimages
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type ReleaseImages struct {
@@ -17,6 +19,7 @@ func (r *ReleaseImages) GetImages() ([]string, error) {
 	if r.Source == "" || (r.Source != RKE2 && r.Source != K3S) {
 		return nil, fmt.Errorf("GetImages: invalid source %q", r.Source)
 	}
+	logrus.Infof("Generating KDM release images...")
 	versions, err := r.GetVersions()
 	if err != nil {
 		return nil, err
@@ -27,6 +30,7 @@ func (r *ReleaseImages) GetImages() ([]string, error) {
 			"rancher/system-agent-installer-%s:%s", r.Source, versions[i])
 		images = append(images, image)
 	}
+	logrus.Infof("Finished generating KDM release images")
 	return images, nil
 }
 

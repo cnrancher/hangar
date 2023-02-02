@@ -178,12 +178,18 @@ func (g *Generator) generateFromKDMURL() error {
 	if g.KDMURL == "" {
 		return nil
 	}
+	logrus.Infof("Get KDM data from URL: %q", g.KDMURL)
 	client := http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	resp, err := client.Get(g.KDMURL)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMURL: %w", err)
+		// re-try get data from URL
+		logrus.Warnf("Failed to get KDM data from url: %v, retrying...", err)
+		resp, err = client.Get(g.KDMURL)
+		if err != nil {
+			return fmt.Errorf("generateFromKDMURL: %w", err)
+		}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {

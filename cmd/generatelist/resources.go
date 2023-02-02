@@ -41,6 +41,38 @@ var (
 	}
 
 	// map[version]map[url][branch]
+	RPM_GC_CHARTS_DEV = map[string]map[string]string{
+		"v2.7": {
+			// pandaria-catalog
+			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.7",
+		},
+		"v2.6": {
+			// pandaria-catalog
+			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.6",
+		},
+		"v2.5": {
+			// pandaria-catalog
+			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.5",
+		},
+	}
+
+	// map[version]map[url][branch]
+	RPM_GC_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+		"v2.7": {
+			// system-chart
+			"https://github.com/cnrancher/system-charts": "dev-v2.7",
+		},
+		"v2.6": {
+			// system-chart
+			"https://github.com/cnrancher/system-charts": "dev-v2.6",
+		},
+		"v2.5": {
+			// system-chart
+			"https://github.com/cnrancher/system-charts": "dev-v2.5",
+		},
+	}
+
+	// map[version]map[url][branch]
 	RPM_CHARTS = map[string]map[string]string{
 		"v2.7": {
 			// rancher-charts
@@ -74,6 +106,40 @@ var (
 		},
 	}
 
+	// map[version]map[url][branch]
+	RPM_CHARTS_DEV = map[string]map[string]string{
+		"v2.7": {
+			// rancher-charts
+			"https://github.com/rancher/charts": "dev-v2.7",
+		},
+		"v2.6": {
+			// rancher-charts
+			"https://github.com/rancher/charts": "dev-v2.6",
+		},
+		"v2.5": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "dev-v2.5",
+			// rancher-charts
+			"https://github.com/rancher/charts": "dev-v2.5",
+		},
+	}
+
+	// map[version]map[url][branch]
+	RPM_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+		"v2.7": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "dev-v2.7",
+		},
+		"v2.6": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "dev-v2.6",
+		},
+		"v2.5": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "dev-v2.5",
+		},
+	}
+
 	// map[version]url
 	KDM_URLS = map[string]string{
 		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.7/data.json",
@@ -87,55 +153,89 @@ var (
 		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json",
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.5/data.json",
 	}
+
+	// map[version]url
+	KDM_URLS_DEV = map[string]string{
+		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.7/data.json",
+		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.6/data.json",
+		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.5/data.json",
+	}
+
+	// map[version]url
+	KDM_GC_URLS_DEV = map[string]string{
+		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.7/data.json",
+		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.6/data.json",
+		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.5/data.json",
+	}
 )
 
-func AddRPMCharts(v string, g *listgenerator.Generator) {
+func AddRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	for url := range RPM_CHARTS[majorMinor] {
+	chartsMap := RPM_CHARTS
+	if dev {
+		chartsMap = RPM_CHARTS_DEV
+	}
+	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
 			Type:   chartimages.RepoTypeDefault,
-			Branch: RPM_CHARTS[majorMinor][url],
+			Branch: chartsMap[majorMinor][url],
 		}
 	}
-	for url := range RPM_SYSTEM_CHARTS[majorMinor] {
+	systemChartsMap := RPM_SYSTEM_CHARTS
+	if dev {
+		systemChartsMap = RPM_SYSTEM_CHARTS_DEV
+	}
+	for url := range systemChartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
 			Type:   chartimages.RepoTypeSystem,
-			Branch: RPM_SYSTEM_CHARTS[majorMinor][url],
+			Branch: systemChartsMap[majorMinor][url],
 		}
 	}
 }
 
-func AddRPMGCCharts(v string, g *listgenerator.Generator) {
+func AddRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	for url := range RPM_GC_CHARTS[majorMinor] {
+	chartsMap := RPM_GC_CHARTS
+	if dev {
+		chartsMap = RPM_GC_CHARTS_DEV
+	}
+	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
 			Type:   chartimages.RepoTypeDefault,
-			Branch: RPM_CHARTS[majorMinor][url],
+			Branch: chartsMap[majorMinor][url],
 		}
 	}
-	for url := range RPM_GC_SYSTEM_CHARTS[majorMinor] {
+	chartsMap = RPM_GC_SYSTEM_CHARTS
+	if dev {
+		chartsMap = RPM_GC_SYSTEM_CHARTS_DEV
+	}
+	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
 			Type:   chartimages.RepoTypeSystem,
-			Branch: RPM_SYSTEM_CHARTS[majorMinor][url],
+			Branch: chartsMap[majorMinor][url],
 		}
 	}
 }
 
-func AddRPM_KDM(v string, g *listgenerator.Generator) {
+func AddRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	url, ok := KDM_URLS[majorMinor]
+	urlMap := KDM_URLS
+	if dev {
+		urlMap = KDM_URLS_DEV
+	}
+	url, ok := urlMap[majorMinor]
 	if !ok {
 		logrus.Warnf("KDM URL of version %q not found!", majorMinor)
 		return
@@ -143,9 +243,13 @@ func AddRPM_KDM(v string, g *listgenerator.Generator) {
 	g.KDMURL = url
 }
 
-func AddRPM_GC_KDM(v string, g *listgenerator.Generator) {
+func AddRPM_GC_KDM(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	url, ok := KDM_GC_URLS[majorMinor]
+	urlMap := KDM_GC_URLS
+	if dev {
+		urlMap = KDM_GC_URLS_DEV
+	}
+	url, ok := urlMap[majorMinor]
 	if !ok {
 		logrus.Warnf("KDM URL of version %q not found!", majorMinor)
 		return

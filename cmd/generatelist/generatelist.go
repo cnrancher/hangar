@@ -24,7 +24,9 @@ var (
 	cmdOutputSource   string
 	cmdRancherVersion string
 	cmdKubeVersion    string
+	cmdGitToken       string
 	cmdDebug          bool
+	cmdDev            bool
 	cmdCharts         cmd.StringSlice
 	cmdSystemCharts   cmd.StringSlice
 	flagSet           = flag.NewFlagSet("generate-list", flag.ExitOnError)
@@ -39,9 +41,12 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdOutputLinux, "output-linux", "", "generated linux image list")
 	flagSet.StringVar(&cmdOutputWindows, "output-windows", "", "generated windows image list")
 	flagSet.StringVar(&cmdOutputSource, "output-source", "", "generate image list with image source")
-	flagSet.StringVar(&cmdRancherVersion, "rancher", "v2.7.0-ent", "rancher version (semantic version with 'v' prefix)")
+	flagSet.StringVar(&cmdRancherVersion, "rancher", "",
+		"rancher version (semver with 'v' prefix)(use '-ent' suffix to distinguish GC)")
 	flagSet.StringVar(&cmdKubeVersion, "kubeversion", "v1.21.0", "minimum kuber version (semantic version with 'v' prefix)")
+	flagSet.StringVar(&cmdGitToken, "git-token", "", "git token for download image data from RPM GC private repos")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
+	flagSet.BoolVar(&cmdDev, "dev", false, "Switch to dev branch/url of charts & KDM data")
 
 	flagSet.Var(&cmdCharts, "chart", "chart path")
 	flagSet.Var(&cmdSystemCharts, "system-chart", "system chart path")
@@ -133,12 +138,15 @@ func GenerateList() {
 	}
 	// if no input specified, use default values
 	if cmdKDM == "" && len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 {
-		AddRPMCharts(cmdRancherVersion, &generator)
+		if cmdDev {
+			logrus.Info("Dev branch enabled")
+		}
+		AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
 		if IsRPMGC {
-			AddRPMGCCharts(cmdRancherVersion, &generator)
-			AddRPM_GC_KDM(cmdRancherVersion, &generator)
+			AddRPMGCCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPM_GC_KDM(cmdRancherVersion, &generator, cmdDev)
 		} else {
-			AddRPM_KDM(cmdRancherVersion, &generator)
+			AddRPM_KDM(cmdRancherVersion, &generator, cmdDev)
 		}
 	}
 	if err := generator.Generate(); err != nil {

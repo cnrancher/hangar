@@ -43,6 +43,7 @@ func (s *SystemImages) GetImages() error {
 		return err
 	}
 
+	logrus.Infof("Generating KDM system images...")
 	if err := fetchImages(s.LinuxInfo, s.LinuxImageSet); err != nil {
 		return err
 	}
@@ -50,6 +51,7 @@ func (s *SystemImages) GetImages() error {
 	if err := fetchImages(s.WindowsInfo, s.WindowsImageSet); err != nil {
 		return err
 	}
+	logrus.Infof("Finished generating KDM system images")
 
 	return nil
 }
