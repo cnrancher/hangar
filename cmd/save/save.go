@@ -157,7 +157,7 @@ func SaveImages() {
 	u.DeleteIfExist(cmdFailed)
 	savedTemplate := mirror.NewSavedListTemplate()
 	var appendListMutex sync.Mutex
-	ch, wg := command.Worker(cmdJobs, cmdFailed, func(m *mirror.Mirror) {
+	ch, wg := command.Worker(cmdFailed, func(m *mirror.Mirror) {
 		// if image saved successfully
 		appendListMutex.Lock()
 		savedTemplate.Append(m.GetSavedImageTemplate())

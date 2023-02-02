@@ -50,7 +50,7 @@ func DockerLoginRegistry(reg string) error {
 	return registry.DockerLogin(reg, username, passwd)
 }
 
-func Worker(num int, failList string, cb func(m *mirror.Mirror)) (
+func Worker(failList string, cb func(m *mirror.Mirror)) (
 	chan *mirror.Mirror, *sync.WaitGroup) {
 
 	var writeFileMutex = new(sync.Mutex)
@@ -75,7 +75,7 @@ func Worker(num int, failList string, cb func(m *mirror.Mirror)) (
 		}
 	}
 	ch := make(chan *mirror.Mirror)
-	for i := 0; i < num; i++ {
+	for i := 0; i < u.WorkerNum; i++ {
 		wg.Add(1)
 		go worker(ch)
 	}
