@@ -118,7 +118,7 @@ func LoadValidate() {
 	logrus.Infof("Creating %d job workers", cmdJobs)
 	u.WorkerNum = cmdJobs
 	u.DeleteIfExist(cmdFailed)
-	ch, wg := command.Worker(cmdJobs, cmdFailed, nil)
+	ch, wg := command.Worker(cmdFailed, nil)
 	if err := command.DockerLoginRegistry(cmdDestReg); err != nil {
 		logrus.Error(err)
 	}

@@ -119,7 +119,7 @@ func MirrorImages() {
 	}
 	u.WorkerNum = cmdJobs
 	u.DeleteIfExist(cmdFailed)
-	ch, wg := command.Worker(cmdJobs, cmdFailed, func(m *mirror.Mirror) {
+	ch, wg := command.Worker(cmdFailed, func(m *mirror.Mirror) {
 		if usingStdin {
 			fmt.Println(">>> ")
 		}
