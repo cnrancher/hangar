@@ -79,7 +79,7 @@ func Convert() {
 			if len(spec) == 1 {
 				spec = append(spec, "latest")
 			} else {
-				logrus.Warn("Unknow line: %s", l)
+				logrus.Warnf("Unknow line: %s", l)
 				continue
 			}
 		}

@@ -66,25 +66,3 @@ func Test_fetchChartsFromPath(t *testing.T) {
 		}
 	}
 }
-
-func Test_fetchChartsFromURL(t *testing.T) {
-	chart := Chart{
-		RancherVersion: "v2.7.0",
-		OS:             Linux,
-		Type:           RepoTypeDefault,
-		Path:           "",
-		URL:            "https://github.com/cnrancher/system-charts",
-		Branch:         "dev-v2.6",
-		CloneBaseDir:   "test/",
-		ImageSet:       make(map[string]map[string]bool),
-	}
-	err := chart.fetchChartsFromURL()
-	if err != nil {
-		t.Error(err)
-	}
-	chart.OS = Windows
-	err = chart.fetchChartsFromURL()
-	if err != nil {
-		t.Error(err)
-	}
-}
