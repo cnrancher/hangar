@@ -3,7 +3,8 @@ FROM quay.io/skopeo/stable:v1.10.0
 RUN yum -y update && \
     yum -y install jq vim && \
     yum -y clean all && \
-    rm -rf /var/cache/dnf/* /var/log/dnf* /var/log/yum*
+    rm -rf /var/cache/dnf/* /var/log/dnf* /var/log/yum* && \
+    mkdir -p /images
 
 # Add docker cli
 COPY --from=docker.io/library/docker:20.10.21 /usr/local/bin/docker /usr/local/bin/
@@ -15,7 +16,7 @@ RUN mkdir -p /root/.docker/cli-plugins/ && \
         https://github.com/docker/buildx/releases/download/v0.10.0/buildx-v0.10.0.linux-${ARCH} && \
     chmod +x /root/.docker/cli-plugins/docker-buildx
 
-WORKDIR /usr/local/bin
+WORKDIR /images
 COPY build/image-tools-linux-* /usr/local/bin/
 RUN mv /usr/local/bin/image-tools-linux-${ARCH}-* /usr/local/bin/image-tools && \
     rm image-tools-linux-*
