@@ -81,6 +81,7 @@
 - [convert-list](./convert-list.md): 转换镜像列表格式。
 - [mirror-validate](./mirror-validate.md): 对已 Mirror 的镜像校验。
 - [load-validate](./load-validate.md): 对已 Load 的镜像校验。
+- [generate-list](./generate-list.md): 根据 KDM 和 Chart 仓库生成一份镜像列表文件。
 
 ## 常见问题
 
