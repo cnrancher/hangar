@@ -51,9 +51,31 @@ func (s *SystemImages) GetImages() error {
 	if err := fetchImages(s.WindowsInfo, s.WindowsImageSet); err != nil {
 		return err
 	}
+	// Remove images begins with noiro
+	for image := range s.LinuxImageSet {
+		if discardImage(image) {
+			logrus.Debugf("Discard %q system image", image)
+			delete(s.LinuxImageSet, image)
+		}
+	}
+	for image := range s.WindowsImageSet {
+		if discardImage(image) {
+			logrus.Debugf("Discard %q system image", image)
+			delete(s.WindowsImageSet, image)
+		}
+	}
 	logrus.Infof("Finished generating KDM system images")
 
 	return nil
+}
+
+func discardImage(image string) bool {
+	project := u.GetProjectName(image)
+	switch project {
+	case "rancher", "cnrancher", "":
+		return false
+	}
+	return true
 }
 
 func fetchImages(
