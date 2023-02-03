@@ -24,7 +24,6 @@ var (
 	cmdOutputSource   string
 	cmdRancherVersion string
 	cmdKubeVersion    string
-	cmdGitToken       string
 	cmdDebug          bool
 	cmdDev            bool
 	cmdCharts         cmd.StringSlice
@@ -44,7 +43,6 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdRancherVersion, "rancher", "",
 		"rancher version (semver with 'v' prefix)(use '-ent' suffix to distinguish GC)")
 	flagSet.StringVar(&cmdKubeVersion, "kubeversion", "v1.21.0", "minimum kuber version (semantic version with 'v' prefix)")
-	flagSet.StringVar(&cmdGitToken, "git-token", "", "git token for download image data from RPM GC private repos")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
 	flagSet.BoolVar(&cmdDev, "dev", false, "Switch to dev branch/url of charts & KDM data")
 
