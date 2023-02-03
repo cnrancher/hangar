@@ -12,9 +12,7 @@ Or you can use the `image-tools save` and `image-tools load` commands to save th
 
 For more detailed information about this project, please refer to the documents in [docs](docs/) folder.
 
-> Simplified Chinese: [简体中文-使用文档](./docs/zh_CN/README.md)
-
-> [English](./docs/en_US/README.md)
+> [English](./docs/en_US/README.md) | [简体中文-使用文档](./docs/zh_CN/README.md)
 
 ## QuickStart
 
