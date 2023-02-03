@@ -77,7 +77,7 @@ func showHelp() {
 	fmt.Printf("  convert-list \t\tConvert image list to 'mirror' format.\n")
 	fmt.Printf("  mirror-validate \tValidate mirrored images.\n")
 	fmt.Printf("  load-validate \tValidate loaded images.\n")
-	fmt.Printf("  generate-list \tGenerate list from KDM data / chart path")
+	fmt.Printf("  generate-list \tGenerate list from KDM data/charts repo.\n")
 	fmt.Printf("  version \t\tShow version.\n")
 }
 
