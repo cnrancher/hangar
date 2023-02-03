@@ -62,13 +62,6 @@ func GenerateList() {
 		logrus.Error("Use '-o' option to specify the output file")
 		os.Exit(1)
 	}
-	// if len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 && cmdKDM == "" {
-	// 	logrus.Error("No input specified")
-	// 	logrus.Error("Please use '-kdm' or '-chart' or '-system-chart' " +
-	// 		"to specify the input resource")
-	// 	flagSet.Usage()
-	// 	os.Exit(1)
-	// }
 	if cmdKubeVersion == "" {
 		logrus.Error("minimum kube version not specified!")
 		logrus.Error("Use '-kubeversion' to specify the min kube version")
@@ -141,12 +134,13 @@ func GenerateList() {
 		if cmdDev {
 			logrus.Info("Dev branch enabled")
 		}
-		AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
 		if IsRPMGC {
-			AddRPMGCCharts(cmdRancherVersion, &generator, cmdDev)
-			AddRPM_GC_KDM(cmdRancherVersion, &generator, cmdDev)
+			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPMSystemCharts(cmdRancherVersion, &generator, cmdDev)
 		} else {
-			AddRPM_KDM(cmdRancherVersion, &generator, cmdDev)
+			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPMGCCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPMGCSystemCharts(cmdRancherVersion, &generator, cmdDev)
 		}
 	}
 	if err := generator.Generate(); err != nil {

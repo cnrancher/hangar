@@ -184,6 +184,10 @@ func AddRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 			Branch: chartsMap[majorMinor][url],
 		}
 	}
+}
+
+func AddRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+	majorMinor := semver.MajorMinor(v)
 	systemChartsMap := RPM_SYSTEM_CHARTS
 	if dev {
 		systemChartsMap = RPM_SYSTEM_CHARTS_DEV
@@ -214,7 +218,11 @@ func AddRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 			Branch: chartsMap[majorMinor][url],
 		}
 	}
-	chartsMap = RPM_GC_SYSTEM_CHARTS
+}
+
+func AddRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+	majorMinor := semver.MajorMinor(v)
+	chartsMap := RPM_GC_SYSTEM_CHARTS
 	if dev {
 		chartsMap = RPM_GC_SYSTEM_CHARTS_DEV
 	}
