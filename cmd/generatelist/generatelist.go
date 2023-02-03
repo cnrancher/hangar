@@ -134,11 +134,13 @@ func GenerateList() {
 		}
 		if IsRPMGC {
 			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
-			AddRPMSystemCharts(cmdRancherVersion, &generator, cmdDev)
-		} else {
-			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
 			AddRPMGCCharts(cmdRancherVersion, &generator, cmdDev)
 			AddRPMGCSystemCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPM_GC_KDM(cmdRancherVersion, &generator, cmdDev)
+		} else {
+			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPMSystemCharts(cmdRancherVersion, &generator, cmdDev)
+			AddRPM_KDM(cmdRancherVersion, &generator, cmdDev)
 		}
 	}
 	if err := generator.Generate(); err != nil {

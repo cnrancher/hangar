@@ -299,7 +299,7 @@ func (c Chart) checkChartVersionConstraint(
 		questions, err = decodeQuestionsFile(questionsPath)
 	}
 	if err != nil {
-		logrus.Warnf("Skip %s:%s does not have a questions file",
+		logrus.Debugf("Skip %s:%s does not have a questions file",
 			version.Name, version.Version)
 		return false, nil
 	}
