@@ -81,6 +81,7 @@ To run this tool locally, please install `skopeo`, `docker` and `docker-buildx` 
 - [convert-list](./convert-list.md): Convert image list to 'mirror' format.
 - [mirror-validate](./mirror-validate.md): Validate the mirrored image.
 - [load-validate](./load-validate.md): Validate the loaded image.
+- [generate-list](./generate-list.md): Generate an image-list by KDM data and Chart repositories.
 
 ## Common problems
 

@@ -1,6 +1,6 @@
 # generate-list
 
-```command
+```console
 $ image-tools generate-list -h
 Usage of generate-list:
   -chart value
