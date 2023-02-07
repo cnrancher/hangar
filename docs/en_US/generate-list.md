@@ -9,8 +9,6 @@ Usage of generate-list:
         enable the debug output
   -dev
         Switch to dev branch/url of charts & KDM data
-  -git-token string
-        git token for download image data from RPM GC private repos
   -kdm string
         kdm path/url
   -kubeversion string
