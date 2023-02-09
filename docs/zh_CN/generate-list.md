@@ -11,8 +11,6 @@ Usage of generate-list:
         Switch to dev branch/url of charts & KDM data
   -kdm string
         kdm path/url
-  -kubeversion string
-        minimum kuber version (semantic version with 'v' prefix) (default "v1.21.0")
   -o string
         generated image list path (linux and windows images) (default "generated-list.txt")
   -output-linux string
@@ -70,9 +68,6 @@ Usage of generate-list:
 # 默认情况下此工具会从 release 分支生成镜像列表
 ./image-tools generate-list -rancher="v2.7.0" -dev
 
-# 使用 -kubeversion 参数，指定最小的 Kubernetes 版本（默认 v1.21.0）
-./image-tools generate-list -rancher="v2.7.0" -kubeversion="v1.21.0"
-
 # 使用 -chart 参数，指定 chart 仓库的路径
 ./image-tools generate-list -rancher="v2.7.0" -chart ./charts
 
@@ -97,7 +92,6 @@ Usage of generate-list:
 # 首先下载 KDM data.json，克隆 chart 仓库到本地
 ./image-tools generate-list \
     -rancher="v2.7.0" \
-    -kubeversion="v1.21.0" \
     -kdm ./data.json \
     -chart ./charts-1 \
     -chart ./charts-2 \

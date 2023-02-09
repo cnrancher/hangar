@@ -11,8 +11,6 @@ Usage of generate-list:
         Switch to dev branch/url of charts & KDM data
   -kdm string
         kdm path/url
-  -kubeversion string
-        minimum kuber version (semantic version with 'v' prefix) (default "v1.21.0")
   -o string
         generated image list path (linux and windows images) (default "generated-list.txt")
   -output-linux string
@@ -73,9 +71,6 @@ Command-line parameters:
 # By default this tool will generate a list of mirrors from the release branch
 ./image-tools generate-list -rancher="v2.7.0" -dev
 
-# Use the -kubeversion parameter to specify the minimum Kubernetes version (default v1.21.0)
-./image-tools generate-list -rancher="v2.7.0" -kubeversion="v1.21.0"
-
 # Use the -chart parameter to specify the path of the cloned chart repository
 ./image-tools generate-list -rancher="v2.7.0" -chart ./charts
 
@@ -104,7 +99,6 @@ by using `-chart`, `-system-chart`, `-kdm` parameters.
 # Download KDM data.json and clone chart repository into local directory first.
 ./image-tools generate-list \
     -rancher="v2.7.0" \
-    -kubeversion="v1.21.0" \
     -kdm ./data.json \
     -chart ./charts-1 \
     -chart ./charts-2 \
