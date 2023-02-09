@@ -215,7 +215,7 @@ func (c *Chart) fetchChartsFromURL() error {
 	if c.Branch != "" {
 		option.ReferenceName = plumbing.NewBranchReferenceName(c.Branch)
 	}
-	directory := filepath.Join(
+	directory := filepath.Join(u.CacheCloneRepoDirectory,
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
 	logrus.Infof("Cloning git repo into %q, branch %q",
 		directory, c.Branch)

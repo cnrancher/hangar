@@ -161,9 +161,8 @@ func (g *Generator) generateFromChartURLs() error {
 			}
 		}
 		// Delete cloned chart path after generated images
-		baseDir := strings.Split(c.Path, string(os.PathSeparator))[0]
-		logrus.Debugf("Delete %q", baseDir)
-		if err := u.DeleteIfExist(baseDir); err != nil {
+		logrus.Debugf("Delete %q", u.CacheCloneRepoDirectory)
+		if err := u.DeleteIfExist(u.CacheCloneRepoDirectory); err != nil {
 			return err
 		}
 	}
