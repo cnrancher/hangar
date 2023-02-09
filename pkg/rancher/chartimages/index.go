@@ -69,6 +69,9 @@ func BuildOrGetIndex(dir string) (*repo.IndexFile, error) {
 		return existingIndex, nil
 	}
 
+	// sort index versions in descending order.
+	builtIndex.SortEntries()
+
 	return builtIndex, nil
 }
 

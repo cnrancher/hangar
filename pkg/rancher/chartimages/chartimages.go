@@ -119,14 +119,7 @@ func (c *Chart) fetchChartsFromPath() error {
 		if len(versions) == 0 {
 			continue
 		}
-		// Always append the latest version of the chart.
-		latestVersion, latestVersionIndex := pickLatestChartVersion(versions)
-		if latestVersionIndex == -1 || latestVersion == nil {
-			logrus.Warnf("Failed to get maximum version of chart %q",
-				versions[0].Name)
-			latestVersion = versions[0]
-			latestVersionIndex = 0
-		}
+		latestVersion := versions[0]
 		constraint, err := c.checkChartVersionConstraint(*latestVersion)
 		if err != nil {
 			return fmt.Errorf("fetchChartsFromPath: "+
@@ -136,12 +129,12 @@ func (c *Chart) fetchChartsFromPath() error {
 		if constraint {
 			// logrus.Debugf("constraint: %v, chart: %v",
 			// 	latestVersion.Version, latestVersion.Name)
-			filteredVersions = append(filteredVersions, latestVersion)
+			filteredVersions = append(filteredVersions, versions[0])
 		}
 		// Append the remaining versions of the chart if the chart exists in
 		// the chartsToCheckConstraints map and the given Rancher version
 		// satisfies the chart's Rancher version constraint annotation.
-		chartName := versions[latestVersionIndex].Name
+		chartName := versions[0].Name
 		var checkConstraints map[string]bool
 		switch c.Type {
 		case RepoTypeDefault:
@@ -154,15 +147,12 @@ func (c *Chart) fetchChartsFromPath() error {
 		}
 		if _, ok := checkConstraints[chartName]; ok {
 			logrus.Debugf("Check all constraints of chart %q", chartName)
-			checkVersions := append(
-				versions[0:latestVersionIndex],
-				versions[latestVersionIndex+1:]...)
-			for _, version := range checkVersions {
+			for _, version := range versions[1:] {
 				constraint, err := c.checkChartVersionConstraint(*version)
 				if err != nil {
 					return fmt.Errorf("fetchChartsFromPath: "+
 						"failed to check constraint of chart %q: %w",
-						latestVersion.Name, err)
+						version.Name, err)
 				}
 				if constraint {
 					// logrus.Debugf("constraint: %v, chart: %v",
@@ -220,6 +210,7 @@ func (c *Chart) fetchChartsFromURL() error {
 		URL:               c.URL,
 		RecurseSubmodules: git.NoRecurseSubmodules,
 		Depth:             1,
+		Progress:          os.Stdout,
 	}
 	if c.Branch != "" {
 		option.ReferenceName = plumbing.NewBranchReferenceName(c.Branch)
@@ -248,15 +239,6 @@ func (c *Chart) fetchChartsFromURL() error {
 	if len(remotes) == 0 {
 		return fmt.Errorf("fetchChartsFromURL: failed to get remotes")
 	}
-	// err = r.Fetch(&git.FetchOptions{
-	// 	RefSpecs:   []config.RefSpec{"refs/*:refs/*", "HEAD:refs/heads/HEAD"},
-	// 	RemoteName: remotes[0].Config().Name,
-	// })
-	// if err != nil {
-	// 	if !errors.Is(git.NoErrAlreadyUpToDate, err) {
-	// 		return fmt.Errorf("fetchChartsFromURL: fetch: %w", err)
-	// 	}
-	// }
 	worktree, err := r.Worktree()
 	if err != nil {
 		return fmt.Errorf("fetchChartsFromURL: worktree: %w", err)
@@ -272,7 +254,10 @@ func (c *Chart) fetchChartsFromURL() error {
 	}
 	c.Path = directory
 
-	return c.fetchChartsFromPath()
+	if err := c.fetchChartsFromPath(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // checkChartVersionConstraint retrieves the value of a chart's rancher-version
@@ -284,8 +269,8 @@ func (c Chart) checkChartVersionConstraint(
 ) (bool, error) {
 	constraintStr, ok := version.Annotations[RancherVersionAnnotationKey]
 	if ok {
-		logrus.Debugf("%s:%s has rancher-version annotation",
-			version.Name, version.Version)
+		// logrus.Debugf("%s:%s has rancher-version annotation",
+		// 	version.Name, version.Version)
 		return compareRancherVersionToConstraint(
 			c.RancherVersion, constraintStr)
 	}
@@ -299,16 +284,23 @@ func (c Chart) checkChartVersionConstraint(
 		questions, err = decodeQuestionsFile(questionsPath)
 	}
 	if err != nil {
-		logrus.Debugf("Skip %s:%s does not have a questions file",
+		// If the chart does not have rancher-version annotation in Chart.yaml,
+		// and does not have questions.yml, this chart will be treated as
+		// supporting for all Rancher versions.
+		logrus.Debugf("%s:%s does not have a questions file",
 			version.Name, version.Version)
-		return false, nil
+		return true, nil
 	}
 	constraintStr = minMaxToConstraintStr(
 		questions.RancherMinVersion, questions.RancherMaxVersion)
 	if constraintStr == "" {
-		logrus.Warnf("Failed to read RancherMin/MaxVersion from %s:%s",
+		// If the chart does not have rancher-version annotation in Chart.yaml,
+		// and does not have rancher_min/max_version in questions.yml,
+		// this chart will be treated as supporting for all Rancher versions.
+		logrus.Debugf("The questions.yml file of %s:%s does not have "+
+			"rancher_min/max_version values.",
 			version.Name, version.Version)
-		return false, nil
+		return true, nil
 	}
 	return compareRancherVersionToConstraint(
 		c.RancherVersion, constraintStr)
@@ -529,28 +521,4 @@ func decodeYAMLFile(r io.Reader, target interface{}) error {
 		return err
 	}
 	return yaml.Unmarshal(data, target)
-}
-
-// pickLatestChartVersion finds the latest version of charts from version list
-func pickLatestChartVersion(vs repo.ChartVersions) (*repo.ChartVersion, int) {
-	if len(vs) == 0 {
-		return nil, -1
-	}
-	maximumVersion := vs[0].Version
-	maximumIndex := -1
-	for i := range vs {
-		currVersion, err := semver.NewVersion(vs[i].Version)
-		if err != nil {
-			return nil, -1
-		}
-		maxVersion, err := semver.NewVersion(maximumVersion)
-		if err != nil {
-			return nil, -1
-		}
-		if currVersion.Compare(maxVersion) >= 0 {
-			maximumVersion = vs[i].Version
-			maximumIndex = i
-		}
-	}
-	return vs[maximumIndex], maximumIndex
 }

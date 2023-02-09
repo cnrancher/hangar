@@ -10,6 +10,7 @@ import (
 
 	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
 	"github.com/cnrancher/image-tools/pkg/rancher/kdmimages"
+	"github.com/cnrancher/image-tools/pkg/utils"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
@@ -159,6 +160,12 @@ func (g *Generator) generateFromChartURLs() error {
 				u.AddSourceToImage(g.GeneratedWindowsImages, image, source)
 			}
 		}
+		// Delete cloned chart path after generated images
+		baseDir := strings.Split(c.Path, string(os.PathSeparator))[0]
+		logrus.Debugf("Delete %q", baseDir)
+		if err := u.DeleteIfExist(baseDir); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -188,7 +195,7 @@ func (g *Generator) generateFromKDMURL() error {
 		logrus.Warnf("Failed to get KDM data from url: %v, retrying...", err)
 		resp, err = client.Get(g.KDMURL)
 		if err != nil {
-			return fmt.Errorf("generateFromKDMURL: %w", err)
+			return fmt.Errorf("generateFromKDMURL: http.Get: %w", err)
 		}
 	}
 	defer resp.Body.Close()
@@ -198,7 +205,7 @@ func (g *Generator) generateFromKDMURL() error {
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMURL: %w", err)
+		return fmt.Errorf("generateFromKDMURL: io.ReadAll: %w", err)
 	}
 	return g.generateFromKDMData(b)
 }
@@ -280,17 +287,20 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 		g.GeneratedLinuxImages[image]["k3sUpgrade"] = true
 	}
 
-	u.Source = kdmimages.RKE2
-	u.Data = data.RKE2
-	rke2UpgradeImages, err := u.GetImages()
-	if err != nil {
-		return fmt.Errorf("generateFromKDMData: %w", err)
-	}
-	for _, image := range rke2UpgradeImages {
-		if g.GeneratedLinuxImages[image] == nil {
-			g.GeneratedLinuxImages[image] = make(map[string]bool)
+	// 2.5.X does not have RKE2 system images to generate, skip
+	if !utils.SemverMajorMinorEqual(g.RancherVersion, "v2.5") {
+		u.Source = kdmimages.RKE2
+		u.Data = data.RKE2
+		rke2UpgradeImages, err := u.GetImages()
+		if err != nil {
+			return fmt.Errorf("generateFromKDMData: %w", err)
 		}
-		g.GeneratedLinuxImages[image]["rke2All"] = true
+		for _, image := range rke2UpgradeImages {
+			if g.GeneratedLinuxImages[image] == nil {
+				g.GeneratedLinuxImages[image] = make(map[string]bool)
+			}
+			g.GeneratedLinuxImages[image]["rke2All"] = true
+		}
 	}
 
 	return nil

@@ -482,39 +482,39 @@ func SemverCompare(a, b string) (int, error) {
 	return semver.Compare(a, b), nil
 }
 
-func SemverMajorEqual(a, b string) (bool, error) {
+func SemverMajorEqual(a, b string) bool {
 	if a == "" || b == "" {
-		return false, ErrVersionIsEmpty
+		return false
 	}
 	a, err := EnsureSemverValid(a)
 	if err != nil {
-		return false, err
+		return false
 	}
 	b, err = EnsureSemverValid(b)
 	if err != nil {
-		return false, err
+		return false
 	}
 	if semver.Major(a) != semver.Major(b) {
-		return false, nil
+		return false
 	}
-	return true, nil
+	return true
 }
-func SemverMajorMinorEqual(a, b string) (bool, error) {
+func SemverMajorMinorEqual(a, b string) bool {
 	if a == "" || b == "" {
-		return false, ErrVersionIsEmpty
+		return false
 	}
 	a, err := EnsureSemverValid(a)
 	if err != nil {
-		return false, err
+		return false
 	}
 	b, err = EnsureSemverValid(b)
 	if err != nil {
-		return false, err
+		return false
 	}
 	if semver.MajorMinor(a) != semver.MajorMinor(b) {
-		return false, nil
+		return false
 	}
-	return true, nil
+	return true
 }
 
 func ToObj(data interface{}, into interface{}) error {

@@ -225,40 +225,40 @@ func Test_SemverCompare(t *testing.T) {
 }
 
 func Test_SemverMajorEqual(t *testing.T) {
-	if res, err := SemverMajorEqual("1.0.0", "1.2.0"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorEqual("1.0.0", "1.2.0"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorEqual("1.0.0", "1.0.1"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorEqual("1.0.0", "1.0.1"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorEqual("1.0.0", "1.0.0"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorEqual("1.0.0", "1.0.0"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorEqual("1.0.0", "2.0.0"); res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorEqual("1.0.0", "2.0.0"); res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorEqual("1.0", "2.0"); res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorEqual("1.0", "2.0"); res {
+		t.Error("failed:", res)
 	}
 }
 
 func Test_SemverMajorMinorEqual(t *testing.T) {
-	if res, err := SemverMajorMinorEqual("1.0.0", "1.2.0"); res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0.0", "1.2.0"); res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorMinorEqual("1.0.0", "1.0.1"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0.0", "1.0.1"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorMinorEqual("1.0.0", "1.0.0"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0.0", "1.0.0"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorMinorEqual("1.0", "1.0"); !res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0", "1.0"); !res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorMinorEqual("1.0.0", "2.0.0"); res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0.0", "2.0.0"); res {
+		t.Error("failed:", res)
 	}
-	if res, err := SemverMajorMinorEqual("1.0", "2.0"); res || err != nil {
-		t.Error("failed:", err, res)
+	if res := SemverMajorMinorEqual("1.0", "2.0"); res {
+		t.Error("failed:", res)
 	}
 }

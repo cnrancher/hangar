@@ -23,7 +23,6 @@ var (
 	cmdOutputWindows  string
 	cmdOutputSource   string
 	cmdRancherVersion string
-	cmdKubeVersion    string
 	cmdDebug          bool
 	cmdDev            bool
 	cmdCharts         cmd.StringSlice
@@ -42,7 +41,6 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdOutputSource, "output-source", "", "generate image list with image source")
 	flagSet.StringVar(&cmdRancherVersion, "rancher", "",
 		"rancher version (semver with 'v' prefix)(use '-ent' suffix to distinguish GC)")
-	flagSet.StringVar(&cmdKubeVersion, "kubeversion", "v1.21.0", "minimum kuber version (semantic version with 'v' prefix)")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
 	flagSet.BoolVar(&cmdDev, "dev", false, "Switch to dev branch/url of charts & KDM data")
 
@@ -60,14 +58,6 @@ func GenerateList() {
 		logrus.Error("Use '-o' option to specify the output file")
 		os.Exit(1)
 	}
-	if cmdKubeVersion == "" {
-		logrus.Error("minimum kube version not specified!")
-		logrus.Error("Use '-kubeversion' to specify the min kube version")
-		os.Exit(1)
-	}
-	if !strings.HasPrefix(cmdKubeVersion, "v") {
-		cmdKubeVersion = "v" + cmdKubeVersion
-	}
 	if cmdRancherVersion == "" {
 		logrus.Error("rancher version not specified!")
 		logrus.Error("Use '-rancher' option to specify the rancher version")
@@ -83,12 +73,20 @@ func GenerateList() {
 	}
 	generator := listgenerator.Generator{
 		RancherVersion: cmdRancherVersion,
-		MinKubeVersion: cmdKubeVersion,
+		MinKubeVersion: "",
 		ChartsPaths:    make(map[string]chartimages.ChartRepoType),
 		ChartURLs: make(map[string]struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}),
+	}
+	switch {
+	case u.SemverMajorMinorEqual(cmdRancherVersion, "v2.5"):
+		generator.MinKubeVersion = ""
+	case u.SemverMajorMinorEqual(cmdRancherVersion, "v2.6"):
+		generator.MinKubeVersion = "v1.21.0"
+	case u.SemverMajorMinorEqual(cmdRancherVersion, "v2.7"):
+		generator.MinKubeVersion = "v1.21.0"
 	}
 	if cmdKDM != "" {
 		if _, err := url.ParseRequestURI(cmdKDM); err != nil {
