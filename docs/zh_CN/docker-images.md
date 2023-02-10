@@ -1,6 +1,6 @@
 # docker-images
 
-> `image-tools` 从 `v1.3.0-rc6` 版本开始支持 Docker 镜像。
+> `image-tools` 从 `v1.3.0` 版本开始支持 Docker 镜像。
 
 Docker 镜像支持 `amd64` 和 `arm64` 架构。
 
@@ -17,7 +17,6 @@ docker run cnrancher/image-tools:${VERSION} --help
 
 ```console
 $ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/image-tools:${VERSION}
-[root@6aa010991c76 bin]# cd /images/
 [root@6aa010991c76 images]# image-tools -h
 Usage:	image-tools COMMAND [OPTIONS]
 ......

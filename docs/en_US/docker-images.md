@@ -1,6 +1,6 @@
 # docker-images
 
-> `image-tools` supports Docker images from `v1.3.0-rc6`.
+> `image-tools` supports Docker images from `v1.3.0`.
 
 Docker images support `amd64` and `arm64` architectures.
 
@@ -16,7 +16,6 @@ docker run cnrancher/image-tools:${VERSION} --help
 Set `entrypoint` to `bash`, mount the local directory into the container, and execute mirror/load/save in the container:
 ```console
 $ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/image-tools:${VERSION}
-[root@6aa010991c76 bin]# cd /images/
 [root@6aa010991c76 images]# image-tools -h
 Usage: image-tools COMMAND [OPTIONS]
 ...
