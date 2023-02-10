@@ -10,7 +10,6 @@ import (
 
 	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
 	"github.com/cnrancher/image-tools/pkg/rancher/kdmimages"
-	"github.com/cnrancher/image-tools/pkg/utils"
 	u "github.com/cnrancher/image-tools/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
@@ -185,26 +184,15 @@ func (g *Generator) generateFromKDMURL() error {
 		return nil
 	}
 	logrus.Infof("Get KDM data from URL: %q", g.KDMURL)
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(g.KDMURL)
+	b, err := getHttpData(g.KDMURL, time.Second*10)
 	if err != nil {
-		// re-try get data from URL
-		logrus.Warnf("Failed to get KDM data from url: %v, retrying...", err)
-		resp, err = client.Get(g.KDMURL)
+		// re-try get data from KDM url
+		logrus.Warn(err)
+		logrus.Warnf("failed to get KDM data, trying...")
+		b, err = getHttpData(g.KDMURL, time.Second*10)
 		if err != nil {
-			return fmt.Errorf("generateFromKDMURL: http.Get: %w", err)
+			return fmt.Errorf("generateFromKDMURL: %w", err)
 		}
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("generateFromKDMURL: get url [%q]: %v",
-			g.KDMURL, resp.Status)
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("generateFromKDMURL: io.ReadAll: %w", err)
 	}
 	return g.generateFromKDMData(b)
 }
@@ -268,13 +256,13 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 	}
 
 	// get k3s/rke2 upgrade images
-	u := kdmimages.UpgradeImages{
+	upgrade := kdmimages.UpgradeImages{
 		Source:         kdmimages.K3S,
 		RancherVersion: g.RancherVersion,
 		MinKubeVersion: g.MinKubeVersion,
 		Data:           data.K3S,
 	}
-	k3sUpgradeImages, err := u.GetImages()
+	k3sUpgradeImages, err := upgrade.GetImages()
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
@@ -287,10 +275,10 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 	}
 
 	// 2.5.X does not have RKE2 system images to generate, skip
-	if !utils.SemverMajorMinorEqual(g.RancherVersion, "v2.5") {
-		u.Source = kdmimages.RKE2
-		u.Data = data.RKE2
-		rke2UpgradeImages, err := u.GetImages()
+	if !u.SemverMajorMinorEqual(g.RancherVersion, "v2.5") {
+		upgrade.Source = kdmimages.RKE2
+		upgrade.Data = data.RKE2
+		rke2UpgradeImages, err := upgrade.GetImages()
 		if err != nil {
 			return fmt.Errorf("generateFromKDMData: %w", err)
 		}
@@ -307,4 +295,24 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 
 func (g *Generator) handleImageArguments() error {
 	return nil
+}
+
+func getHttpData(link string, timeout time.Duration) ([]byte, error) {
+	client := http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Get(link)
+	if err != nil {
+		return nil, fmt.Errorf("getHttpData: http.Get: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("getHttpData: get url [%q]: %v",
+			link, resp.Status)
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("getHttpData: io.ReadAll: %w", err)
+	}
+	return b, nil
 }

@@ -33,19 +33,34 @@ var (
 )
 
 func Parse(args []string) {
-	flagSet.StringVar(&cmdRegistry, "registry", "", "override the registry url")
+	flagSet.StringVar(&cmdRegistry, "registry", "", "customize the registry url of generated image list")
 	flagSet.StringVar(&cmdKDM, "kdm", "", "kdm path/url")
 	flagSet.StringVar(&cmdOutput, "o", "generated-list.txt", "generated image list path (linux and windows images)")
 	flagSet.StringVar(&cmdOutputLinux, "output-linux", "", "generated linux image list")
 	flagSet.StringVar(&cmdOutputWindows, "output-windows", "", "generated windows image list")
 	flagSet.StringVar(&cmdOutputSource, "output-source", "", "generate image list with image source")
 	flagSet.StringVar(&cmdRancherVersion, "rancher", "",
-		"rancher version (semver with 'v' prefix)(use '-ent' suffix to distinguish GC)")
+		"rancher version (semver with 'v' prefix) (use '-ent' suffix to distinguish with RPM GC)")
 	flagSet.BoolVar(&cmdDebug, "debug", false, "enable the debug output")
 	flagSet.BoolVar(&cmdDev, "dev", false, "Switch to dev branch/url of charts & KDM data")
 
-	flagSet.Var(&cmdCharts, "chart", "chart path")
-	flagSet.Var(&cmdSystemCharts, "system-chart", "system chart path")
+	flagSet.Var(&cmdCharts, "chart", "chart path (url is not supported)")
+	flagSet.Var(&cmdSystemCharts, "system-chart", "system chart path (url is not supported)")
+
+	flagSet.Usage = func() {
+		fmt.Printf("'generate-list' generates an image-list from KDM data and Chart repositories used by Rancher.\n")
+		fmt.Printf("\n")
+		fmt.Printf("You can generate image-list by just specifying Rancher version paramter:\n\n")
+		fmt.Printf("  %s generate-list -rancher=\"v2.7.0\"\n\n", os.Args[0])
+		fmt.Printf("Or you can generate image-list from custom chart repos and KDM data.json file.\n\n")
+		fmt.Printf("  %s generate-list -rancher=\"v2.7.0\" \\\n", os.Args[0])
+		fmt.Printf("      -chart=\"./chart-repo-dir\" \\\n")
+		fmt.Printf("      -system-chart=\"./system-chart-repo-dir\" \\\n")
+		fmt.Printf("      -kdm=\"./kdm-data.json\"\n")
+		fmt.Printf("\n")
+		fmt.Printf("Parameters of %s:\n", flagSet.Name())
+		flagSet.PrintDefaults()
+	}
 	flagSet.Parse(args)
 }
 
@@ -128,7 +143,9 @@ func GenerateList() {
 	// if no input specified, use default values
 	if cmdKDM == "" && len(cmdCharts) == 0 && len(cmdSystemCharts) == 0 {
 		if cmdDev {
-			logrus.Info("Dev branch enabled")
+			logrus.Info("Using dev branch.")
+		} else {
+			logrus.Info("Using release branch.")
 		}
 		if IsRPMGC {
 			AddRPMCharts(cmdRancherVersion, &generator, cmdDev)

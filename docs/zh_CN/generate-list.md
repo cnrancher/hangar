@@ -2,9 +2,22 @@
 
 ```console
 $ image-tools generate-list -h
-Usage of generate-list:
+'generate-list' generates an image-list from KDM data and Chart repositories used by Rancher.
+
+You can generate image-list by just specifying Rancher version paramter:
+
+  ./image-tools generate-list -rancher="v2.7.0"
+
+Or you can generate image-list from custom chart repos and KDM data.json file.
+
+  ./image-tools generate-list -rancher="v2.7.0" \
+      -chart="./chart-repo-dir" \
+      -system-chart="./system-chart-repo-dir" \
+      -kdm="./kdm-data.json"
+
+Parameters of generate-list:
   -chart value
-        chart path
+        chart path (url is not supported)
   -debug
         enable the debug output
   -dev
@@ -20,11 +33,11 @@ Usage of generate-list:
   -output-windows string
         generated windows image list
   -rancher string
-        rancher version (semver with 'v' prefix)(use '-ent' suffix to distinguish GC)
+        rancher version (semver with 'v' prefix) (use '-ent' suffix to distinguish with RPM GC)
   -registry string
-        override the registry url
+        customize the registry url of generated image list
   -system-chart value
-        system chart path
+        system chart path (url is not supported)
 ```
 
 ## QuickStart
@@ -34,6 +47,13 @@ Usage of generate-list:
 ```sh
 ./image-tools generate-list -rancher="v2.7.0-ent"
 ```
+
+> 以 `-ent` 结尾的 Rancher 版本号表示 RPM GC 版本。
+
+此工具生成的镜像列表仅包含 KDM 和 Chart 仓库中与 Rancher 版本相匹配的镜像。因本工具镜像的筛选镜像的逻辑与
+Rancher 生成的 `rancher-images.txt` 有差异，会与构建物中下载的镜像列表存在出入。
+
+**此工具生成镜像列表时需要访问 GitHub 仓库等资源，请在良好的网络环境中使用此工具。**
 
 ## Parameters
 

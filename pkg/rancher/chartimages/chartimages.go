@@ -192,6 +192,7 @@ func (c *Chart) fetchChartsFromPath() error {
 			}
 		}
 	}
+	logrus.Infof("Finished fetching %q image from %q", c.OS.String(), c.Path)
 	return nil
 }
 

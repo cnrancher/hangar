@@ -17,9 +17,8 @@ RUN mkdir -p /root/.docker/cli-plugins/ && \
     chmod +x /root/.docker/cli-plugins/docker-buildx
 
 WORKDIR /images
-COPY build/image-tools-linux-* /usr/local/bin/
-RUN mv /usr/local/bin/image-tools-linux-${ARCH}-* /usr/local/bin/image-tools && \
-    rm image-tools-linux-*
+COPY build/image-tools-linux-${ARCH}-* /usr/local/bin/
+RUN mv /usr/local/bin/image-tools-linux-${ARCH}-* /usr/local/bin/image-tools
 ENV SOURCE_REGISTRY="" \
     SOURCE_USERNAME="" \
     SOURCE_PASSWORD="" \
