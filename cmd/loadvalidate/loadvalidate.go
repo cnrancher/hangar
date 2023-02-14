@@ -52,7 +52,7 @@ func LoadValidate() {
 		logrus.Fatal("Failed to validate images.")
 	}
 	if err := registry.SelfCheckSkopeo(); err != nil {
-		logrus.Error("registry self check skopeo failed.")
+		logrus.Error("self check skopeo failed.")
 		logrus.Fatal(err)
 	}
 

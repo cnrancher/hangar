@@ -43,7 +43,7 @@ func MirrorValidate() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	if err := registry.SelfCheckSkopeo(); err != nil {
-		logrus.Error("registry self check skopeo failed.")
+		logrus.Error("self check skopeo failed.")
 		logrus.Fatal(err)
 	}
 	// Command line parameter is prior than environment variable

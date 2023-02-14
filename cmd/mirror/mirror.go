@@ -47,12 +47,19 @@ func MirrorImages() {
 	if cmdDebug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
+	var selfCheckFailed = false
 	if err := registry.SelfCheckSkopeo(); err != nil {
-		logrus.Error("registry self check skopeo failed.")
-		logrus.Fatal(err)
-	} else if err = registry.SelfCheckBuildX(); err != nil {
-		logrus.Error("registry self check buildx failed.")
-		logrus.Fatal(err)
+		logrus.Error("self check skopeo failed.")
+		logrus.Error(err)
+		selfCheckFailed = true
+	}
+	if err := registry.SelfCheckBuildX(); err != nil {
+		logrus.Error("self check docker-buildx failed.")
+		logrus.Error(err)
+		selfCheckFailed = true
+	}
+	if selfCheckFailed {
+		os.Exit(1)
 	}
 
 	// Command line parameter is prior than environment variable
