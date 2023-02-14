@@ -482,8 +482,12 @@ func decodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
 // decodeValuesInDir reads directory and returns a slice of values
 // corresponding to values.yaml files found inside of it.
 func decodeValuesInDir(dir string) ([]map[interface{}]interface{}, error) {
+	_, err := os.Stat(dir)
+	if err != nil {
+		return nil, err
+	}
 	var valuesSlice []map[interface{}]interface{}
-	err := filepath.Walk(dir, func(p string, i fs.FileInfo, err error) error {
+	err = filepath.Walk(dir, func(p string, i fs.FileInfo, err error) error {
 		if err != nil {
 			logrus.Warn(err)
 			return nil
