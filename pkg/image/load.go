@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cnrancher/image-tools/pkg/registry"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/registry"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

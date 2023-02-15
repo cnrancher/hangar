@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/klauspost/pgzip"

@@ -16,7 +16,7 @@ echo "${DOCKER_PASSWORD}" | docker login \
 
 source ${WORKINGDIR}/scripts/env.sh
 
-export TAG=${TAG:="image-tools"}
+export TAG=${TAG:="hangar"}
 export REGISTRY=${REGISTRY:-"docker.io/cnrancher"}
 export VERSION=${VERSION}
 echo "version: ${VERSION}"

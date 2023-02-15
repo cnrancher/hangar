@@ -17,7 +17,7 @@ for os in ${OS[@]}
 do
     for arch in ${ARCH[@]}
     do
-        OUTPUT="image-tools-$os-$arch-$VERSION"
+        OUTPUT="hangar-$os-$arch-$VERSION"
         GOOS=$os GOARCH=$arch go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
         echo $(pwd)/$OUTPUT
     done

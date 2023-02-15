@@ -1,7 +1,7 @@
 # load-validate
 
 ```console
-$ image-tools load-validate -h
+$ hangar load-validate -h
 Usage of load-validate:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
@@ -26,7 +26,7 @@ After executing the `load` command, verify the image that has been loaded to ens
 The input file is the compressed package file saved by the save subcommand or the directory name of the folder after decompression.
 
 ```sh
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io
 ```
 
 ## Parameters
@@ -36,27 +36,27 @@ Command line parameters:
 ```sh
 # Use the -s (source) parameter to set the file name saved by save
 # Use the -d (destination) parameter to set the target registry
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io
 
 # Use the -j (jobs) parameter to set the number of coroutine pools and concurrently verify the image (support 1~20 jobs)
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -j 10 # Start 10 workers
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -j 10 # Start 10 workers
 
 # Use the -compress parameter to specify the compression type of the imported file
 # Optional: gzip, zstd, dir
 # The default is the gzip format, if dir format is specified, it means loading the image from the folder for verification, and not decompressing it
-./image-tools load-validate -s ./saved-image-cache -d private.registry.io -compress=dir
+./hangar load-validate -s ./saved-image-cache -d private.registry.io -compress=dir
 
 # Use the -default-project parameter to specify the default project name
 # The default value is library
 # This parameter will rename `private.io/mysql:5.8` to `private.io/library/mysql:5.8`
-./image-tools load-validate -s ./saved-image-cache -d private.registry.io -default-project=library
+./hangar load-validate -s ./saved-image-cache -d private.registry.io -default-project=library
 
 # Use the -o (output) parameter to output the image list that fails the verification to the specified file
 # Default output to load-validate-failed.txt
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -o failed.txt
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -o failed.txt
 
 # Use the -debug parameter to output more detailed debug logs
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -debug
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -debug
 ```
 
 # FAQ

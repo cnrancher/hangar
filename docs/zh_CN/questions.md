@@ -6,7 +6,7 @@
 
     请确保 Save 镜像至压缩包时工具的版本与 Load 加载压缩包时工具的版本一致。
 
-    | Template Version | `image-tools` 版本 |
+    | Template Version | `hangar` 版本 |
     | :--------------: | :---------------: |
     | `v1.0.0`         | `v1.0.0` ~ `v1.2.3-rc1` |
     | `v1.1.0`         | `v1.3.0` ~ latest |

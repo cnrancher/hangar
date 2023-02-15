@@ -1,7 +1,7 @@
 # convert-list
 
 ```console
-$ image-tools convert-list -h
+$ hangar convert-list -h
 Usage of convert-list:
   -d string
         specify the dest registry
@@ -18,7 +18,7 @@ Usage of convert-list:
 Convert the list format from `rancher-images.txt` into the format used for the `mirror` sub-command, and set the destination registry to `custom.private.io`
 
 ```sh
-./image-tools convert-list -i rancher-images.txt -d custom.private.io
+./hangar convert-list -i rancher-images.txt -d custom.private.io
 ```
 
 This command will convert the images in `rancher-images.txt` from format:
@@ -43,12 +43,12 @@ Command line parameters:
 ```sh
 # Use -i (input) and -d (destination) parameters,
 # Specify the input image list file name and the registry of the target image
-./image-tools convert-list -i list.txt -d private.registry.io
+./hangar convert-list -i list.txt -d private.registry.io
 
 # Use the -s (source) parameter to specify the source registry of the converted image list
-./image-tools convert-list -i list.txt -s source.io -d dest.io
+./hangar convert-list -i list.txt -s source.io -d dest.io
 
 # Use the -o (output) parameter to specify the file name of the output mirror list
 # By default, the .converted suffix is added to the input file name
-./image-tools convert-list -i list.txt -o converted.txt
+./hangar convert-list -i list.txt -o converted.txt
 ```

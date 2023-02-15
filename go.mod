@@ -1,4 +1,4 @@
-module github.com/cnrancher/image-tools
+module github.com/cnrancher/hangar
 
 go 1.19
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	rketypes "github.com/rancher/rke/types"
 	"github.com/sirupsen/logrus"
 )

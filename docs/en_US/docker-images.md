@@ -1,23 +1,23 @@
 # docker-images
 
-> `image-tools` supports Docker images from `v1.3.0`.
+> `hangar` supports Docker images from `v1.3.0`.
 
 Docker images support `amd64` and `arm64` architectures.
 
 ```sh
 # get mirror image
-docker pull cnrancher/image-tools:${VERSION}
+docker pull cnrancher/hangar:${VERSION}
 
 # Get help information
-## By default the entrypoint is the image-tools executable
-docker run cnrancher/image-tools:${VERSION} --help
+## By default the entrypoint is the hangar executable
+docker run cnrancher/hangar:${VERSION} --help
 ```
 
 Set `entrypoint` to `bash`, mount the local directory into the container, and execute mirror/load/save in the container:
 ```console
-$ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/image-tools:${VERSION}
-[root@6aa010991c76 images]# image-tools -h
-Usage: image-tools COMMAND [OPTIONS]
+$ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/hangar:${VERSION}
+[root@6aa010991c76 images]# hangar -h
+Usage: hangar COMMAND [OPTIONS]
 ...
 ```
 
@@ -45,7 +45,7 @@ docker run -v $(pwd):/images \
     -e DEST_REGISTRY=""\
     -e DEST_USERNAME=""\
     -e DEST_PASSWORD="" \
-    cnrancher/image-tools:${VERSION} mirror \
+    cnrancher/hangar:${VERSION} mirror \
     -f /images/list.txt \
     -o /images/mirror-failed.txt
 

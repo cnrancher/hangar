@@ -5,16 +5,16 @@ import (
 	"os"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	convertCMD "github.com/cnrancher/image-tools/cmd/convert"
-	generateListCMD "github.com/cnrancher/image-tools/cmd/generatelist"
-	loadCMD "github.com/cnrancher/image-tools/cmd/load"
-	loadValidateCMD "github.com/cnrancher/image-tools/cmd/loadvalidate"
-	mirrorCMD "github.com/cnrancher/image-tools/cmd/mirror"
-	mirrorValidateCMD "github.com/cnrancher/image-tools/cmd/mirrorvalidate"
-	saveCMD "github.com/cnrancher/image-tools/cmd/save"
+	convertCMD "github.com/cnrancher/hangar/cmd/convert"
+	generateListCMD "github.com/cnrancher/hangar/cmd/generatelist"
+	loadCMD "github.com/cnrancher/hangar/cmd/load"
+	loadValidateCMD "github.com/cnrancher/hangar/cmd/loadvalidate"
+	mirrorCMD "github.com/cnrancher/hangar/cmd/mirror"
+	mirrorValidateCMD "github.com/cnrancher/hangar/cmd/mirrorvalidate"
+	saveCMD "github.com/cnrancher/hangar/cmd/save"
 )
 
 func init() {

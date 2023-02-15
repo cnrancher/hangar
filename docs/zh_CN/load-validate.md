@@ -1,7 +1,7 @@
 # load-validate
 
 ```console
-$ image-tools load-validate -h
+$ hangar load-validate -h
 Usage of load-validate:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
@@ -26,7 +26,7 @@ Usage of load-validate:
 输入的文件为 Save 子命令保存的压缩包文件或解压后的文件夹目录名。
 
 ```sh
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io
 ```
 
 ## Parameters
@@ -36,27 +36,27 @@ Usage of load-validate:
 ```sh
 # 使用 -s (source) 参数，设定 Save 保存的文件名称
 # 使用 -d (destination) 参数，设定目标镜像 registry
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io
 
 # 使用 -j (jobs) 参数，设定协程池数量，并发校验镜像（支持 1~20 个 jobs）
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -j 10 # 启动 10 个 Worker
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -j 10 # 启动 10 个 Worker
 
 # 使用 -compress 参数，指定导入的文件的压缩类型
 # 可选：gzip, zstd, dir
 # 默认为 gzip 格式，若为 dir 格式则表示从文件夹中加载镜像进行校验，不对其解压
-./image-tools load-validate -s ./saved-image-cache -d private.registry.io -compress=dir
+./hangar load-validate -s ./saved-image-cache -d private.registry.io -compress=dir
 
 # 使用 -default-project 参数指定默认的 project 名称
 # 默认值为 library
 # 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
-./image-tools load-validate -s ./saved-image-cache -d private.registry.io -default-project=library
+./hangar load-validate -s ./saved-image-cache -d private.registry.io -default-project=library
 
 # 使用 -o (output) 参数，将校验失败的镜像列表输出至指定文件中
 # 默认输出至 load-validate-failed.txt
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -o failed.txt
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -o failed.txt
 
 # 使用 -debug 参数，输出更详细的调试日志
-./image-tools load-validate -s ./saved-images.tar.gz -d private.registry.io -debug
+./hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -debug
 ```
 
 # FAQ

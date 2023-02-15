@@ -1,10 +1,10 @@
-# image-tools usage (EN)
+# Hangar usage (EN)
 
 > The usage documentation of the `main` branch of this tool will be continuously modified with version updates. If you need to view the usage documentation of a previously released version, please switch to the Tag corresponding of the previously released version:
-> `https://github.com/cnrancher/image-tools/blob/${TAG}/docs/en_US/README.md`
+> `https://github.com/cnrancher/hangar/blob/${TAG}/docs/en_US/README.md`
 
 ```
-./image-tools COMMAND OPTIONS
+./hangar COMMAND OPTIONS
 ```
 
 ## Supported Registries
@@ -16,7 +16,7 @@
 
 ## Environment
 
-This tool supports running in a container. Please refer to [docker-images.md](./docker-images.md) for how to use `image-tools` Docker images.
+This tool supports running in a container. Please refer to [docker-images.md](./docker-images.md) for how to use `hangar` Docker images.
 
 To run this tool locally, please install `skopeo`, `docker` and `docker-buildx` as follows:
 
@@ -95,6 +95,6 @@ This tool only needs `skopeo`, `docker` client and `docker-buildx` plugin, and n
 
 ## Build
 
-> The stable release can be obtained from the [Releases page](https://github.com/cnrancher/image-tools/releases).
+> The stable release can be obtained from the [Releases page](https://github.com/cnrancher/hangar/releases).
 
 Build executable: [build.md](./build.md)

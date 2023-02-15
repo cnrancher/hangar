@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cnrancher/image-tools/pkg/rancher/kdmimages"
-	"github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 )
 

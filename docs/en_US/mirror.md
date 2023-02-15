@@ -1,7 +1,7 @@
 # Mirror
 
 ```console
-$ ./image-tools mirror -h
+$ ./hangar mirror -h
 Usage of mirror:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -47,7 +47,7 @@ hello-world library/hello-world latest
 Mirror all the images in the `image-list.txt` list, use the `-f` parameter to specify the name of the image list, and `-d` to specify the target registry
 
 ```sh
-./image-tools mirror -f ./image-list.txt -d
+./hangar mirror -f ./image-list.txt -d
 ```
 
 ### Harbor V2
@@ -64,45 +64,45 @@ Command line parameters:
 
 ```sh
 # Use the -f (file) parameter to specify the image list file
-./image-tools mirror -f ./list.txt
+./hangar mirror -f ./list.txt
 
 # Use the -d (destination) parameter to specify the registry of the target image without modifying the image list
 # If the target image in the list does not have a registry, and the -d parameter and the DOCKER_REGIRTSY environment variable are not set, then the registry of the target image will be set to the default docker.io
 # The priority is: -d parameter > DOCKER_REGISTRY environment variable > registry written in the image list
-./image-tools mirror -f ./list.txt -d private.registry.io
+./hangar mirror -f ./list.txt -d private.registry.io
 
 # Use the -s (source) parameter to specify the registry of the source image without modifying the image list
 # If the source image in the image list does not write registry, and the -s parameter is not set, then the registry of the source image will be set to the default docker.io
-./image-tools mirror -f ./list.txt -s docker.io
+./hangar mirror -f ./list.txt -s docker.io
 
 # Use the -a (arch) parameter to set the architecture of the copy image (separated by commas)
 # The default is amd64, arm64
-./image-tools mirror -f ./list.txt -a amd64,arm64
+./hangar mirror -f ./list.txt -a amd64,arm64
 
 # Use the -j (jobs) parameter to specify the number of goroutine pools and copy images concurrently (support 1~20 jobs)
-./image-tools mirror -f ./list.txt -j 10 # Start 10 workers
+./hangar mirror -f ./list.txt -j 10 # Start 10 workers
 
 # When the -f parameter is not set, you can manually enter the image list by line to copy a certain image
 # Concurrent copying will not be supported at this time
-./image-tools mirror
+./hangar mirror
 .......
 >>> hello-world library/hello-world latest
 
 # Use -repo-type to specify the type of the target image registry, the default is an empty string, and it can be set to "harbor"
 # When the type of the target image registry is harbor, a project will be automatically created for the target image
-./image-tools mirror -f ./list.txt -repo-type=harbor
+./hangar mirror -f ./list.txt -repo-type=harbor
 
 # Use the -default-project parameter to specify the default project name
 # The default value is library
 # This parameter will rename `private.io/mysql:5.8` to `private.io/library/mysql:5.8`
-./image-tools mirror -f ./list.txt -repo-type=harbor -default-project=library
+./hangar mirror -f ./list.txt -repo-type=harbor -default-project=library
 
 # Use the -o (output) parameter to output the list of failed images to the specified file
 # Default output to mirror-failed.txt
-./image-tools mirror -f image-list.txt -o failed-list.txt
+./hangar mirror -f image-list.txt -o failed-list.txt
 
 # Use the -debug parameter to output more detailed debug logs
-./image-tools mirror -debug
+./hangar mirror -debug
 ```
 
 ## Logs

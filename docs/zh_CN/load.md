@@ -1,7 +1,7 @@
 # Load
 
 ```console
-$ image-tools load -h
+$ hangar load -h
 Usage of load:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
@@ -28,7 +28,7 @@ Usage of load:
 将 `save` 指令导出的 `tar.gz` 压缩包导入至 `private.registry.io` 中：
 
 ```sh
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+./hangar load -s ./saved-images.tar.gz -d private.registry.io
 ```
 
 此命令会将自动根据 `save` 时保存的镜像文件在目标 registry 中创建适配多架构的 Manifest 列表。
@@ -47,35 +47,35 @@ Usage of load:
 
 ```sh
 # 使用 -s (source file) 参数指定导入的文件（必选参数）
-./image-tools load -s ./saved-images.tar.gz
+./hangar load -s ./saved-images.tar.gz
 
 # 使用 -d (destination) 参数，指定目标镜像的 registry
 # 优先级为：-d 参数 > DOCKER_REGISTRY 环境变量
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+./hangar load -s ./saved-images.tar.gz -d private.registry.io
 
 # 使用 -compress 参数，指定导入文件的压缩格式
 # 可选：gzip, zstd, dir
 # 默认为 gzip 格式，若为 dir 格式则表示从文件夹中加载镜像，不对其进行解压
-./image-tools load -s ./saved-images.tar.zstd -compress=zstd
+./hangar load -s ./saved-images.tar.zstd -compress=zstd
 
 # 使用 -repo-type 指定目标镜像仓库的类型，默认为空字符串，可设定为 "harbor"
 # 目标镜像仓库的类型为 harbor 时，将会自动为目标镜像创建 project
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor
+./hangar load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor
 
 # 使用 -default-project 参数指定默认的 project 名称
 # 默认值为 library
 # 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor -default-project=library
+./hangar load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor -default-project=library
 
 # 使用 -j (jobs) 参数，指定协程池数量，并发导入镜像（支持 1~20 个 jobs）
-./image-tools load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程
+./hangar load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程
 
 # 使用 -o (output) 参数，将 load 失败的镜像列表输出至指定文件中
 # 默认输出至 mirror-failed.txt
-./image-tools load -s ./saved-images.tar.gz -o failed-list.txt
+./hangar load -s ./saved-images.tar.gz -o failed-list.txt
 
 # 使用 -debug 参数，输出更详细的调试日志
-./image-tools load -s ./saved-images.tar.gz -debug
+./hangar load -s ./saved-images.tar.gz -debug
 ```
 
 ## 加载分卷压缩包
@@ -91,7 +91,7 @@ drwxr-x---+ 70 root  root   2.2K  1  6 18:00 ..
 -rw-r--r--   1 root  root    50M  1  6 17:59 saved-images.tar.gz.part2
 -rw-r--r--   1 root  root   5.3M  1  6 17:59 saved-images.tar.gz.part3
 
-$ image-tools load -s saved-images.tar.gz -d private.registry.io
+$ hangar load -s saved-images.tar.gz -d private.registry.io
 18:01:28 [INFO] Decompressing saved-images.tar.gz...
 18:01:28 [INFO] Read "saved-images.tar.gz.part0"
 18:01:28 [INFO] Read "saved-images.tar.gz.part1"

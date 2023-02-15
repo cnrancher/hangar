@@ -34,6 +34,6 @@ echo "Build version: ${VERSION}"
 
 BUILD_FLAG="-s -w"
 if [[ "${GITCOMMIT}" != "UNKNOW" ]]; then
-    BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/image-tools/pkg/utils.GitCommit=${GITCOMMIT}'"
+    BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${GITCOMMIT}'"
 fi
-BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/image-tools/pkg/utils.Version=${VERSION}'"
+BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"

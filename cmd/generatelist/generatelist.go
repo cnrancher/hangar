@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cnrancher/image-tools/cmd"
-	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
-	"github.com/cnrancher/image-tools/pkg/rancher/listgenerator"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/cmd"
+	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
+	"github.com/cnrancher/hangar/pkg/rancher/listgenerator"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

@@ -1,10 +1,10 @@
-# image-tools usage (CN)
+# hangar usage (CN)
 
 > 本仓库 `main` 分支的使用文档会随着版本更新而不断修改，若需要查看之前已发布的版本的使用文档，请切换至之前已发布的版本对应的 Tag:
-> `https://github.com/cnrancher/image-tools/blob/${TAG}/docs/zh_CN/README.md`
+> `https://github.com/cnrancher/hangar/blob/${TAG}/docs/zh_CN/README.md`
 
 ```
-./image-tools COMMAND OPTIONS
+./hangar COMMAND OPTIONS
 ```
 
 ## 镜像仓库种类
@@ -16,7 +16,7 @@
 
 ## 运行环境
 
-本工具支持在容器内运行，有关 `image-tools` Docker 镜像的使用方式请参考 [docker-images.md](./docker-images.md)。
+本工具支持在容器内运行，有关 `hangar` Docker 镜像的使用方式请参考 [docker-images.md](./docker-images.md)。
 
 若需要在本地运行本工具，请按照以下内容安装 `skopeo`、`docker` 和 `docker-buildx`。
 
@@ -95,6 +95,6 @@
 
 ## Build
 
-> 可在本仓库的 [Release 页面](https://github.com/cnrancher/image-tools/releases) 获取已构建的稳定版本。
+> 可在本仓库的 [Release 页面](https://github.com/cnrancher/hangar/releases) 获取已构建的稳定版本。
 
 构建可执行文件：[build.md](./build.md)

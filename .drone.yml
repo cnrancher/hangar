@@ -32,7 +32,7 @@ steps:
       checksum:
       - sha256
       files:
-      - "build/image-tools-*"
+      - "build/hangar-*"
       title: "${DRONE_TAG}"
     when:
       event:
@@ -52,7 +52,7 @@ steps:
       checksum:
       - sha256
       files:
-      - "build/image-tools-*"
+      - "build/hangar-*"
       prerelease: true
       title: "Pre-release ${DRONE_TAG}"
     when:

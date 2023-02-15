@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	command "github.com/cnrancher/image-tools/cmd"
-	"github.com/cnrancher/image-tools/pkg/mirror"
-	"github.com/cnrancher/image-tools/pkg/registry"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	command "github.com/cnrancher/hangar/cmd"
+	"github.com/cnrancher/hangar/pkg/mirror"
+	"github.com/cnrancher/hangar/pkg/registry"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

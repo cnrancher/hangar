@@ -1,7 +1,7 @@
 # Mirror
 
 ```console
-$ ./image-tools mirror -h
+$ ./hangar mirror -h
 Usage of mirror:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -47,7 +47,7 @@ hello-world library/hello-world latest
 将 `image-list.txt` 列表中的所有镜像执行 Mirror，使用 `-f` 参数指定镜像列表名称，`-d` 指定目标 registry
 
 ```sh
-./image-tools mirror -f ./image-list.txt -d <dest-registry-url>
+./hangar mirror -f ./image-list.txt -d <dest-registry-url>
 ```
 
 ### Harbor V2
@@ -64,45 +64,45 @@ hello-world library/hello-world latest
 
 ```sh
 # 使用 -f (file) 参数指定镜像列表文件
-./image-tools mirror -f ./list.txt
+./hangar mirror -f ./list.txt
 
 # 使用 -d (destination) 参数，可以在不修改镜像列表的情况下，指定目标镜像的 registry
 # 如果列表中的目标镜像没有写 registry，且未设定 -d 参数和 DOCKER_REGIRTSY 环境变量，那么目标镜像的 registry 会被设定为默认的 docker.io
 # 优先级为：-d 参数 > DOCKER_REGISTRY 环境变量 > 镜像列表中已写好的 registry
-./image-tools mirror -f ./list.txt -d private.registry.io
+./hangar mirror -f ./list.txt -d private.registry.io
 
 # 使用 -s (source) 参数，可以在不修改镜像列表的情况下，指定源镜像的 registry
 # 如果镜像列表中的源镜像没有写 registry，且未设定 -s 参数，那么源镜像的 registry 会被设定为默认的 docker.io
-./image-tools mirror -f ./list.txt -s docker.io
+./hangar mirror -f ./list.txt -s docker.io
 
 # 使用 -a (arch) 参数，设定拷贝镜像的架构（以逗号分隔）
 # 默认为 amd64,arm64
-./image-tools mirror -f ./list.txt -a amd64,arm64
+./hangar mirror -f ./list.txt -a amd64,arm64
 
 # 使用 -j (jobs) 参数，指定协程池数量，并发拷贝镜像（支持 1~20 个 jobs）
-./image-tools mirror -f ./list.txt -j 10    # 启动 10 个 Worker
+./hangar mirror -f ./list.txt -j 10    # 启动 10 个 Worker
 
 # 在不设定 -f 参数时，可手动按行输入镜像列表，拷贝某一个镜像
 # 此时将不支持并发拷贝
-./image-tools mirror
+./hangar mirror
 ......
 >>> hello-world library/hello-world latest
 
 # 使用 -repo-type 指定目标镜像仓库的类型，默认为空字符串，可设定为 "harbor"
 # 目标镜像仓库的类型为 harbor 时，将会自动为目标镜像创建 project
-./image-tools mirror -f ./list.txt -repo-type=harbor
+./hangar mirror -f ./list.txt -repo-type=harbor
 
 # 使用 -default-project 参数指定默认的 project 名称
 # 默认值为 library
 # 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
-./image-tools mirror -f ./list.txt -repo-type=harbor -default-project=library
+./hangar mirror -f ./list.txt -repo-type=harbor -default-project=library
 
 # 使用 -o (output) 参数，将 mirror 失败的镜像列表输出至指定文件中
 # 默认输出至 mirror-failed.txt
-./image-tools mirror -f image-list.txt -o failed-list.txt
+./hangar mirror -f image-list.txt -o failed-list.txt
 
 # 使用 -debug 参数，输出更详细的调试日志
-./image-tools mirror -debug
+./hangar mirror -debug
 ```
 
 ## Logs

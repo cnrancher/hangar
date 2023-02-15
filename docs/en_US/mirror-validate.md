@@ -1,6 +1,6 @@
 #mirror-validate
 ```console
-$ image-tools mirror-validate -h
+$ hangar mirror-validate -h
 Usage of mirror-validate:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -25,7 +25,7 @@ After executing the `mirror` command, verify the mirrored image to ensure that t
 The image list format entered should be equal to the image list format supported by the [Mirror](./mirror.md) subcommand. 
 
 ```sh
-./image-tools mirror-validate -f ./image-list.txt -j 10
+./hangar mirror-validate -f ./image-list.txt -j 10
 ```
 
 ## Parameters
@@ -33,33 +33,33 @@ The image list format entered should be equal to the image list format supported
 Command line parameters:
 ```sh
 # Use -f (file) to specify the image list file
-./image-tools mirror-validate -f ./list.txt
+./hangar mirror-validate -f ./list.txt
 
 # Use the -d (destination) parameter to set the target image registry
-./image-tools mirror-validate -f ./list.txt -d private.registry.io
+./hangar mirror-validate -f ./list.txt -d private.registry.io
 
 # Use the -s (source) parameter to set the source image registry
-./image-tools mirror-validate -f ./list.txt -s docker.io
+./hangar mirror-validate -f ./list.txt -s docker.io
 
 # Use the -a (arch) parameter to set the architecture of the image (separated by commas)
 # The default is amd64, arm64
-./image-tools mirror-validate -f ./list.txt -a amd64,arm64,arm
+./hangar mirror-validate -f ./list.txt -a amd64,arm64,arm
 
 # Use the -j (jobs) parameter to set the number of goroutine pools and concurrently verify the image (support 1~20 jobs)
-./image-tools mirror-validate -f ./list.txt -j 20 # Start 20 Workers
+./hangar mirror-validate -f ./list.txt -j 20 # Start 20 Workers
 
 # When the -f parameter is not set, you can manually enter the image list by line to verify a certain image
 # Concurrency verification is not supported at this time
-./image-tools mirror-validate
+./hangar mirror-validate
 ......
 >>> hello-world library/hello-world latest
 
 # Use the -o (output) parameter to output the image list that fails the verification to the specified file
 # Default output to mirror-validate-failed.txt
-./image-tools mirror-validate -f image-list.txt -o validate-failed-list.txt
+./hangar mirror-validate -f image-list.txt -o validate-failed-list.txt
 
 # Use the -debug parameter to output more detailed debug logs
-./image-tools mirror-validate -f ./list.txt -debug
+./hangar mirror-validate -f ./list.txt -debug
 ```
 
 # FAQ

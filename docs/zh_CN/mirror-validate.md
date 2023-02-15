@@ -1,7 +1,7 @@
 # mirror-validate
 
 ```console
-$ image-tools mirror-validate -h
+$ hangar mirror-validate -h
 Usage of mirror-validate:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -26,7 +26,7 @@ Usage of mirror-validate:
 输入的镜像列表格式应当等同于 [Mirror](./mirror.md) 子命令所支持的镜像列表格式。 
 
 ```sh
-./image-tools mirror-validate -f ./image-list.txt -j 10
+./hangar mirror-validate -f ./image-list.txt -j 10
 ```
 
 ## Parameters
@@ -35,33 +35,33 @@ Usage of mirror-validate:
 
 ```sh
 # 使用 -f (file) 指定镜像列表文件
-./image-tools mirror-validate -f ./list.txt
+./hangar mirror-validate -f ./list.txt
 
 # 使用 -d (destination) 参数，设定目标镜像 registry
-./image-tools mirror-validate -f ./list.txt -d private.registry.io
+./hangar mirror-validate -f ./list.txt -d private.registry.io
 
 # 使用 -s (source) 参数，设定源镜像 registry
-./image-tools mirror-validate -f ./list.txt -s docker.io
+./hangar mirror-validate -f ./list.txt -s docker.io
 
 # 使用 -a (arch) 参数，设定镜像的架构（以逗号分隔）
 # 默认为 amd64,arm64
-./image-tools mirror-validate -f ./list.txt -a amd64,arm64,arm
+./hangar mirror-validate -f ./list.txt -a amd64,arm64,arm
 
 # 使用 -j (jobs) 参数，设定协程池数量，并发校验镜像（支持 1~20 个 jobs）
-./image-tools mirror-validate -f ./list.txt -j 20 # 启动 20 个 Worker
+./hangar mirror-validate -f ./list.txt -j 20 # 启动 20 个 Worker
 
 # 在不设定 -f 参数时，可手动按行输入镜像列表，校验某一个镜像
 # 此时不支持并发校验
-./image-tools mirror-validate
+./hangar mirror-validate
 ......
 >>> hello-world library/hello-world latest
 
 # 使用 -o (output) 参数，将校验失败的镜像列表输出至指定文件中
 # 默认输出至 mirror-validate-failed.txt
-./image-tools mirror-validate -f image-list.txt -o validate-failed-list.txt
+./hangar mirror-validate -f image-list.txt -o validate-failed-list.txt
 
 # 使用 -debug 参数，输出更详细的调试日志
-./image-tools mirror-validate -f ./list.txt -debug
+./hangar mirror-validate -f ./list.txt -debug
 ```
 
 # FAQ

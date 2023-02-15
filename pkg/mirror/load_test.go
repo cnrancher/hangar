@@ -4,8 +4,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/cnrancher/image-tools/pkg/image"
-	"github.com/cnrancher/image-tools/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/image"
+	"github.com/cnrancher/hangar/pkg/registry"
 )
 
 func Test_StartLoad(t *testing.T) {

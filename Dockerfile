@@ -17,8 +17,8 @@ RUN mkdir -p /root/.docker/cli-plugins/ && \
     chmod +x /root/.docker/cli-plugins/docker-buildx
 
 WORKDIR /images
-COPY build/image-tools-linux-${ARCH}-* /usr/local/bin/
-RUN mv /usr/local/bin/image-tools-linux-${ARCH}-* /usr/local/bin/image-tools
+COPY build/hangar-linux-${ARCH}-* /usr/local/bin/
+RUN mv /usr/local/bin/hangar-linux-${ARCH}-* /usr/local/bin/hangar
 ENV SOURCE_REGISTRY="" \
     SOURCE_USERNAME="" \
     SOURCE_PASSWORD="" \
@@ -26,4 +26,4 @@ ENV SOURCE_REGISTRY="" \
     DEST_USERNAME="" \
     DEST_PASSWORD=""
 
-ENTRYPOINT ["image-tools"]
+ENTRYPOINT ["hangar"]

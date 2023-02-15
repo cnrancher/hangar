@@ -1,24 +1,24 @@
 # docker-images
 
-> `image-tools` 从 `v1.3.0` 版本开始支持 Docker 镜像。
+> `hangar` 从 `v1.3.0` 版本开始支持 Docker 镜像。
 
 Docker 镜像支持 `amd64` 和 `arm64` 架构。
 
 ```sh
 # 获取镜像
-docker pull cnrancher/image-tools:${VERSION}
+docker pull cnrancher/hangar:${VERSION}
 
 # 获取帮助信息
-## 默认情况下 entrypoint 为 image-tools 可执行文件
-docker run cnrancher/image-tools:${VERSION} --help
+## 默认情况下 entrypoint 为 hangar 可执行文件
+docker run cnrancher/hangar:${VERSION} --help
 ```
 
 设定 `entrypoint` 为 `bash`, 将本地目录挂载到容器中，可在容器内执行 Mirror / Load / Save。
 
 ```console
-$ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/image-tools:${VERSION}
-[root@6aa010991c76 images]# image-tools -h
-Usage:	image-tools COMMAND [OPTIONS]
+$ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/hangar:${VERSION}
+[root@6aa010991c76 images]# hangar -h
+Usage:	hangar COMMAND [OPTIONS]
 ......
 ```
 
@@ -47,7 +47,7 @@ docker run -v $(pwd):/images \
     -e DEST_REGISTRY="" \
     -e DEST_USERNAME="" \
     -e DEST_PASSWORD="" \
-    cnrancher/image-tools:${VERSION} mirror \
+    cnrancher/hangar:${VERSION} mirror \
     -f /images/list.txt \
     -o /images/mirror-failed.txt
 

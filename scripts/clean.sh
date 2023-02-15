@@ -7,6 +7,7 @@ WORKINGDIR=$(pwd)
 
 files=(
     "image-tools"
+    "hangar"
     "build/"
     "pkg/archive/part/test/test*"
     "pkg/rancher/chartimages/test/*"

@@ -1,7 +1,7 @@
 # Save
 
 ```console
-$ ./image-tools save -h
+$ ./hangar save -h
 Usage of save:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -27,7 +27,7 @@ Usage of save:
 
 ## Preparation
 
-Before executing `image-tools save`, if there is a private image in the image list, please make sure to manually login to the repo via `docker login`.
+Before executing `hangar save`, if there is a private image in the image list, please make sure to manually login to the repo via `docker login`.
 
 ## Mirror List Format
 
@@ -45,7 +45,7 @@ rancher/rancher:v2.7.0
 Download all the images in the `rancher-images.txt` list on your local filesystem and create a `tar.gz` archive:
 
 ```sh
-./image-tools save -f ./rancher-images.txt -d saved-images.tar.gz
+./hangar save -f ./rancher-images.txt -d saved-images.tar.gz
 ```
 
 > This command will first download the image to the `saved-image-cache` cache folder, and then create a compressed package of this folder.
@@ -56,47 +56,47 @@ Usage examples & command line parameters:
 
 ```sh
 # Use the -f (file) parameter to specify the image list file
-./image-tools save -f ./list.txt
+./hangar save -f ./list.txt
 
 # Use the -d (destination) parameter to specify the file name of the exported image
 # Can be used with the -compress parameter
 # The default file name is saved-images.tar.gz
-./image-tools save -f ./list.txt -d saved-images.tar.gz
+./hangar save -f ./list.txt -d saved-images.tar.gz
 
 # Use the -s (source) parameter to specify the registry of the source mirror without modifying the mirror list
 # If the source image in the image list does not specify registry, and the -s parameter is not set, then the registry of the source image will by default be set to docker.io
-./image-tools save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
+./hangar save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
 
 # Use the -a (arch) parameter to specify the architecture of the exported image (separated by commas)
 # The default is amd64, arm64
-./image-tools save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
+./hangar save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
 
 # Use the -j (jobs) parameter to specify the number of concurrent workers to download images concurrently (1~20 jobs are supported)
-./image-tools save -f ./list.txt -d saved-images.tar.gz -j 10 # Start 10 workers
+./hangar save -f ./list.txt -d saved-images.tar.gz -j 10 # Start 10 workers
 
 # Use the -part parameter to enable volume compression, the default size of each volume is 2G
 # You can use the -part-size parameter to set the volume size
 # After enabling sub-volume compression, a file with the suffix .part* will be created
-./image-tools save -f ./list.txt -d saved-images.tar.gz -part -part-size=4G # Specify the size of each volume to be 4G
+./hangar save -f ./list.txt -d saved-images.tar.gz -part -part-size=4G # Specify the size of each volume to be 4G
 
 # When the -f parameter is not set, you can manually enter the mirror list line by line to download a certain image
 # Concurrent copying will not be supported in this mode
 # Note that in this mode, use `Ctrl-D` to end the input of the image list, do not use `Ctrl-C` to end the program, otherwise the compressed package will not be created!
-./image-tools save -d saved-images.tar.gz
+./hangar save -d saved-images.tar.gz
 ......
 >>> rancher/rancher:v2.7.0
 
 # Use the -o (output) parameter to output the list of images that failed to be saved to disk
 # Default output will be saved to save-failed.txt
-./image-tools save -f image-list.txt -o failed-list.txt
+./hangar save -f image-list.txt -o failed-list.txt
 
 # Use the -compress parameter to specify the compression format
 # Optional: gzip, zstd, dir
 # The default is gzip format, if dir format is specified, it means only save the image in the folder without compressing it
-./image-tools save -f image-list.txt -compress=zstd -d saved.tar.zstd
+./hangar save -f image-list.txt -compress=zstd -d saved.tar.zstd
 
 # Use the -debug parameter to output more detailed debug logs
-./image-tools save -debug
+./hangar save -debug
 ```
 
 ## Save principle

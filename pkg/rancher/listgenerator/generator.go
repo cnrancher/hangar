@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
-	"github.com/cnrancher/image-tools/pkg/rancher/kdmimages"
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
+	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	u "github.com/cnrancher/image-tools/pkg/utils"
+	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

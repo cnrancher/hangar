@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cnrancher/image-tools/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

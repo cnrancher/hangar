@@ -1,8 +1,8 @@
 package generatelist
 
 import (
-	"github.com/cnrancher/image-tools/pkg/rancher/chartimages"
-	"github.com/cnrancher/image-tools/pkg/rancher/listgenerator"
+	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
+	"github.com/cnrancher/hangar/pkg/rancher/listgenerator"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )

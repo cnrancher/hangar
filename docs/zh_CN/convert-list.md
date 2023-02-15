@@ -1,7 +1,7 @@
 # convert-list
 
 ```console
-$ image-tools convert-list -h
+$ hangar convert-list -h
 Usage of convert-list:
   -d string
         specify the dest registry
@@ -18,7 +18,7 @@ Usage of convert-list:
 将下载的 `rancher-images.txt` 镜像列表格式转换至 `mirror` 时输入的镜像列表格式，并设定目标镜像的 registry 为 `custom.private.io`：
 
 ``` sh
-./image-tools convert-list -i rancher-images.txt -d custom.private.io
+./hangar convert-list -i rancher-images.txt -d custom.private.io
 ```
 
 此命令会将 `rancher-images.txt` 格式的镜像列表：
@@ -44,12 +44,12 @@ nginx custom.private.io/nginx latest
 ```sh
 # 使用 -i (input) 和 -d (destination) 参数，
 # 指定输入的镜像列表文件名和目标镜像的 registry
-./image-tools convert-list -i list.txt -d private.registry.io
+./hangar convert-list -i list.txt -d private.registry.io
 
 # 使用 -s (source) 参数指定转换格式后的镜像列表的源 registry
-./image-tools convert-list -i list.txt -s source.io -d dest.io
+./hangar convert-list -i list.txt -s source.io -d dest.io
 
 # 使用 -o (output) 参数，指定输出镜像列表的文件名
 # 默认为输入的文件名添加 .converted 后缀
-./image-tools convert-list -i list.txt -o converted.txt
+./hangar convert-list -i list.txt -o converted.txt
 ```

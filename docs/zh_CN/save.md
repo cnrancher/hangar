@@ -1,7 +1,7 @@
 # Save
 
 ```console
-$ ./image-tools save -h
+$ ./hangar save -h
 Usage of save:
   -a string
         architecture list of images, separate with ',' (default "amd64,arm64")
@@ -27,7 +27,7 @@ Usage of save:
 
 ## 准备工作
 
-在执行 `image-tools save` 之前，若镜像列表中存在私有镜像，请确保手动执行过 `docker login <registry-url>` 登录。
+在执行 `hangar save` 之前，若镜像列表中存在私有镜像，请确保手动执行过 `docker login <registry-url>` 登录。
 
 ## 镜像列表格式
 
@@ -45,7 +45,7 @@ rancher/rancher:v2.7.0
 将 `rancher-images.txt` 列表中的所有镜像下载到本地并创建 `tar.gz` 压缩包：
 
 ```sh
-./image-tools save -f ./rancher-images.txt -d saved-images.tar.gz
+./hangar save -f ./rancher-images.txt -d saved-images.tar.gz
 ```
 
 > 此命令会先将镜像下载至 `saved-image-cache` 缓存文件夹内，之后对此文件夹创建压缩包。
@@ -56,47 +56,47 @@ rancher/rancher:v2.7.0
 
 ```sh
 # 使用 -f (file) 参数指定镜像列表文件
-./image-tools save -f ./list.txt
+./hangar save -f ./list.txt
 
 # 使用 -d (destination) 参数，指定导出镜像的文件名称
 # 可配合 -compress 参数使用
 # 默认文件名为 saved-images.tar.gz
-./image-tools save -f ./list.txt -d saved-images.tar.gz
+./hangar save -f ./list.txt -d saved-images.tar.gz
 
 # 使用 -s (source) 参数，可以在不修改镜像列表的情况下，指定源镜像的 registry
 # 如果镜像列表中的源镜像没有写 registry，且未设定 -s 参数，那么源镜像的 registry 会被设定为默认的 docker.io
-./image-tools save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
+./hangar save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
 
 # 使用 -a (arch) 参数，指定导出的镜像的架构（以逗号分隔）
 # 默认为 amd64,arm64
-./image-tools save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
+./hangar save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
 
 # 使用 -j (jobs) 参数，指定协程池数量，并发下载镜像至本地（支持 1~20 个 jobs）
-./image-tools save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
+./hangar save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
 
 # 使用 -part 参数，启用分卷压缩，默认每个卷的大小为 2G
 # 可使用 -part-size 参数设定卷大小
 # 开启分卷压缩后，将创建以 .part* 为后缀的文件
-./image-tools save -f ./list.txt -d saved-images.tar.gz -part -part-size=4G # 指定每个卷大小为 4G
+./hangar save -f ./list.txt -d saved-images.tar.gz -part -part-size=4G # 指定每个卷大小为 4G
 
 # 在不设定 -f 参数时，可手动按行输入镜像列表，下载某一个镜像
 # 此时将不支持并发拷贝
 # 注意在此模式下，使用 `Ctrl-D` 结束镜像列表的输入，不要使用 `Ctrl-C` 结束程序，否则将无法创建压缩包！
-./image-tools save -d saved-images.tar.gz
+./hangar save -d saved-images.tar.gz
 ......
 >>> rancher/rancher:v2.7.0
 
 # 使用 -o (output) 参数，将 save 失败的镜像列表输出至指定文件中
 # 默认输出至 save-failed.txt
-./image-tools save -f image-list.txt -o failed-list.txt
+./hangar save -f image-list.txt -o failed-list.txt
 
 # 使用 -compress 参数，指定压缩格式
 # 可选：gzip, zstd, dir
 # 默认为 gzip 格式，若为 dir 格式则表示只将 save 的镜像保存在文件夹中，不对其进行压缩
-./image-tools save -f image-list.txt -compress=zstd -d saved.tar.zstd
+./hangar save -f image-list.txt -compress=zstd -d saved.tar.zstd
 
 # 使用 -debug 参数，输出更详细的调试日志
-./image-tools save -debug
+./hangar save -debug
 ```
 
 ## Save 原理

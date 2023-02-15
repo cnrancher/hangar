@@ -6,7 +6,7 @@
 
     Please ensure that the version of the tool when saving the image to the compressed package is the same as that of the tool when loading the compressed package by load.
 
-    | Template Version | `image-tools` version |
+    | Template Version | `hangar` version |
     | :--------------: | :---------------: |
     | `v1.0.0` | `v1.0.0` ~ `v1.2.3-rc1` |
     | `v1.1.0` | `v1.3.0` ~ latest |

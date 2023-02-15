@@ -1,7 +1,7 @@
 # Load
 
 ```console
-$ image-tools load -h
+$ hangar load -h
 Usage of load:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
@@ -28,7 +28,7 @@ Usage of load:
 Import the tar.gz compressed package exported by the `save` command to `private.registry.io`:
 
 ```sh
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+./hangar load -s ./saved-images.tar.gz -d private.registry.io
 ```
 
 This command will automatically create a multi-architecture Manifest list in the target registry based on the image file saved during `save`.
@@ -47,35 +47,35 @@ Command line parameters:
 
 ```sh
 # Use the -s (source file) parameter to specify the imported file (required parameter)
-./image-tools load -s ./saved-images.tar.gz
+./hangar load -s ./saved-images.tar.gz
 
 # Use the -d (destination) parameter to specify the registry of the target image
 # The priority is: -d parameter > DOCKER_REGISTRY environment variable
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io
+./hangar load -s ./saved-images.tar.gz -d private.registry.io
 
 # Use the -compress parameter to specify the compression format of the imported file
 # Optional: gzip, zstd, dir
 # The default is gzip format, if dir is specified, it means loading the image from the folder without decompressing it
-./image-tools load -s ./saved-images.tar.zstd -compress=zstd
+./hangar load -s ./saved-images.tar.zstd -compress=zstd
 
 # Use -repo-type to specify the type of the target mirror registry, the default is an empty string, and it can be set to "harbor"
 # When the type of the target mirror registry is harbor, a project will be automatically created for the target mirror
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor
+./hangar load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor
 
 # Use the -default-project parameter to specify the default project name
 # The default value is library
 # This parameter will rename `private.io/mysql:5.8` to `private.io/library/mysql:5.8`
-./image-tools load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor -default-project=library
+./hangar load -s ./saved-images.tar.gz -d private.registry.io -repo-type=harbor -default-project=library
 
 # Use the -j (jobs) parameter to specify the number of goroutine pools and import images concurrently (support 1~20 jobs)
-./image-tools load -s ./saved-images.tar.gz -j 10 # Start 10 workers
+./hangar load -s ./saved-images.tar.gz -j 10 # Start 10 workers
 
 # Use the -o (output) parameter to output the mirror list that failed to load to the specified file
 # Default output to mirror-failed.txt
-./image-tools load -s ./saved-images.tar.gz -o failed-list.txt
+./hangar load -s ./saved-images.tar.gz -o failed-list.txt
 
 # Use the -debug parameter to output more detailed debug logs
-./image-tools load -s ./saved-images.tar.gz -debug
+./hangar load -s ./saved-images.tar.gz -debug
 ```
 
 ## Load the sub-volume compressed package
@@ -91,7 +91,7 @@ drwxr-x---+ 70 root root 2.2K 1 6 18:00 ..
 -rw-r--r-- 1 root root 50M 1 6 17:59 saved-images.tar.gz.part2
 -rw-r--r-- 1 root root 5.3M 1 6 17:59 saved-images.tar.gz.part3
 
-$ image-tools load -s saved-images.tar.gz -d private.registry.io
+$ hangar load -s saved-images.tar.gz -d private.registry.io
 18:01:28 [INFO] Decompressing saved-images.tar.gz...
 18:01:28 [INFO] Read "saved-images.tar.gz.part0"
 18:01:28 [INFO] Read "saved-images.tar.gz.part1"

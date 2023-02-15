@@ -19,7 +19,7 @@ clean:
 
 help:
 	@echo "Usage:"
-	@echo "    make build   -  Build 'image-tools' executable files in 'build' folder"
+	@echo "    make build   -  Build 'hangar' executable files in 'build' folder"
 	@echo "    make test    -  Run unit test"
 	@echo "    make clean   -  Remove generated files"
 	@echo "    make help    -  Show this message"
