@@ -23,7 +23,7 @@ ensure_git_repo_cloned "https://github.com/cnrancher/system-charts.git" "pkg/ran
 ensure_git_repo_cloned "https://github.com/rancher/charts.git" "pkg/rancher/chartimages/test/rancher-charts"
 
 if [[ ! -e "pkg/rancher/kdmimages/test/data.json" ]]; then
-    wget https://github.com/rancher/kontainer-driver-metadata/raw/dev-v2.7/data/data.json -O pkg/rancher/kdmimages/test/data.json
+    wget --no-check-certificate https://github.com/rancher/kontainer-driver-metadata/raw/dev-v2.7/data/data.json -O pkg/rancher/kdmimages/test/data.json
 fi
 
 go test -v -cover --count=1 ./pkg/archive
