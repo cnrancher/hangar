@@ -67,9 +67,9 @@ func main() {
 
 func showHelp() {
 	fmt.Printf("Usage:\t%s COMMAND [OPTIONS]\n", os.Args[0])
-	fmt.Println()
+	fmt.Printf("\n")
 	fmt.Printf("Run '%s COMMAND --help' for more information on a command.\n", os.Args[0])
-	fmt.Println()
+	fmt.Printf("\n")
 	fmt.Printf("Commands: \n")
 	fmt.Printf("  mirror \t\tMirror image from source registry to destination registry.\n")
 	fmt.Printf("  save \t\t\tSave image from source registry to local file.\n")
@@ -79,6 +79,8 @@ func showHelp() {
 	fmt.Printf("  load-validate \tValidate loaded images.\n")
 	fmt.Printf("  generate-list \tGenerate list from KDM data/charts repo.\n")
 	fmt.Printf("  version \t\tShow version.\n")
+	fmt.Printf("\n")
+	fmt.Printf("For more info about this tool, please view: %s\n", utils.HangarGitHubURL)
 }
 
 func showVersion() {

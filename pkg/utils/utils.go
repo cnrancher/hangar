@@ -48,6 +48,7 @@ var (
 )
 
 const (
+	HangarGitHubURL         = "https://github.com/cnrancher/hangar"
 	DockerLoginURL          = "https://hub.docker.com/v2/users/login/"
 	DockerHubRegistry       = "docker.io"
 	DockerConfigFile        = ".docker/config.json"
