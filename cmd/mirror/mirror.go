@@ -128,7 +128,7 @@ func MirrorImages() {
 	u.DeleteIfExist(cmdFailed)
 	ch, wg := command.Worker(cmdFailed, func(m *mirror.Mirror) {
 		if usingStdin {
-			fmt.Println(">>> ")
+			fmt.Printf(">>> ")
 		}
 	})
 	var destProjects map[string]bool = make(map[string]bool)
