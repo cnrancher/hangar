@@ -1,6 +1,8 @@
 # Hangar
 
 [![Build Status](https://drone-pandaria.cnrancher.com/api/badges/cnrancher/hangar/status.svg?ref=refs/heads/main)](https://drone-pandaria.cnrancher.com/cnrancher/hangar)
+[![Docker Pulls](https://img.shields.io/docker/pulls/cnrancher/hangar.svg)](https://store.docker.com/community/images/cnrancher/hangar)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cnrancher/hangar)](https://goreportcard.com/report/github.com/cnrancher/hangar)
 
 Hangar is a tool for mirroring/copying multi-arch container images from the public registry to your registry with manifest list support, it also can generate an image list file according to Rancher KDM data and chart repositories for mirroring/saving images.
 
