@@ -17,7 +17,7 @@ docker run cnrancher/hangar:${VERSION} --help
 
 ```console
 $ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/hangar:${VERSION}
-[root@6aa010991c76 images]# hangar -h
+a455e1202691:/images # hangar -h
 Usage:	hangar COMMAND [OPTIONS]
 ......
 ```

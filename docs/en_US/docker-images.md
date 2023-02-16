@@ -16,7 +16,7 @@ docker run cnrancher/hangar:${VERSION} --help
 Set `entrypoint` to `bash`, mount the local directory into the container, and execute mirror/load/save in the container:
 ```console
 $ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/hangar:${VERSION}
-[root@6aa010991c76 images]# hangar -h
+a455e1202691:/images # hangar -h
 Usage: hangar COMMAND [OPTIONS]
 ...
 ```
