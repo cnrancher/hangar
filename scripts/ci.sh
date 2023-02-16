@@ -6,4 +6,4 @@ cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
 ${WORKINGDIR}/scripts/test.sh
-${WORKINGDIR}/scripts/build.sh
+${WORKINGDIR}/scripts/build-all.sh

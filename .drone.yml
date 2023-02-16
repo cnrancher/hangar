@@ -108,7 +108,8 @@ steps:
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
-      - dapper ci
+      - dapper test
+      - dapper build
     volumes:
       - name: docker
         path: /var/run/docker.sock

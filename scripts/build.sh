@@ -7,18 +7,38 @@ WORKINGDIR=$(pwd)
 
 source ${WORKINGDIR}/scripts/env.sh
 
-ARCH=('amd64' 'arm64')
-OS=('linux' 'darwin')
+RUNNER_ARCH=$(uname -m)
+case ${RUNNER_ARCH} in
+    amd64 | x86_64)
+        ARCH="amd64"
+        ;;
+    arm64 | aarch64)
+        ARCH="arm64"
+        ;;
+    *)
+        echo "Unrecognized arch: ${RUNNER_ARCH}"
+        exit 1
+        ;;
+esac
+
+RUNNER_OS=$(uname -s)
+case ${RUNNER_OS} in
+    Darwin)
+        OS="darwin"
+        ;;
+    Linux)
+        OS="linux"
+        ;;
+    *)
+        echo "Unrecognized OS: ${RUNNER_OS}"
+        exit 1
+        ;;
+esac
+
 
 mkdir -p $WORKINGDIR/build
 cd $WORKINGDIR/build
 
-for os in ${OS[@]}
-do
-    for arch in ${ARCH[@]}
-    do
-        OUTPUT="hangar-$os-$arch-$VERSION"
-        GOOS=$os GOARCH=$arch go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
-        echo $(pwd)/$OUTPUT
-    done
-done
+OUTPUT="hangar-$OS-$ARCH-$VERSION"
+GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
+echo $(pwd)/$OUTPUT
