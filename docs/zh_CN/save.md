@@ -8,7 +8,7 @@ Usage of save:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
   -d string
-        Output saved images into destination file (directory or tar tarball) (default "saved-images.tar.gz")
+        Output saved images into destination file (can use '-compress' to specify the output file format, default is gzip) (default "saved-images.tar.gz")
   -debug
         enable the debug output
   -f string
@@ -20,7 +20,7 @@ Usage of save:
   -part
         enable segment compress
   -part-size string
-        segment part size (a number, or a string ended with 'K','M' or 'G') (default "2G")
+        segment part size (number, or a string with 'K','M','G' suffix) (default "2G")
   -s string
         override the source registry
 ```

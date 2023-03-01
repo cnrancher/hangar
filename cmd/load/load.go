@@ -29,7 +29,8 @@ var (
 )
 
 func Parse(args []string) {
-	flagSet.StringVar(&cmdSource, "s", "", "saved file to load (tar tarball or a directory)")
+	flagSet.StringVar(&cmdSource, "s", "",
+		"saved file to load (can use '-compress' to specify the input file format, default is 'gzip')")
 	flagSet.StringVar(&cmdDestReg, "d", "", "target private registry:port")
 	flagSet.StringVar(&cmdFailed, "o", "load-failed.txt", "file name of the load failed image list")
 	flagSet.StringVar(&cmdRepoType, "repo-type", "", "repository type, can be 'harbor' or empty")

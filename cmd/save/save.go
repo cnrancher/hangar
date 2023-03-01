@@ -37,9 +37,11 @@ func Parse(args []string) {
 	flagSet.StringVar(&cmdArch, "a", "amd64,arm64", "architecture list of images, separate with ','")
 	flagSet.StringVar(&cmdSource, "s", "", "override the source registry")
 	flagSet.StringVar(&cmdDest, "d", "saved-images.tar.gz",
-		"Output saved images into destination file (directory or tar tarball)")
+		"Output saved images into destination file " +
+		"(can use '-compress' to specify the output file format, default is gzip)")
 	flagSet.StringVar(&cmdFailed, "o", "save-failed.txt", "file name of the save failed image list")
-	flagSet.StringVar(&cmdCompress, "compress", "gzip", "compress format, can be 'gzip', 'zstd' or 'dir'")
+	flagSet.StringVar(&cmdCompress, "compress", "gzip",
+		"compress format, can be 'gzip', 'zstd' or 'dir'")
 	flagSet.BoolVar(&cmdPart, "part", false, "enable segment compress")
 	flagSet.StringVar(&cmdPartSize, "part-size", "2G",
 		"segment part size (number, or a string with 'K','M','G' suffix)")

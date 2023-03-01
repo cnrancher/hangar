@@ -20,7 +20,7 @@ Usage of load:
   -repo-type string
         repository type, can be 'harbor' or empty
   -s string
-        saved file to load (tar tarball or a directory)
+        saved file to load (can use '-compress' to specify the input file format, default is 'gzip')
 ```
 
 ## QuickStart

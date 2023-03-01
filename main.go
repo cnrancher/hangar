@@ -80,7 +80,7 @@ func showHelp() {
 	fmt.Printf("  generate-list \tGenerate list from KDM data/charts repo.\n")
 	fmt.Printf("  version \t\tShow version.\n")
 	fmt.Printf("\n")
-	fmt.Printf("For more info about this tool, please view: %s\n", utils.HangarGitHubURL)
+	fmt.Printf("More detailed usage docs is available in <%s/tree/main/docs/>\n", utils.HangarGitHubURL)
 }
 
 func showVersion() {

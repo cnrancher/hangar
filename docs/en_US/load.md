@@ -6,7 +6,7 @@ Usage of load:
   -compress string
         compress format, can be 'gzip', 'zstd' or 'dir' (default "gzip")
   -d string
-        target private registry: port
+        target private registry:port
   -debug
         enable the debug output
   -default-project string
@@ -20,7 +20,7 @@ Usage of load:
   -repo-type string
         repository type, can be 'harbor' or empty
   -s string
-        saved file to load (tar tarball or a directory)
+        saved file to load (can use '-compress' to specify the input file format, default is 'gzip')
 ```
 
 ## Quick Start
