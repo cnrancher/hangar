@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/cnrancher/hangar/pkg/config"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -59,7 +60,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 	params = append(params, args...)
 	logrus.Debugf("Running skopeo %v", params)
 	var out io.Writer = nil
-	if u.WorkerNum == 1 {
+	if config.GetInt("jobs") == 1 {
 		// single thread (worker) mode
 		out = os.Stdout
 	}

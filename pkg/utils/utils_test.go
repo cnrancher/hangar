@@ -110,34 +110,6 @@ func Test_GetAbsPath(t *testing.T) {
 // SaveJson        should be test manually
 // SaveSlice       should be test manually
 
-func Test_CheckWorkerNum(t *testing.T) {
-	var num int = 1
-	CheckWorkerNum(true, &num)
-	if num != 1 {
-		t.Error("CheckWorkerNum failed")
-	}
-	num = 2
-	CheckWorkerNum(true, &num)
-	if num != 1 {
-		t.Error("CheckWorkerNum failed")
-	}
-	num = 1
-	CheckWorkerNum(false, &num)
-	if num != 1 {
-		t.Error("CheckWorkerNum failed")
-	}
-	num = 0
-	CheckWorkerNum(false, &num)
-	if num != 1 {
-		t.Error("CheckWorkerNum failed")
-	}
-	num = 100
-	CheckWorkerNum(false, &num)
-	if num != 20 {
-		t.Error("CheckWorkerNum failed")
-	}
-}
-
 func Test_ConstructRegistry(t *testing.T) {
 	s := ConstructRegistry("nginx", "")
 	if s != "docker.io/nginx" {

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cnrancher/hangar/pkg/config"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -69,6 +70,7 @@ func GetLoginToken(url string, username string, passwd string) (string, error) {
 // DockerLogin executes
 // 'docker login <registry> --username=<user> --password-stdin'
 func DockerLogin(url, username, password string) error {
+	logrus.Debugf("executing 'docker login' to %q", url)
 	if url == "" {
 		url = u.DockerHubRegistry
 	}
@@ -85,6 +87,48 @@ func DockerLogin(url, username, password string) error {
 	cmd.Stdin = strings.NewReader(password)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("docker login: \n%s\n%w", stdout.String(), err)
+	}
+
+	// Login succeed, store registry, username, passwd into cache
+	var cached bool = false
+	for _, v := range dockerPasswordCache {
+		if v.Password == password && v.Username == username &&
+			v.Registry == url {
+			// data already cached, skip
+			cached = true
+		}
+	}
+	if !cached {
+		dockerPasswordCache = append(dockerPasswordCache, DockerPasswordCache{
+			Username: username,
+			Password: password,
+			Registry: url,
+		})
+	}
+
+	return nil
+}
+
+// SkopeoLogin executes
+// 'skopeo login <registry> --username=<user> --password-stdin'
+func SkopeoLogin(url, username, password string) error {
+	logrus.Debugf("executing 'skopeo login' to %q", url)
+	if url == "" {
+		url = u.DockerHubRegistry
+	}
+	var stdout bytes.Buffer
+	cmd := exec.Command(
+		SkopeoPath,
+		"login",
+		url,
+		"-u", username,
+		"--password-stdin",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stdout
+	cmd.Stdin = strings.NewReader(password)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("skopeo login: \n%s\n%w", stdout.String(), err)
 	}
 
 	// Login succeed, store registry, username, passwd into cache
@@ -134,7 +178,7 @@ func DockerBuildx(args ...string) error {
 	buildxArgs := []string{"buildx"}
 	buildxArgs = append(buildxArgs, args...)
 	var out io.Writer = nil
-	if u.WorkerNum == 1 {
+	if config.GetInt("jobs") == 1 {
 		out = os.Stdout
 	}
 	err = execCommandFunc(DockerPath, nil, out, buildxArgs...)

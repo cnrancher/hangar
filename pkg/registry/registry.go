@@ -31,16 +31,16 @@ func SelfCheckSkopeo() error {
 	if err != nil {
 		logrus.Warnf("skopeo not found, please install by refer: %q",
 			skopeoInsGuideURL)
-		return fmt.Errorf("SelfCheckSkopeo: %w", err)
+		return fmt.Errorf("%w", err)
 	}
 	SkopeoPath = path
 	var buff bytes.Buffer
 	cmd := exec.Command(path, "-v")
 	cmd.Stdout = &buff
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("SelfCheckSkopeo: 'skopeo -v': %w", err)
+		return fmt.Errorf("'skopeo -v': %w", err)
 	}
-	logrus.Infof("Found skopeo: %s", strings.TrimSpace(buff.String()))
+	logrus.Infof(strings.TrimSpace(buff.String()))
 
 	return nil
 }
@@ -48,7 +48,7 @@ func SelfCheckSkopeo() error {
 func SelfCheckBuildX() error {
 	dockerPath, err := exec.LookPath("docker")
 	if err != nil {
-		return fmt.Errorf("SelfCheckBuildX: %w", u.ErrDockerNotFound)
+		return u.ErrDockerNotFound
 	}
 	DockerPath = dockerPath
 
@@ -62,9 +62,10 @@ func SelfCheckBuildX() error {
 	// ensure docker-buildx is installed
 	if err = execCommandFunc(dockerPath, nil, nil, "buildx"); err != nil {
 		if strings.Contains(err.Error(), "is not a docker command") {
-			return fmt.Errorf("SelfCheckBuildX: %w", u.ErrDockerBuildxNotFound)
+			return u.ErrDockerBuildxNotFound
 		}
 	}
+	logrus.Debugf("docker buildx found")
 
 	return nil
 }
@@ -73,9 +74,10 @@ func SelfCheckDocker() error {
 	// check docker
 	path, err := exec.LookPath("docker")
 	if err != nil {
-		return fmt.Errorf("SelfCheckDocker: %w", u.ErrDockerNotFound)
+		return u.ErrDockerNotFound
 	}
 	DockerPath = path
+	logrus.Debugf("docker found: %v", path)
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package generatelist
+package commands
 
 import (
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
@@ -169,7 +169,7 @@ var (
 	}
 )
 
-func AddRPMCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RPM_CHARTS
 	if dev {
@@ -186,7 +186,7 @@ func AddRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func AddRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	systemChartsMap := RPM_SYSTEM_CHARTS
 	if dev {
@@ -203,7 +203,7 @@ func AddRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func AddRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RPM_GC_CHARTS
 	if dev {
@@ -220,7 +220,7 @@ func AddRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func AddRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RPM_GC_SYSTEM_CHARTS
 	if dev {
@@ -237,7 +237,7 @@ func AddRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func AddRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
+func addRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	urlMap := KDM_URLS
 	if dev {
@@ -251,7 +251,7 @@ func AddRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
 	g.KDMURL = url
 }
 
-func AddRPM_GC_KDM(v string, g *listgenerator.Generator, dev bool) {
+func addRPM_GC_KDM(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	urlMap := KDM_GC_URLS
 	if dev {

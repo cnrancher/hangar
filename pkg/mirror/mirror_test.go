@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/cnrancher/hangar/pkg/config"
 	"github.com/cnrancher/hangar/pkg/image"
 	r "github.com/cnrancher/hangar/pkg/registry"
 	u "github.com/cnrancher/hangar/pkg/utils"
@@ -24,7 +25,7 @@ var testFs embed.FS
 
 func init() {
 	logrus.SetOutput(io.Discard)
-	u.WorkerNum = 2
+	config.Set("jobs", 2)
 }
 
 // StartMirror method should test manually,

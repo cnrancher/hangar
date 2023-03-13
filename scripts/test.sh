@@ -35,3 +35,4 @@ go test -v -cover --count=1 ./pkg/rancher/kdmimages
 go test -v -cover --count=1 ./pkg/rancher/listgenerator
 go test -v -cover --count=1 ./pkg/registry
 go test -v -cover --count=1 ./pkg/utils
+go test -v -cover --count=1 ./pkg/config

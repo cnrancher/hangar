@@ -14,7 +14,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 	"golang.org/x/term"
 )
@@ -58,11 +57,6 @@ const (
 	ETC_SSL_FILE            = "/etc/ssl/certs/ca-certificates.crt"
 	MAX_WORKER_NUM          = 20
 	MIN_WORKER_NUM          = 1
-)
-
-var (
-	// worker number of mirrorer
-	WorkerNum = 1
 )
 
 func Sha256Sum(s string) string {
@@ -222,28 +216,6 @@ func SaveSlice(fileName string, data []string) error {
 		return fmt.Errorf("SaveSlice: %w", err)
 	}
 	return nil
-}
-
-// If using stdin, the worker num should be 1,
-// if not using stdin, worker num should >= 1 && <= 20.
-func CheckWorkerNum(usingStdin bool, num *int) {
-	if usingStdin {
-		if *num != 1 {
-			logrus.Warn("Async mode not supported in stdin mode")
-			logrus.Warn("Set jobs num back to 1")
-			*num = 1
-		}
-	} else {
-		if *num > MAX_WORKER_NUM {
-			logrus.Warn("Worker count should be <= 20")
-			logrus.Warn("Change worker count to 20")
-			*num = MAX_WORKER_NUM
-		} else if *num < MIN_WORKER_NUM {
-			logrus.Warn("Invalid worker count")
-			logrus.Warn("Change worker count to 1")
-			*num = MIN_WORKER_NUM
-		}
-	}
 }
 
 // ConstructRegistry will re-construct the image url:
@@ -407,38 +379,6 @@ func ReadUsernamePasswd() (username, passwd string, err error) {
 
 	password := string(bytePassword)
 	return strings.TrimSpace(username), strings.TrimSpace(password), nil
-}
-
-func CheckCacheDirEmpty() error {
-	// Check cache image directory
-	ok, err := IsDirEmpty(CacheImageDirectory)
-	if err != nil {
-		logrus.Panic(err)
-	}
-	if !ok {
-		logrus.Warnf("Cache folder: '%s' is not empty!", CacheImageDirectory)
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Delete it before start save/load image? [y/N] ")
-		for {
-			text, _ := reader.ReadString('\n')
-			if len(text) == 0 {
-				continue
-			}
-			if text[0] == 'Y' || text[0] == 'y' {
-				break
-			} else {
-				return fmt.Errorf("'%s': %w",
-					CacheImageDirectory, ErrDirNotEmpty)
-			}
-		}
-		if err := DeleteIfExist(CacheImageDirectory); err != nil {
-			return err
-		}
-	}
-	if err = EnsureDirExists(CacheImageDirectory); err != nil {
-		return err
-	}
-	return nil
 }
 
 // AddSourceToImage adds image into map[image][source]bool
