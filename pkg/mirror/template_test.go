@@ -134,3 +134,54 @@ func Test_CompareBuildxManifest(t *testing.T) {
 		t.Error("CompareBuildxManifest 3 failed")
 	}
 }
+
+func Test_SavedListTemplate_Has(t *testing.T) {
+	tmp := NewSavedListTemplate()
+	tmp.Append(&SavedMirrorTemplate{
+		Source:   "docker.io/library/nginx",
+		Tag:      "latest",
+		ArchList: []string{"amd64", "arm64"},
+		Images: []SavedImagesTemplate{
+			{
+				Digest: "aaa",
+				Arch:   "amd64",
+				OS:     "linux",
+				Folder: "abc",
+			},
+		},
+	})
+
+	ok := tmp.Has(&SavedMirrorTemplate{
+		Source:   "docker.io/library/nginx",
+		Tag:      "latest",
+		ArchList: []string{"amd64", "arm64"},
+		Images: []SavedImagesTemplate{
+			{
+				Digest: "aaa",
+				Arch:   "amd64",
+				OS:     "linux",
+				Folder: "abc",
+			},
+		},
+	})
+	if !ok {
+		t.Error("failed")
+	}
+
+	ok = tmp.Has(&SavedMirrorTemplate{
+		Source:   "docker.io/library/nginx",
+		Tag:      "latest",
+		ArchList: []string{"amd64", "arm64"},
+		Images: []SavedImagesTemplate{
+			{
+				Digest: "bbb",
+				Arch:   "amd64",
+				OS:     "linux",
+				Folder: "abc",
+			},
+		},
+	})
+	if ok {
+		t.Error("failed")
+	}
+}

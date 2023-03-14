@@ -69,7 +69,7 @@ func newSaveCmd() *saveCmd {
 			}
 			cc.baseCmd.prepareWorker()
 			if err := cc.prepareImageCacheDirectory(); err != nil {
-				return err
+				logrus.Warn(err)
 			}
 			if err := cc.run(); err != nil {
 				return err
@@ -168,7 +168,6 @@ func (cc *saveCmd) setupFlags() error {
 
 func (cc *saveCmd) processImageList() error {
 	logrus.Debugf("source registry %q", config.GetString("source"))
-	logrus.Debugf("destination registry %q", config.GetString("destination"))
 	fName := config.GetString("file")
 	if fName == "" {
 		return fmt.Errorf("image list file name not specified")
@@ -195,7 +194,7 @@ func (cc *saveCmd) processImageList() error {
 		}
 		spec.image = utils.ConstructRegistry(
 			spec.image, config.GetString("source"))
-		// only get the destination registry and login
+		// get the image registry and login
 		reg := utils.GetRegistryName(spec.image)
 		if _, ok := cc.registriesSet[reg]; !ok {
 			cc.registriesSet[reg] = struct{}{}
@@ -205,7 +204,7 @@ func (cc *saveCmd) processImageList() error {
 
 	for r := range cc.registriesSet {
 		if err := cc.baseCmd.runDockerLogin(r); err != nil {
-			// output login failed message only
+			// output the login failed message only
 			logrus.Warn(err)
 		}
 	}
@@ -215,7 +214,6 @@ func (cc *saveCmd) processImageList() error {
 
 func (cc *saveCmd) run() error {
 	for i, v := range cc.listSpec {
-		logrus.Debugf("save: %++v", v)
 		src := utils.ConstructRegistry(v.image, config.GetString("source"))
 		if utils.GetProjectName(src) == "" {
 			src = utils.ReplaceProjectName(src, "library")

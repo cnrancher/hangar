@@ -65,5 +65,6 @@ func (cc *hangarCmd) addCommands() {
 		newLoadValidateCmd(),
 		newGenerateListCmd(),
 		newConvertListCmd(),
+		newSyncCmd(),
 	)
 }

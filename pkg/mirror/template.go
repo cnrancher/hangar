@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -67,6 +68,18 @@ func (s *SavedListTemplate) Append(mT *SavedMirrorTemplate) {
 		return
 	}
 	s.List = append(s.List, *mT)
+}
+
+func (s *SavedListTemplate) Has(mT *SavedMirrorTemplate) bool {
+	if s == nil || mT == nil {
+		return false
+	}
+	for _, v := range s.List {
+		if reflect.DeepEqual(v, *mT) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
