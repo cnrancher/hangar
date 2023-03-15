@@ -87,13 +87,15 @@ func newSaveCmd() *saveCmd {
 	cc.cmd.Flags().StringP("file", "f", "", "image list file (the format as same as 'rancher-images.txt')")
 	cc.cmd.Flags().StringP("arch", "a", "amd64,arm64", "architecture list of images, separate with ','")
 	cc.cmd.Flags().StringP("source", "s", "", "override the source registry defined in image list")
-	cc.cmd.Flags().StringP("destination", "d", "saved-images.tar.gz",
+	cc.cmd.Flags().StringP("destination", "d", "",
 		"file name of saved images "+
-			"(can use '--compress' to specify the output file format, default is gzip)")
+			"\n(can use '--compress' to specify the output file format, default is gzip) "+
+			"\n(default \"saved-images.[FORMAT_SUFFIX]\")")
 	cc.cmd.Flags().StringP("failed", "o", "save-failed.txt", "file name of the save failed image list")
 	cc.cmd.Flags().StringP("compress", "c", "gzip",
 		"compress format, can be 'gzip', 'zstd' or 'dir' "+
 			"(set to 'dir' to disable compression, rename the cache directory only)")
+	cc.cmd.Flags().BoolP("part", "", false, "enable segment compress")
 	cc.cmd.Flags().StringP("part-size", "", "2G",
 		"segment part size (number(Bytes), or a string with 'K', 'M', 'G' suffix)")
 	cc.cmd.Flags().IntP("jobs", "j", 1, "worker number, concurrent mode if larger than 1, max 20")
@@ -120,7 +122,21 @@ func (cc *saveCmd) setupFlags() error {
 	case "dir":
 		cc.compressFormat = archive.CompressFormatDirectory
 	default:
+		logrus.Warnf("unrecognized compress format %q, set to gzip",
+			config.GetString("compress"))
 		cc.compressFormat = archive.CompressFormatGzip
+	}
+
+	if config.GetString("destination") == "" {
+		d := "saved-images"
+		switch cc.compressFormat {
+		case archive.CompressFormatGzip:
+			d += ".tar.gz"
+		case archive.CompressFormatZstd:
+			d += ".tar.zstd"
+		}
+		logrus.Debugf("set destination file name to default %q", d)
+		config.Set("destination", d)
 	}
 
 	if cc.compressFormat != archive.CompressFormatDirectory {
@@ -157,7 +173,7 @@ func (cc *saveCmd) setupFlags() error {
 				cc.compressPartSize, err = strconv.Atoi(sPartSize)
 			}
 			if err != nil {
-				logrus.Fatalf("failed to get segment part size: %v", err)
+				return fmt.Errorf("failed to get segment part size: %v", err)
 			}
 			logrus.Infof("set compress segment part to %q", sPartSize)
 		}
@@ -243,7 +259,7 @@ func (cc *saveCmd) compressTarball() error {
 	}
 
 	if cc.compressFormat != archive.CompressFormatDirectory {
-		logrus.Infof("Compressing %s...", config.GetString("destination"))
+		logrus.Infof("compressing %s...", config.GetString("destination"))
 
 		err := archive.Compress(
 			utils.CacheImageDirectory,
@@ -252,12 +268,14 @@ func (cc *saveCmd) compressTarball() error {
 			cc.compressPartSize,
 		)
 		if err != nil {
-			logrus.Fatal(err)
+			return err
 		}
 		if !config.GetBool("part") {
 			// if part compress not enabled,
 			// rename file name without .part extension
-			if err := os.Rename(config.GetString("destination")+".part0", config.GetString("destination")); err != nil {
+			if err := os.Rename(
+				config.GetString("destination")+".part0",
+				config.GetString("destination")); err != nil {
 				logrus.Warn(err)
 			}
 		}
@@ -267,7 +285,7 @@ func (cc *saveCmd) compressTarball() error {
 			logrus.Warn(err)
 		}
 	}
-	logrus.Infof("Saved images into %q", config.GetString("destination"))
+	logrus.Infof("saved images into %q", config.GetString("destination"))
 	return nil
 }
 
