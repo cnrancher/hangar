@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
+	"github.com/cnrancher/hangar/pkg/rancher/kdm"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	u "github.com/cnrancher/hangar/pkg/utils"
-	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )

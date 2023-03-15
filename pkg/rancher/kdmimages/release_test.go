@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cnrancher/hangar/pkg/rancher/kdm"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 )
 
-//go:embed test/*.json
+//go:embed test/*
 var testFs embed.FS
 
 func init() {
