@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/cnrancher/hangar/pkg/archive"
 	"github.com/cnrancher/hangar/pkg/config"
 	"github.com/cnrancher/hangar/pkg/mirror"
 	"github.com/sirupsen/logrus"
@@ -31,6 +32,15 @@ func newLoadValidateCmd() *loadValidateCmd {
 				return err
 			}
 			if err := cc.loadCmd.setupFlags(); err != nil {
+				return err
+			}
+			if cc.compressFormat != archive.CompressFormatDirectory {
+				err := cc.loadCmd.baseCmd.prepareImageCacheDirectory()
+				if err != nil {
+					return err
+				}
+			}
+			if err := cc.loadCmd.decompressTarball(); err != nil {
 				return err
 			}
 			if err := cc.loadCmd.baseCmd.processDockerLogin(); err != nil {

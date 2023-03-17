@@ -49,7 +49,12 @@ func CreateHarborProject(name, url, username, passwd string) error {
 		return fmt.Errorf("CreateHarborProject: %w", err)
 	}
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	logrus.Debugf("Create %q response: %s", name, string(bodyBytes))
+	body := string(bodyBytes)
+	if len(body) > 200 {
+		body = body[:200]
+		body += "\n......"
+	}
+	logrus.Debugf("create %q response: %s", name, body)
 	logrus.Debugf("Status: %d", resp.StatusCode)
 	return nil
 }

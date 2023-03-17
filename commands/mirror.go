@@ -125,6 +125,13 @@ func (cc *mirrorCmd) processImageList() error {
 			cc.registriesSet[reg] = struct{}{}
 		}
 		cc.listSpec = append(cc.listSpec, spec)
+		if utils.GetProjectName(spec.destination) == "" {
+			logrus.Infof("project name of %q is empty, set to %q",
+				spec.destination,
+				config.GetString("default-project"))
+			spec.destination = utils.ReplaceProjectName(
+				spec.destination, config.GetString("default-project"))
+		}
 	}
 
 	for r := range cc.registriesSet {

@@ -48,8 +48,10 @@ func newLoadCmd() *loadCmd {
 			if err := cc.setupFlags(); err != nil {
 				return err
 			}
-			if err := cc.prepareImageCacheDirectory(); err != nil {
-				return err
+			if cc.compressFormat != archive.CompressFormatDirectory {
+				if err := cc.baseCmd.prepareImageCacheDirectory(); err != nil {
+					return err
+				}
 			}
 			if err := cc.decompressTarball(); err != nil {
 				return err

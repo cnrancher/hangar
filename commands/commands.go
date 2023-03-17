@@ -148,13 +148,13 @@ func (cc *baseCmd) runDockerLogin(reg string) error {
 func (cc *baseCmd) prepareWorker() {
 	workerNum := config.GetInt("jobs")
 	if workerNum > utils.MAX_WORKER_NUM {
-		logrus.Warn("worker count should be <= %v", utils.MAX_WORKER_NUM)
-		logrus.Warn("change worker count to %v", utils.MAX_WORKER_NUM)
+		logrus.Warnf("worker count should be <= %v", utils.MAX_WORKER_NUM)
+		logrus.Warnf("change worker count to %v", utils.MAX_WORKER_NUM)
 		workerNum = utils.MAX_WORKER_NUM
 		config.Set("jobs", workerNum)
 	} else if workerNum < utils.MIN_WORKER_NUM {
 		logrus.Warnf("invalid worker count: %v", workerNum)
-		logrus.Warn("change worker count to %v", utils.MIN_WORKER_NUM)
+		logrus.Warnf("change worker count to %v", utils.MIN_WORKER_NUM)
 		workerNum = utils.MIN_WORKER_NUM
 		config.Set("jobs", workerNum)
 	}

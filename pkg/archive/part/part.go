@@ -171,7 +171,7 @@ func (c *PartHelper) initWrite() error {
 		if err != nil {
 			return fmt.Errorf("initWrite: %w", err)
 		}
-		logrus.Infof("Create %q", c.partname)
+		logrus.Infof("create %q", c.partname)
 	}
 	return nil
 }
@@ -211,7 +211,7 @@ func (c *PartHelper) createNextPart() error {
 	c.part++
 	c.partname = partname
 	c.writeBytes = 0
-	logrus.Infof("Create %q", partname)
+	logrus.Infof("create %q", partname)
 	return nil
 }
 

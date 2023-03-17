@@ -86,8 +86,8 @@ func (cc *convertListCmd) run() error {
 
 		switch checkLineFormat(l) {
 		case LINE_FORMAT_MIRROR:
-			logrus.Info("input file is already 'mirror' format")
-			return nil
+			logrus.Infof("skip line: %v", l)
+			continue
 		case LINE_FORMAT_SINGLE:
 		default:
 			// unknow format, continue

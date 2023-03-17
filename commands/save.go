@@ -135,7 +135,19 @@ func (cc *saveCmd) setupFlags() error {
 		case archive.CompressFormatZstd:
 			d += ".tar.zstd"
 		}
-		logrus.Debugf("set destination file name to default %q", d)
+		logrus.Infof("set destination file name to default %q", d)
+		config.Set("destination", d)
+	}
+
+	if !strings.Contains(config.GetString("destination"), ".") {
+		d := config.GetString("destination")
+		switch cc.compressFormat {
+		case archive.CompressFormatGzip:
+			d += ".tar.gz"
+		case archive.CompressFormatZstd:
+			d += ".tar.zstd"
+		}
+		logrus.Infof("set destination file name to %q", d)
 		config.Set("destination", d)
 	}
 
