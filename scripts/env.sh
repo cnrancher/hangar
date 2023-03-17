@@ -32,7 +32,11 @@ if [[ -z "${VERSION}" ]]; then
 fi
 echo "Build version: ${VERSION}"
 
-BUILD_FLAG="-s -w"
+BUILD_FLAG=""
+if ! echo $DRONE_TAG | grep -q "rc"; then
+    BUILD_FLAG="-s -w"
+fi
+
 if [[ "${GITCOMMIT}" != "UNKNOW" ]]; then
     BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${GITCOMMIT}'"
 fi
