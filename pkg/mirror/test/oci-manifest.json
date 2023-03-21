@@ -1,0 +1,40 @@
+{
+    "schemaVersion": 2,
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "config": {
+      "mediaType": "application/vnd.oci.image.config.v1+json",
+      "digest": "sha256:ab7fd21184e4e852453d075dbd0b34b05beb70671e4402b9c37a8e4c4de45419",
+      "size": 3192
+    },
+    "layers": [
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:6f70e28bcc6a19625847dc2af5351b371556f0aa173a9181791681fd6de064da",
+        "size": 71359621
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:5c220b3ddc2d7be25add4be67d6c33e018f8a2b90d53f7b0235a41da1b9a5706",
+        "size": 22671474
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:befc39b9fc10ca8f621bc12ca52391af4e4e37c42e56785254441a9c781d9e50",
+        "size": 1845
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:46e1ad368ab6e36d5516375bda9aba9f933528fe01fe7b9af3f1716c7eafb5ef",
+        "size": 4003
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:3e8dddf4680afaa86e62a0da6a1ec8ebe4013baafe60ce71e5b9b48c5b592cd0",
+        "size": 230
+      }
+    ],
+    "annotations": {
+      "org.opencontainers.image.base.digest": "sha256:45da735fb93d80d99a799dfa135da37256ec3de9242bc353f4e65ccbbf177129",
+      "org.opencontainers.image.base.name": "registry.fedoraproject.org/fedora:latest"
+    }
+  }

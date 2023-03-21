@@ -82,6 +82,5 @@ func (img *Image) copyIfChanged() error {
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
 		Infof("Copying: [%s] => [%s]", img.Source, img.Destination)
-	args := []string{"--format=v2s2"}
-	return registry.SkopeoCopy(srcDockerImage, dstDockerImage, args...)
+	return registry.SkopeoCopy(srcDockerImage, dstDockerImage)
 }

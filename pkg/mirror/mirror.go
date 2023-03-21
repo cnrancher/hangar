@@ -9,6 +9,7 @@ import (
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
@@ -29,6 +30,8 @@ type Mirror struct {
 	sourceSchema2     *manifest.Schema2
 	sourceImageInfo   *types.ImageInspectInfo
 	sourceSchema2List *manifest.Schema2List
+	sourceOCIIndex    *imgspecv1.Index
+	sourceOCIManifest *imgspecv1.Manifest
 	destMIMEType      string
 	destSchema2List   *manifest.Schema2List
 
@@ -151,22 +154,24 @@ func (m *Mirror) initImageList() error {
 
 	switch m.sourceMIMEType {
 	case manifest.DockerV2ListMediaType: // schemaVersion 2 manifest.list.v2
-		logrus.WithField("M_ID", m.MID).
-			Infof("[%s:%s] is manifest.list.v2", m.Source, m.Tag)
 		if err := m.initSourceImageListByListV2(); err != nil {
 			return fmt.Errorf("initImageList: %w", err)
 		}
 	case manifest.DockerV2Schema2MediaType: // schemaVersion 2 manifest.v2
-		logrus.WithField("M_ID", m.MID).
-			Infof("[%s:%s] is manifest.v2", m.Source, m.Tag)
 		if err := m.initImageListByV2(); err != nil {
 			return fmt.Errorf("initImageList: %w", err)
 		}
 	case manifest.DockerV2Schema1MediaType,
 		manifest.DockerV2Schema1SignedMediaType: // schemaVersion 1 manifest.v1
-		logrus.WithField("M_ID", m.MID).
-			Infof("[%s:%s] is manifest.v1", m.Source, m.Tag)
 		if err := m.initImageListByV1(); err != nil {
+			return fmt.Errorf("initImageList: %w", err)
+		}
+	case imgspecv1.MediaTypeImageIndex: // OCI image manifest index (list)
+		if err := m.initSourceImageListByOCIIndexV1(); err != nil {
+			return fmt.Errorf("initImageList: %w", err)
+		}
+	case imgspecv1.MediaTypeImageManifest: // OCI image manifest
+		if err := m.initImageListByOCIManifestV1(); err != nil {
 			return fmt.Errorf("initImageList: %w", err)
 		}
 	default:
@@ -270,6 +275,8 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	m.sourceManifestStr = out
 
 	m.sourceMIMEType = manifest.GuessMIMEType([]byte(out))
+	logrus.WithField("M_ID", m.MID).
+		Infof("[%s:%s] is [%s]", m.Source, m.Tag, m.sourceMIMEType)
 	switch m.sourceMIMEType {
 	case manifest.DockerV2Schema1MediaType,
 		manifest.DockerV2Schema1SignedMediaType: // schemaVersion 1 manifest.v1
@@ -284,6 +291,18 @@ func (m *Mirror) initSourceDestinationManifest() error {
 		}
 	case manifest.DockerV2ListMediaType: // schemaVersion 2 manifest.list.v2
 		m.sourceSchema2List, err = manifest.Schema2ListFromManifest([]byte(out))
+		if err != nil {
+			return err
+		}
+	case imgspecv1.MediaTypeImageIndex: // OCI image index (list)
+		m.sourceOCIIndex = &imgspecv1.Index{}
+		err = json.Unmarshal([]byte(out), m.sourceOCIIndex)
+		if err != nil {
+			return err
+		}
+	case imgspecv1.MediaTypeImageManifest: // OCI image manifest
+		m.sourceOCIManifest = &imgspecv1.Manifest{}
+		err = json.Unmarshal([]byte(out), m.sourceOCIManifest)
 		if err != nil {
 			return err
 		}
@@ -370,6 +389,59 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	return nil
 }
 
+func (m *Mirror) initSourceImageListByOCIIndexV1() error {
+	logrus.WithField("M_ID", m.MID).
+		Debug("Start initSourceImageListByOCIIndexV1")
+	var images int = 0
+	for _, manifest := range m.sourceOCIIndex.Manifests {
+		if !slices.Contains(m.ArchList, manifest.Platform.Architecture) {
+			logrus.WithField("M_ID", m.MID).
+				Debugf("skip image %s arch %s",
+					m.Source, manifest.Platform.Architecture)
+			continue
+		}
+		extra := []string{}
+		if manifest.Platform.OSVersion != "" {
+			extra = append(extra, manifest.Platform.OSVersion)
+		}
+		copiedTag := image.CopiedTag(
+			m.Tag,
+			manifest.Platform.OS,
+			manifest.Platform.Architecture,
+			manifest.Platform.Variant,
+			extra...,
+		)
+		sourceImage := fmt.Sprintf("%s@%s", m.Source, manifest.Digest)
+		destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
+		// create a new image object and append it into image list
+		image := image.NewImage(&image.ImageOptions{
+			Source:      sourceImage,
+			Destination: destImage,
+			Tag:         m.Tag,
+			Arch:        manifest.Platform.Architecture,
+			Variant:     manifest.Platform.Variant,
+			OS:          manifest.Platform.OS,
+			OsVersion:   manifest.Platform.OSVersion,
+			Digest:      string(manifest.Digest),
+			Directory:   m.Directory,
+
+			SourceMediaType: m.sourceMIMEType,
+			MID:             m.MID,
+		})
+		m.AppendImage(image)
+		images++
+	}
+
+	if images == 0 {
+		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
+			m.Source, m.ArchList)
+		return fmt.Errorf("initSourceImageListByOCIIndexV1: %w",
+			u.ErrNoAvailableImage)
+	}
+
+	return nil
+}
+
 func (m *Mirror) initImageListByV2() error {
 	var err error
 	m.sourceImageInfo, err = m.sourceSchema2.Inspect(
@@ -397,6 +469,51 @@ func (m *Mirror) initImageListByV2() error {
 		m.sourceImageInfo.Architecture,
 		m.sourceImageInfo.Variant)
 	sourceImage := fmt.Sprintf("%s:%s", m.Source, m.Tag)
+	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
+	// create a new image object and append it into image list
+	img := image.NewImage(&image.ImageOptions{
+		Source:          sourceImage,
+		Destination:     destImage,
+		Tag:             m.Tag,
+		Arch:            m.sourceImageInfo.Architecture,
+		Variant:         m.sourceImageInfo.Variant,
+		OS:              m.sourceImageInfo.Os,
+		Digest:          "sha256:" + u.Sha256Sum(m.sourceManifestStr),
+		Directory:       m.Directory,
+		SourceMediaType: m.sourceMIMEType,
+		MID:             m.MID,
+	})
+	m.AppendImage(img)
+
+	return nil
+}
+
+func (m *Mirror) initImageListByOCIManifestV1() error {
+	var err error
+	m.sourceImageInfo = &types.ImageInspectInfo{}
+	sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
+	o, err := registry.SkopeoInspect(sourceImage, "--raw", "--config")
+	if err != nil {
+		return fmt.Errorf("initImageListByV2: %w", err)
+	}
+	err = json.Unmarshal([]byte(o), m.sourceImageInfo)
+	if err != nil {
+		return fmt.Errorf("initImageListByV2: %w", err)
+	}
+
+	if !slices.Contains(m.ArchList, m.sourceImageInfo.Architecture) {
+		logrus.WithField("M_ID", m.MID).
+			Debugf("skip image %s arch %s",
+				m.Source, m.sourceImageInfo.Architecture)
+		return fmt.Errorf("initImageListByV2: %w", u.ErrNoAvailableImage)
+	}
+
+	copiedTag := image.CopiedTag(
+		m.Tag,
+		m.sourceImageInfo.Os,
+		m.sourceImageInfo.Architecture,
+		m.sourceImageInfo.Variant)
+	sourceImage = fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
