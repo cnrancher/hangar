@@ -94,9 +94,9 @@ func (cc *decompressCmd) run() error {
 
 	// decompress input tar.* tarball
 	ext := filepath.Ext(file)
-	// if parameter filename already have '.part*' extention
+	// if parameter filename already have '.part*' extension
 	if strings.Contains(ext, "part") {
-		logrus.Infof("file name %q contains 'part*' extention", file)
+		logrus.Infof("file name %q contains 'part*' extension", file)
 		file = strings.TrimRight(file, ext)
 		logrus.Infof("set decompress file name to %q", file)
 	}

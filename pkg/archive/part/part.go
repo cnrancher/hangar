@@ -82,10 +82,10 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 		start += num
 		c.readBytes += num
 		if err == nil {
-			// no error occured
+			// no error occurred
 			continue
 		} else if !errors.Is(err, io.EOF) {
-			// other error occured
+			// other error occurred
 			return start, fmt.Errorf("Read: %w", err)
 		}
 
@@ -96,7 +96,7 @@ func (c *PartHelper) Read(p []byte) (int, error) {
 			c.readEOF = true
 			return start, nil
 		} else if err != nil {
-			// other error occured
+			// other error occurred
 			return start, fmt.Errorf("Read: %w", err)
 		}
 	}

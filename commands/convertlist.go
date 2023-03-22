@@ -27,8 +27,8 @@ func newConvertListCmd() *convertListCmd {
 
 	cc.baseCmd.cmd = &cobra.Command{
 		Use:     "convert-list",
-		Short:   "Convert images",
-		Long:    `Convert images`,
+		Short:   "Convert image list from 'rancher-images.txt' to image list used by mirror command.",
+		Long:    `Convert image list from 'rancher-images.txt' to image list used by mirror command.`,
 		Example: `  hangar convert-list -i rancher-images.txt -o CONVERTED_MIRROR_LIST.txt`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, config.DefaultProvider)

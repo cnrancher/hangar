@@ -130,9 +130,9 @@ func (cc *loadCmd) decompressTarball() error {
 	if cc.compressFormat != archive.CompressFormatDirectory {
 		// decompress input tar.* tarball
 		ext := filepath.Ext(src)
-		// if parameter filename already have '.part*' extention
+		// if parameter filename already have '.part*' extension
 		if strings.Contains(ext, "part") {
-			logrus.Infof("file name %q contains 'part*' extention", src)
+			logrus.Infof("file name %q contains 'part*' extension", src)
 			src = strings.TrimRight(src, ext)
 			logrus.Infof("set load file name to %q", src)
 		}
