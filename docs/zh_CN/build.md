@@ -14,6 +14,9 @@ make help
 # 生成可执行文件于 `build` 文件夹中
 make build
 
+# 构建所有平台 & 架构的可执行文件于 `build` 文件夹中
+make build-all
+
 # 执行单元测试
 make test
 

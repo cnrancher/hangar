@@ -24,12 +24,13 @@ Usage: hangar COMMAND [OPTIONS]
 ## Run Mirror in CI
 
 The Mirror command can be run automatically in a CI Pipeline, and the source registry, target registry, and username and password can be specified by setting the following environment variables:
+
 - `SOURCE_USERNAME`: Source registry username
 - `SOURCE_PASSWORD`: Source registry password
-- `SOURCE_REGISTRY`: Source registry address
+- `SOURCE_REGISTRY`: Source registry URL
 - `DEST_USERNAME`: Destination registry username
 - `DEST_PASSWORD`: Destination registry password
-- `DEST_REGISTRY`: Destination registry address
+- `DEST_REGISTRY`: Destination registry URL
 
 ----
 

@@ -2,16 +2,20 @@
 
 ## Dependencies
 
-- Make sure `docker` and `make` are installed
-- OS: Linux / macOS
+- Install `docker` and `make`
+- Linux / macOS
 
 ## Build
+
 ```sh
 # Get help information
 make help
 
-# Generate executables in the `build` folder
+# Build binaries in the `build` folder
 make build
+
+# Build all platform & architecture binaries in the `build` folder
+make build-all
 
 # Execute unit tests
 make test

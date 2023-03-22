@@ -4,7 +4,7 @@
 
 ## Docker
 
-> FYI: [Use self-signed certificates](https://docs.docker.com/registry/insecure/#use-self-signed-certificates) (从步骤3开始)
+> FYI: [Use self-signed certificates](https://docs.docker.com/registry/insecure/#use-self-signed-certificates) (由步骤3开始)
 
 将 SSL 公钥拷贝至 `/etc/docker/certs.d/<registry-url>/ca.crt`。
 

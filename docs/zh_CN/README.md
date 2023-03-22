@@ -1,13 +1,26 @@
-# hangar usage (CN)
+# Hangar Usage (CN)
 
 > 本仓库 `main` 分支的使用文档会随着版本更新而不断修改，若需要查看之前已发布的版本的使用文档，请切换至之前已发布的版本对应的 Tag:
 > `https://github.com/cnrancher/hangar/blob/${TAG}/docs/zh_CN/README.md`
 
-```
-./hangar COMMAND OPTIONS
-```
+Hangar 是一个容器镜像拷贝以及生成 Rancher 离线安装时所需的镜像列表的工具，它支持下方 [Commands](#commands) 所介绍的命令，通过使用此工具，可简化离线环境安装 Rancher 时部署容器镜像到私有镜像仓库的步骤。
+
+## COMMANDS
+
+- [mirror](./mirror.md): 根据列表文件，将容器镜像拷贝至私有镜像仓库。
+- [save](./save.md): 根据列表文件，将容器镜像保存至本地文件（压缩包或未压缩的文件夹中）。
+- [load](./load.md): 将 [save](./save.md) 命令保存的镜像文件加载至私有仓库。
+- [convert-list](./convert-list.md): 将 `rancher-images.txt` 格式的镜像列表转换为 [mirror](./mirror.md) 命令所使用的镜像列表格式。
+- [mirror-validate](./mirror-validate.md): 对已 Mirror 的镜像校验。
+- [load-validate](./load-validate.md): 对已 Load 的镜像校验。
+- [sync](./sync.md): 将额外的镜像保存在 Save 命令创建的缓存文件夹中。
+- [compress](./compress.md): 压缩镜像的缓存文件夹。
+- [decompress](./decompress.md): 解压 Save/Compress 命令创建的镜像压缩文件。
+- [generate-list](./generate-list.md): 根据 KDM 和 Chart 仓库生成一份镜像列表文件。
 
 ## 镜像仓库种类
+
+Hangar 的 Mirror / Save / Load 相关命令支持的镜像仓库种类：
 
 - Docker Hub
 - Harbor V2
@@ -16,47 +29,20 @@
 
 ## 运行环境
 
-本工具支持在容器内运行，有关 `hangar` Docker 镜像的使用方式请参考 [docker-images.md](./docker-images.md)。
+推荐在容器中运行 Hangar 工具：`cnrancher/hangar:latest`；
 
-若需要在本地运行本工具，请按照以下内容安装 `skopeo`、`docker` 和 `docker-buildx`。
+有关 `hangar` 的 Docker 镜像的使用方式请参考 [docker-images 页面](./docker-images.md)。
 
-1. Linux 或 macOS 系统，架构为 amd64 或 arm64
-1. 确保 [skopeo](https://github.com/containers/skopeo/blob/main/install.md) 已安装
+----
 
-    > skopeo 版本需大于等于 `0.1.40`
+若需要在系统中安装/运行此工具，请按照此部分安装 `skopeo`、`docker` 和 `docker-buildx` 第三方依赖：
 
-    openEuler:
+1. Hangar 支持运行的系统为 Linux 或 macOS，架构为 amd64 或 arm64。
+1. 安装 [skopeo](https://github.com/containers/skopeo/blob/main/install.md)。
+1. 安装 `docker` 和 `docker-buildx` 插件。
+1. 环境变量（可选）：
 
-    ```sh
-    sudo yum install skopeo
-    ```
-
-    Ubuntu 20.04 可下载已编译的可执行文件：
-    - [skopeo-1.9.3-amd64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/amd64/1.9.3/skopeo)
-    - [skopeo-1.9.3-arm64](https://starry-public-files.s3.ap-northeast-1.amazonaws.com/skopeo/arm64/1.9.3/skopeo)
-
-    ``` sh
-    # Ubuntu 20.10 and newer
-    sudo apt-get -y update
-    sudo apt-get -y install skopeo
-    ```
-
-    macOS:
-
-    ```sh
-    brew install skopeo
-    ```
-
-1. 确保 `docker` 和 `docker-buildx` 插件已安装。
-
-    （`docker` 和 `docker-buildx` 可使用最新版本）
-
-    - openEuler 22.03-LTS 可使用 [此脚本](https://github.com/cnrancher/euler-packer/blob/main/scripts/others/install-docker.sh) 一键安装 `docker` 和 `docker-buildx`。
-    - 其他系统请参照 [Docker 官网](https://docs.docker.com/get-docker/) 和 [Docker Buildx](https://docs.docker.com/build/install-buildx/) 页面安装。
-
-1. 设定环境变量（可选）：
-
-    以下环境变量在执行此工具时可设定源/目标 Registry 的用户名、密码和 URL，用于在 CI 场景中自动 Mirror 镜像。
+    在执行 Mirror / Save / Load 命令时，Hangar 支持读取系统中以下的环境变量，适用于在 CI 中自动执行镜像 Mirror / Save 等操作。
     - `SOURCE_USERNAME`: 源 Registry 用户名
     - `SOURCE_PASSWORD`: 源 Registry 密码
     - `SOURCE_REGISTRY`: 源 Registry 地址
@@ -64,37 +50,21 @@
     - `DEST_PASSWORD`: 目标 Registry 密码
     - `DEST_REGISTRY`: 目标 Registry 地址
 
-    除此之外本工具会在 Mirror / Load 时从镜像列表中获取目标镜像的 Registry 并对其执行 `docker login`。
+    以 `SOURCE_` 开头的环境变量表示待 Mirror / Save 的源镜像的 Registry 的用户名、密码、URL；<br>
+    以 `DEST_` 开头的环境变量表示被 Mirror / Load 的目标镜像的 Registry 的用户名、密码、URL。
 
-    若待 Mirror / Save 的镜像为私有镜像，可通过设定 `SOURCE_*` 环境变量，对源镜像的 Registry 执行 `docker login`。
+    > Hangar 除了通过环境变量获取 Registry 的用户名和密码外，还会尝试从 `~/.docker/config.json` 文件获取 Registry 的用户名和密码，
 
-    本工具除了通过环境变量获取 Registry 的用户名和密码外，还会尝试从 `~/.docker/config.json` 文件中获取 Registry 的用户名和密码，
-    若未获取到用户名密码，那么本工具会提示手动输入用户名和密码。
+    若未获取到用户名密码，那么 Hangar 会提示手动输入用户名和密码。
 
 1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
-
-## COMMANDS
-
-- [mirror](./mirror.md): 根据列表文件，将镜像拷贝至私有镜像仓库。
-- [save](./save.md): 根据列表文件，将镜像下载至本地，生成压缩包。
-- [load](./load.md): （离线环境）读取压缩包，将压缩包内镜像上传至私有仓库。
-- [convert-list](./convert-list.md): 转换镜像列表格式。
-- [mirror-validate](./mirror-validate.md): 对已 Mirror 的镜像校验。
-- [load-validate](./load-validate.md): 对已 Load 的镜像校验。
-- [generate-list](./generate-list.md): 根据 KDM 和 Chart 仓库生成一份镜像列表文件。
 
 ## 常见问题
 
 常见报错信息及解释：[常见问题](./questions.md)
 
-## 原理
-
-本工具使用 `skopeo` 命令拷贝镜像至目标镜像服务器或本地文件夹中，并使用 `docker-buildx` 为目标镜像服务器创建 Manifest 列表。
-
-本工具仅需要 `skopeo`，`docker` 客户端以及 `docker-buildx` 插件，不需要 Docker Daemon。
-
 ## Build
 
 > 可在本仓库的 [Release 页面](https://github.com/cnrancher/hangar/releases) 获取已构建的稳定版本。
 
-构建可执行文件：[build.md](./build.md)
+构建可执行文件请参考 [build.md](./build.md)

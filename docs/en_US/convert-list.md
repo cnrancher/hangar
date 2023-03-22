@@ -1,24 +1,13 @@
 # convert-list
 
-```console
-$ hangar convert-list -h
-Usage of convert-list:
-  -d string
-        specify the dest registry
-  -i string
-        input image list
-  -o string
-        output image list
-  -s string
-        specify the source registry
-```
+The `convert-list` command converts the format of image list file `rancher-images.txt` to the list file used by the [Mirror](./mirror.md) command.
 
 ## Quick Start
 
-Convert the list format from `rancher-images.txt` into the format used for the `mirror` sub-command, and set the destination registry to `custom.private.io`
+Convert the list format from `rancher-images.txt` into the format used for the [mirror](./mirror.md) command, and set the destination registry to `custom.private.io`:
 
 ```sh
-./hangar convert-list -i rancher-images.txt -d custom.private.io
+hangar convert-list -i rancher-images.txt -d custom.private.io
 ```
 
 This command will convert the images in `rancher-images.txt` from format:
@@ -37,18 +26,22 @@ rancher/rancher custom.private.io/rancher/rancher v2.6.9
 nginx custom.private.io/nginx latest
 ```
 
-## Examples
+## Usages
 
-Command line parameters:
-```sh
-# Use -i (input) and -d (destination) parameters,
-# Specify the input image list file name and the registry of the target image
-./hangar convert-list -i list.txt -d private.registry.io
+```txt
+Usage:
+  hangar convert-list [flags]
 
-# Use the -s (source) parameter to specify the source registry of the converted image list
-./hangar convert-list -i list.txt -s source.io -d dest.io
+Examples:
+  hangar convert-list -i rancher-images.txt -o CONVERTED_MIRROR_LIST.txt
 
-# Use the -o (output) parameter to specify the file name of the output mirror list
-# By default, the .converted suffix is added to the input file name
-./hangar convert-list -i list.txt -o converted.txt
+Flags:
+  -d, --destination string   specify the destination registry
+  -h, --help                 help for convert-list
+  -i, --input string         input image list (required)
+  -o, --output string        output image list (default "[INPUT_FILE].converted")
+  -s, --source string        specify the source registry
+
+Global Flags:
+      --debug   enable debug output
 ```
