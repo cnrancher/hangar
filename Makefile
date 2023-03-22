@@ -1,4 +1,4 @@
-TARGERS := build test ci
+TARGERS := build test ci build-all
 .PHONY: $(TARGERS) docker manifest clean help
 
 .dapper:

@@ -1,7 +1,7 @@
 FROM registry.suse.com/bci/bci-base:latest
 
 RUN zypper up -y && \
-    zypper in -y -f libdevmapper1_03 && \
+    zypper in -y -f libdevmapper1_03 vim && \
     zypper clean
 
 # Add docker cli
