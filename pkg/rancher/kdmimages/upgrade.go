@@ -144,12 +144,13 @@ func (e *UpgradeImages) getExternalList(release string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		windowsImages, err := getImageListFromURL(
-			fmt.Sprintf(RKE2ImageWindows, release))
-		if err != nil {
-			return nil, err
-		}
-		return append(linuxImages, windowsImages...), nil
+		// windowsImages, err := getImageListFromURL(
+		// 	fmt.Sprintf(RKE2ImageWindows, release))
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// return append(linuxImages, windowsImages...), nil
+		return linuxImages, nil
 	case K3S:
 		return getImageListFromURL(fmt.Sprintf(K3SImageURL, release))
 	default:
