@@ -149,8 +149,9 @@ var (
 
 	// map[version]url
 	KDM_GC_URLS = map[string]string{
-		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.7/data.json",
-		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json",
+		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.7/data.json",
+		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.6/data.json",
+		// The 2.5 KDM data is same with upstream
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.5/data.json",
 	}
 
@@ -163,8 +164,8 @@ var (
 
 	// map[version]url
 	KDM_GC_URLS_DEV = map[string]string{
-		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.7/data.json",
-		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.6/data.json",
+		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.7/data.json",
+		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.6/data.json",
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.5/data.json",
 	}
 )
