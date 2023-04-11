@@ -60,7 +60,7 @@ func newDecompressCmd() *decompressCmd {
 func (cc *decompressCmd) setupFlags() error {
 	configData := config.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("Config: %v", string(b))
+	logrus.Debugf("config: %v", string(b))
 
 	if config.GetString("file") == "" {
 		return fmt.Errorf("use '-f' to specify the saved image cache folder")

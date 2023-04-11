@@ -125,7 +125,7 @@ func Compress(src, dst string, format CompressFormat, size int) error {
 			if err != nil {
 				return fmt.Errorf("os.Open: %w", err)
 			}
-			logrus.Debugf("Compress: %s", file)
+			logrus.Debugf("compress: %s", file)
 			if _, err := io.Copy(tw, data); err != nil {
 				return fmt.Errorf("io.Copy: %w", err)
 			}
@@ -199,7 +199,7 @@ func Decompress(src string, dst string, format CompressFormat) error {
 			if err != nil {
 				return fmt.Errorf("Decompress: os.OpenFile: %w", err)
 			}
-			logrus.Debugf("Decompress: %s", target)
+			logrus.Debugf("decompress: %s", target)
 			if _, err := io.Copy(fileToWrite, tr); err != nil {
 				return fmt.Errorf("Decompress: io.Copy: %w", err)
 			}

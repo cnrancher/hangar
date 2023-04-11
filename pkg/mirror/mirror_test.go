@@ -121,6 +121,11 @@ func Test_S2V2(t *testing.T) {
 	if err := m.initImageListByV2(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
+	srcManifest, _ := testFs.ReadFile(TestS2V2FileName)
+	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
+	for i := range m.images {
+		m.images[i].Digest = sourceSum
+	}
 	// reset the override command function
 	r.RunCommandFunc = nil
 
@@ -171,8 +176,6 @@ func Test_S2V2(t *testing.T) {
 		return
 	}
 	// output should be the sha256sum of the source manifest
-	srcManifest, _ := testFs.ReadFile(TestS2V2FileName)
-	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
 	if srcSpec[0].Digest != sourceSum {
 		t.Errorf("SourceDigests should be %q, but got %q",
 			sourceSum, srcSpec[0].Digest)
@@ -393,7 +396,8 @@ func Test_S1V2(t *testing.T) {
 	// fake skopeo copy and skopeo inspect function
 	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
 		if o != nil {
-			o.Write([]byte("FAKE_OUTPUT"))
+			digest := "sha256:" + u.Sha256Sum("FAKE_OUTPUT")
+			o.Write([]byte(digest))
 		}
 		return nil
 	}
@@ -548,7 +552,6 @@ func Test_OCI_Index(t *testing.T) {
 		t.Fatal("dest MIME type:", m.destMIMEType)
 		// ignore other MIME type
 	}
-	m.destManifestStr = string(out)
 
 	// destination mediaType is Docker manifest.list.v2, should have multi-digests
 	dstSpec := m.DestinationManifestSpec()
@@ -657,7 +660,10 @@ func Test_OCI_Manifest(t *testing.T) {
 		return nil
 	}
 	r.RunCommandFunc = fake
+	srcManifest, _ := testFs.ReadFile(TestOCIManifestFileName)
+	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
 	for _, img := range m.images {
+		img.Digest = sourceSum
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
 			return
@@ -680,8 +686,6 @@ func Test_OCI_Manifest(t *testing.T) {
 		return
 	}
 	// output should be the sha256sum of the source manifest
-	srcManifest, _ := testFs.ReadFile(TestOCIManifestFileName)
-	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
 	if srcSpec[0].Digest != sourceSum {
 		t.Errorf("SourceDigests should be %q, but got %q",
 			sourceSum, srcSpec[0].Digest)

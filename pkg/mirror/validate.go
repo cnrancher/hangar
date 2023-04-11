@@ -191,7 +191,6 @@ func (m *Mirror) validateLoadImages() error {
 		return fmt.Errorf("[%s:%s]: destination manifest MIME type unknow: %v",
 			m.Destination, m.Tag, m.destMIMEType)
 	}
-	m.destManifestStr = out
 
 	for i := range m.images {
 		m.images[i].Copied = true

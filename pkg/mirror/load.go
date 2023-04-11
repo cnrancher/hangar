@@ -37,7 +37,7 @@ func (m *Mirror) StartLoad() error {
 		}
 	} else {
 		logrus.WithField("M_ID", m.MID).
-			Info("Dest manifest list already exists, no need to recreate")
+			Info("dest manifest list already exists, no need to recreate")
 	}
 
 	// logrus.WithField("M_ID", m.MID).

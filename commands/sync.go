@@ -106,7 +106,7 @@ After syncing images into the decompressed folder, you can compress the folder w
 func (cc *syncCmd) setupFlags() error {
 	configData := config.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("Config: %v", string(b))
+	logrus.Debugf("config: %v", string(b))
 
 	// command line parameter is prior than env variable
 	if config.GetString("source") == "" && utils.EnvSourceRegistry != "" {
@@ -142,8 +142,8 @@ func (cc *syncCmd) prepareSavedTemplate() error {
 		sVersion = "v" + sVersion
 	}
 	if semver.Compare(sVersion, mirror.SavedTemplateVersion) != 0 {
-		logrus.Warnf("Template version in saved file is %q", sVersion)
-		logrus.Warnf("The template version supported of this tool is %q",
+		logrus.Warnf("template version in saved file is %q", sVersion)
+		logrus.Warnf("the template version supported of this tool is %q",
 			mirror.SavedTemplateVersion)
 		return fmt.Errorf(
 			"this tool does not support template version %q",

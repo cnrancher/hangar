@@ -84,7 +84,7 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 func (cc *generateListCmd) setupFlags() error {
 	configData := config.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("Config: %v", string(b))
+	logrus.Debugf("config: %v", string(b))
 
 	if config.GetString("rancher") == "" {
 		return fmt.Errorf("rancher version not specified, use '--rancher' to specify the rancher version")
@@ -95,7 +95,7 @@ func (cc *generateListCmd) setupFlags() error {
 		cc.rancherVersion = "v" + cc.rancherVersion
 	}
 	if strings.Contains(cc.rancherVersion, "-ent") {
-		logrus.Infof("Set to RPM GC")
+		logrus.Infof("set to RPM GC")
 		cc.isRPMGC = true
 		v := strings.Split(cc.rancherVersion, "-ent")
 		cc.rancherVersion = v[0]

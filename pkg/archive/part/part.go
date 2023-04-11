@@ -154,9 +154,9 @@ func (c *PartHelper) initRead() error {
 			if err != nil {
 				return fmt.Errorf("initRead: %w", err)
 			}
-			logrus.Infof("Read %q", c.Filename)
+			logrus.Infof("read %q", c.Filename)
 		} else {
-			logrus.Infof("Read %q", c.partname)
+			logrus.Infof("read %q", c.partname)
 		}
 	}
 
@@ -232,7 +232,7 @@ func (c *PartHelper) openNextPart() error {
 	c.part++
 	c.partname = partname
 	c.readBytes = 0
-	logrus.Infof("Read %q", partname)
+	logrus.Infof("read %q", partname)
 
 	return nil
 }

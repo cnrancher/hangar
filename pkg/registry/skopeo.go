@@ -29,7 +29,7 @@ func SkopeoInspect(img string, args ...string) (string, error) {
 		"--tls-verify=false",
 	}
 	param = append(param, args...)
-	logrus.Debugf("Running skopeo %v", param)
+	logrus.Debugf("running skopeo %v", param)
 	var out bytes.Buffer
 	if err := execCommandFunc(SkopeoPath, nil, &out, param...); err != nil {
 		return "", fmt.Errorf("SkopeoInspect %s:\n%w", img, err)
@@ -58,7 +58,7 @@ func SkopeoCopy(src, dst string, args ...string) error {
 		"--dest-tls-verify=false",
 	}
 	params = append(params, args...)
-	logrus.Debugf("Running skopeo %v", params)
+	logrus.Debugf("running skopeo %v", params)
 	var out io.Writer = nil
 	if config.GetInt("jobs") == 1 {
 		// single thread (worker) mode

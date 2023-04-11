@@ -40,7 +40,7 @@ func Test_DefaultRunCommandFunc(t *testing.T) {
 	}
 }
 
-func Test_Sha256sum(t *testing.T) {
+func Test_Sha256Sum(t *testing.T) {
 	s := Sha256Sum("123")
 	if s != "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3" {
 		t.Errorf("sha256 test failed")

@@ -3,6 +3,7 @@ package mirror
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/image"
 	"github.com/cnrancher/hangar/pkg/registry"
@@ -21,9 +22,6 @@ type Mirror struct {
 	Directory   string
 	ArchList    []string
 	RepoType    int
-
-	sourceManifestStr string // string data for source manifest
-	destManifestStr   string // string data for dest manifest
 
 	sourceMIMEType    string
 	sourceSchema1     *manifest.Schema1
@@ -272,7 +270,6 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	if err != nil {
 		return fmt.Errorf("inspect source image failed: %w", err)
 	}
-	m.sourceManifestStr = out
 
 	m.sourceMIMEType = manifest.GuessMIMEType([]byte(out))
 	logrus.WithField("M_ID", m.MID).
@@ -333,7 +330,6 @@ func (m *Mirror) initSourceDestinationManifest() error {
 	default:
 		// ignore other MIME type
 	}
-	m.destManifestStr = out
 
 	return nil
 }
@@ -470,6 +466,11 @@ func (m *Mirror) initImageListByV2() error {
 		m.sourceImageInfo.Variant)
 	sourceImage := fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
+	digest, err := registry.SkopeoInspect(
+		"docker://"+sourceImage, "--format", "{{ .Digest }}")
+	if err != nil {
+		return fmt.Errorf("initImageListByV2: %w", err)
+	}
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
 		Source:          sourceImage,
@@ -478,7 +479,7 @@ func (m *Mirror) initImageListByV2() error {
 		Arch:            m.sourceImageInfo.Architecture,
 		Variant:         m.sourceImageInfo.Variant,
 		OS:              m.sourceImageInfo.Os,
-		Digest:          "sha256:" + u.Sha256Sum(m.sourceManifestStr),
+		Digest:          strings.TrimSpace(digest),
 		Directory:       m.Directory,
 		SourceMediaType: m.sourceMIMEType,
 		MID:             m.MID,
@@ -494,18 +495,19 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 	sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
 	o, err := registry.SkopeoInspect(sourceImage, "--raw", "--config")
 	if err != nil {
-		return fmt.Errorf("initImageListByV2: %w", err)
+		return fmt.Errorf("initImageListByOCIManifestV1: %w", err)
 	}
 	err = json.Unmarshal([]byte(o), m.sourceImageInfo)
 	if err != nil {
-		return fmt.Errorf("initImageListByV2: %w", err)
+		return fmt.Errorf("initImageListByOCIManifestV1: %w", err)
 	}
 
 	if !slices.Contains(m.ArchList, m.sourceImageInfo.Architecture) {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
-		return fmt.Errorf("initImageListByV2: %w", u.ErrNoAvailableImage)
+		return fmt.Errorf("initImageListByOCIManifestV1: %w",
+			u.ErrNoAvailableImage)
 	}
 
 	copiedTag := image.CopiedTag(
@@ -515,6 +517,11 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 		m.sourceImageInfo.Variant)
 	sourceImage = fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
+	digest, err := registry.SkopeoInspect(
+		"docker://"+sourceImage, "--format", "{{ .Digest }}")
+	if err != nil {
+		return fmt.Errorf("initImageListByOCIManifestV1: %w", err)
+	}
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
 		Source:          sourceImage,
@@ -523,7 +530,7 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 		Arch:            m.sourceImageInfo.Architecture,
 		Variant:         m.sourceImageInfo.Variant,
 		OS:              m.sourceImageInfo.Os,
-		Digest:          "sha256:" + u.Sha256Sum(m.sourceManifestStr),
+		Digest:          strings.TrimSpace(digest),
 		Directory:       m.Directory,
 		SourceMediaType: m.sourceMIMEType,
 		MID:             m.MID,
@@ -555,13 +562,17 @@ func (m *Mirror) initImageListByV1() error {
 	}
 
 	// Calculate sha256sum of source manifest
-	digest := "sha256:" + u.Sha256Sum(m.sourceManifestStr)
 	copiedTag := image.CopiedTag(
 		m.Tag, m.sourceImageInfo.Os,
 		m.sourceImageInfo.Architecture,
 		m.sourceImageInfo.Variant)
 	sourceImage := fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
+	digest, err := registry.SkopeoInspect(
+		"docker://"+sourceImage, "--format", "{{ .Digest }}")
+	if err != nil {
+		return fmt.Errorf("initImageListByV1: %w", err)
+	}
 	// create a new image object and append it into image list
 	img := image.NewImage(&image.ImageOptions{
 		Source:          sourceImage,
@@ -570,7 +581,7 @@ func (m *Mirror) initImageListByV1() error {
 		Arch:            m.sourceImageInfo.Architecture,
 		Variant:         m.sourceImageInfo.Variant,
 		OS:              m.sourceImageInfo.Os,
-		Digest:          digest,
+		Digest:          strings.TrimSpace(digest),
 		Directory:       m.Directory,
 		SourceMediaType: m.sourceMIMEType,
 		MID:             m.MID,

@@ -126,7 +126,7 @@ func (cc *convertListCmd) run() error {
 	output := config.GetString("output")
 	utils.DeleteIfExist(output)
 	utils.SaveSlice(output, convertedLines)
-	logrus.Infof("Converted %q to %q", input, output)
+	logrus.Infof("converted %q to %q", input, output)
 
 	return nil
 }

@@ -88,7 +88,7 @@ func newLoadCmd() *loadCmd {
 func (cc *loadCmd) setupFlags() error {
 	configData := config.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("Config: %v", string(b))
+	logrus.Debugf("config: %v", string(b))
 
 	if config.GetString("source") == "" {
 		return fmt.Errorf("source file not specified, use '-s' to specify " +
@@ -189,7 +189,7 @@ func (cc *loadCmd) createHarborProject() {
 			user, passwd, _ := registry.GetDockerPassword(dstReg)
 			err := registry.CreateHarborProject(dstProj, url, user, passwd)
 			if err != nil {
-				logrus.Errorf("Failed to create harbor project %q: %q",
+				logrus.Errorf("failed to create harbor project %q: %q",
 					dstProj, err)
 			}
 			dstProjMap[dstProj] = true

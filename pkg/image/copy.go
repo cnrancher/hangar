@@ -2,6 +2,7 @@ package image
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/registry"
 	u "github.com/cnrancher/hangar/pkg/utils"
@@ -26,12 +27,12 @@ func (img *Image) Copy() error {
 		img.SourceMediaType == manifest.DockerV2Schema1SignedMediaType {
 		// get digests from copied dest image
 		destImage := fmt.Sprintf("docker://%s", img.Destination)
-		// `skopeo inspect docker://docker.io/${repository}:${version}-${arch}`
-		out, err := registry.SkopeoInspect(destImage, "--raw")
+		// skopeo inspect docker://docker.io/${repository}:${version}-${arch}
+		out, err := registry.SkopeoInspect(destImage, "--format", "{{ .Digest }}")
 		if err != nil {
 			return fmt.Errorf("Copy: %w", err)
 		}
-		Digest := "sha256:" + u.Sha256Sum(out)
+		Digest := strings.TrimSpace(out)
 		img.Digest = Digest
 	}
 
@@ -40,47 +41,45 @@ func (img *Image) Copy() error {
 }
 
 func (img *Image) copyIfChanged() error {
-	var (
-		srcDockerImage string
-		dstDockerImage string
-	)
-
 	// docker://registry/repository:${ORIGINAL_TAG}-${ARCH}${VARIANT}
-	srcDockerImage = fmt.Sprintf("docker://%s", img.Source)
-	dstDockerImage = fmt.Sprintf("docker://%s", img.Destination)
+	srcDockerImage := fmt.Sprintf("docker://%s", img.Source)
+	dstDockerImage := fmt.Sprintf("docker://%s", img.Destination)
 
-	destManifest, err := registry.SkopeoInspect(dstDockerImage, "--raw")
-	if err != nil {
-		// if destination image not found, set destManifest to empty string
-		destManifest = ""
+	if img.SourceMediaType == manifest.DockerV2Schema1MediaType ||
+		img.SourceMediaType == manifest.DockerV2Schema1SignedMediaType {
+		return registry.SkopeoCopy(
+			srcDockerImage, dstDockerImage, "--format=v2s2")
 	}
-	var destDigest string = "NEW_IMAGE"
-	if destManifest != "" {
-		destDigest = "sha256:" + u.Sha256Sum(destManifest)
+
+	destDigest, err := registry.SkopeoInspect(
+		dstDockerImage, "--format", "{{ .Digest }}")
+	if err != nil {
+		destDigest = "NEW_IMAGE"
 	}
 	// compare the source manifest with the dest manifest
 	if img.Digest == destDigest {
 		logrus.WithFields(logrus.Fields{
 			"M_ID":   img.MID,
 			"IMG_ID": img.IID}).
-			Infof("Unchanged: [%s] == [%s]", img.Source, img.Destination)
+			Infof("unchanged: [%s] == [%s]", img.Source, img.Destination)
 		logrus.WithFields(logrus.Fields{
 			"M_ID":   img.MID,
 			"IMG_ID": img.IID}).
-			Debugf("Source Digest: %s", img.Digest)
+			Debugf("source digest: %s", img.Digest)
 		logrus.WithFields(logrus.Fields{
 			"M_ID":   img.MID,
 			"IMG_ID": img.IID}).
-			Debugf("destin Digest: %s", destDigest)
+			Debugf("destin digest: %s", destDigest)
 		return nil
 	}
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
-		Infof("Digest changed: [%s] => [%s]", img.Digest, destDigest)
+		Infof("digest changed: [%s] => [%s]", img.Digest, destDigest)
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
 		Infof("Copying: [%s] => [%s]", img.Source, img.Destination)
+
 	return registry.SkopeoCopy(srcDockerImage, dstDockerImage)
 }

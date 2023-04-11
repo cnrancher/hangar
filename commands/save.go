@@ -106,7 +106,7 @@ func newSaveCmd() *saveCmd {
 func (cc *saveCmd) setupFlags() error {
 	configData := config.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("Config: %v", string(b))
+	logrus.Debugf("config: %v", string(b))
 
 	// command line parameter is prior than env variable
 	if config.GetString("source") == "" && utils.EnvSourceRegistry != "" {
