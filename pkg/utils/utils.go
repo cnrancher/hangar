@@ -260,13 +260,15 @@ func ConstructRegistry(image, registryOverride string) string {
 //
 //	nginx --> nginx (nothing changed)
 //	reg.io/nginx --> reg.io/nginx (nothing changed)
+//	user/nginx --> nginx (remove project name)
 //	reg.io/user/nginx --> reg.io/nginx (remove project name)
 //
 // If `project` set, example:
 //
 //	nginx --> ${project}/nginx (add project name)
-//	reg.io/nginx --> reg.io/${project}/nginx (same as above)
-//	reg.io/user/nginx --> reg.io/${project}/nginx (same as above)
+//	user/nginx --> ${project}/nginx (replace project name)
+//	reg.io/nginx --> reg.io/${project}/nginx
+//	reg.io/user/nginx --> reg.io/${project}/nginx
 func ReplaceProjectName(image, project string) string {
 	spec := strings.Split(image, "/")
 	var s = make([]string, 0)
@@ -287,7 +289,9 @@ func ReplaceProjectName(image, project string) string {
 			}
 		} else {
 			if project != "" {
-				s = append([]string{project}, s...)
+				s = append([]string{project}, s[1])
+			} else {
+				s = []string{s[1]}
 			}
 		}
 	case 3:
@@ -357,6 +361,40 @@ func GetRegistryName(image string) string {
 		}
 	case 3:
 		return s[0]
+	}
+	return ""
+}
+
+// GetRegistryName gets the image name, example:
+//
+//	nginx:latest -> nginx
+//	reg.io/nginx:latest -> nginx
+//	library/nginx:latest -> nginx
+//	reg.io/library/nginx -> nginx
+func GetImageName(image string) string {
+	spec := strings.Split(image, "/")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
+	}
+	switch len(s) {
+	case 1:
+		if strings.Contains(s[0], ":") {
+			return strings.Split(s[0], ":")[0]
+		}
+		return s[0]
+	case 2:
+		if strings.Contains(s[1], ":") {
+			return strings.Split(s[1], ":")[0]
+		}
+		return s[1]
+	case 3:
+		if strings.Contains(s[2], ":") {
+			return strings.Split(s[2], ":")[0]
+		}
+		return s[2]
 	}
 	return ""
 }

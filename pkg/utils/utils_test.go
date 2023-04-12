@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -155,25 +156,14 @@ func Test_ConstructRegistry(t *testing.T) {
 }
 
 func Test_ReplaceProjectName(t *testing.T) {
-	var s string
-	if s = ReplaceProjectName("nginx", ""); s != "nginx" {
-		t.Error("ReplaceProjectName 1 failed")
-	}
-	if s = ReplaceProjectName("docker.io/nginx", ""); s != "docker.io/nginx" {
-		t.Error("ReplaceProjectName 2 failed")
-	}
-	if s = ReplaceProjectName("docker.io/library/nginx", ""); s != "docker.io/nginx" {
-		t.Error("ReplaceProjectName 3 failed")
-	}
-	if s = ReplaceProjectName("nginx", "library"); s != "library/nginx" {
-		t.Error("ReplaceProjectName 4 failed")
-	}
-	if s = ReplaceProjectName("docker.io/nginx", "library"); s != "docker.io/library/nginx" {
-		t.Error("ReplaceProjectName 5 failed")
-	}
-	if s = ReplaceProjectName("docker.io/name/nginx", "library"); s != "docker.io/library/nginx" {
-		t.Error("ReplaceProjectName 6 failed")
-	}
+	assert.Equal(t, ReplaceProjectName("nginx", ""), "nginx")
+	assert.Equal(t, ReplaceProjectName("library/nginx", ""), "nginx")
+	assert.Equal(t, ReplaceProjectName("docker.io/nginx", ""), "docker.io/nginx")
+	assert.Equal(t, ReplaceProjectName("docker.io/library/nginx", ""), "docker.io/nginx")
+	assert.Equal(t, ReplaceProjectName("nginx", "library"), "library/nginx")
+	assert.Equal(t, ReplaceProjectName("library/nginx", "another_library"), "another_library/nginx")
+	assert.Equal(t, ReplaceProjectName("docker.io/nginx", "library"), "docker.io/library/nginx")
+	assert.Equal(t, ReplaceProjectName("docker.io/name/nginx", "library"), "docker.io/library/nginx")
 }
 
 // ReadUsernamePasswd should test manually
@@ -233,4 +223,29 @@ func Test_SemverMajorMinorEqual(t *testing.T) {
 	if res := SemverMajorMinorEqual("1.0", "2.0"); res {
 		t.Error("failed:", res)
 	}
+}
+
+func Test_GetProjectName(t *testing.T) {
+	assert.Equal(t, GetProjectName("nginx"), "")
+	assert.Equal(t, GetProjectName("docker.io/nginx"), "")
+	assert.Equal(t, GetProjectName("library/nginx"), "library")
+	assert.Equal(t, GetProjectName("docker.io/library/nginx"), "library")
+}
+
+func Test_GetRegistryName(t *testing.T) {
+	assert.Equal(t, GetRegistryName("nginx"), "docker.io")
+	assert.Equal(t, GetRegistryName("reg.io/nginx"), "reg.io")
+	assert.Equal(t, GetRegistryName("library/nginx"), "docker.io")
+	assert.Equal(t, GetRegistryName("reg.io/library/nginx"), "reg.io")
+}
+
+func Test_GetImageName(t *testing.T) {
+	assert.Equal(t, GetImageName("nginx"), "nginx")
+	assert.Equal(t, GetImageName("nginx:latest"), "nginx")
+	assert.Equal(t, GetImageName("library/nginx"), "nginx")
+	assert.Equal(t, GetImageName("library/nginx:latest"), "nginx")
+	assert.Equal(t, GetImageName("docker.io/nginx"), "nginx")
+	assert.Equal(t, GetImageName("docker.io/nginx:latest"), "nginx")
+	assert.Equal(t, GetImageName("docker.io/library/nginx"), "nginx")
+	assert.Equal(t, GetImageName("docker.io/library/nginx:latest"), "nginx")
 }

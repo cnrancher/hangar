@@ -230,10 +230,32 @@ func (cc *generateListCmd) finish() error {
 	var imagesLinuxList = make([]string, 0, len(imagesLinuxSet))
 	var imagesWindowsList = make([]string, 0, len(imagesWindowsSet))
 	for img := range imagesLinuxSet {
+		res, err := utils.SemverCompare(cc.rancherVersion, "v2.7.2")
+		if cc.isRPMGC && err == nil && res >= 0 {
+			if utils.GetImageName(img) == "rancher-webhook" &&
+				utils.GetProjectName(img) == "rancher" {
+				oldImg := img
+				img = utils.ReplaceProjectName(img, "cnrancher")
+				logrus.Infof("Replaced %q to %q", oldImg, img)
+			}
+		} else if err != nil {
+			logrus.Error(err)
+		}
 		imagesLinuxList = append(imagesLinuxList, img)
 		imagesAllSet[img] = true
 	}
 	for img := range imagesWindowsSet {
+		res, err := utils.SemverCompare(cc.rancherVersion, "v2.7.2")
+		if cc.isRPMGC && err == nil && res >= 0 {
+			if utils.GetImageName(img) == "rancher-webhook" &&
+				utils.GetProjectName(img) == "rancher" {
+				oldImg := img
+				img = utils.ReplaceProjectName(img, "cnrancher")
+				logrus.Infof("Replaced %q to %q", oldImg, img)
+			}
+		} else if err != nil {
+			logrus.Error(err)
+		}
 		imagesWindowsList = append(imagesWindowsList, img)
 		imagesAllSet[img] = true
 	}
