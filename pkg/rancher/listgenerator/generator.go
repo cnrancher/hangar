@@ -184,12 +184,12 @@ func (g *Generator) generateFromKDMURL() error {
 		return nil
 	}
 	logrus.Infof("Get KDM data from URL: %q", g.KDMURL)
-	b, err := getHttpData(g.KDMURL, time.Second*10)
+	b, err := getHttpData(g.KDMURL, time.Second*30)
 	if err != nil {
 		// re-try get data from KDM url
 		logrus.Warn(err)
-		logrus.Warnf("failed to get KDM data, trying...")
-		b, err = getHttpData(g.KDMURL, time.Second*10)
+		logrus.Warnf("failed to get KDM data, retrying...")
+		b, err = getHttpData(g.KDMURL, time.Second*30)
 		if err != nil {
 			return fmt.Errorf("generateFromKDMURL: %w", err)
 		}

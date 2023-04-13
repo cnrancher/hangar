@@ -212,7 +212,7 @@ func (cc *syncCmd) run() error {
 			Source:      src,
 			Destination: src,
 			Tag:         v.tag,
-			Directory:   utils.CacheImageDirectory,
+			Directory:   config.GetString("destination"),
 			ArchList:    strings.Split(config.GetString("arch"), ","),
 			Line:        v.line,
 			Mode:        mirror.MODE_SAVE,
