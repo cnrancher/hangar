@@ -26,8 +26,8 @@ func newDecompressCmd() *decompressCmd {
 	cc.baseCmd.cmd = &cobra.Command{
 		Use:     "decompress",
 		Short:   "Decompress the tarball",
-		Long:    ``,
-		Example: ``,
+		Long:    `Decompress the tarball`,
+		Example: `  hangar decompress -f saved-images.tar.gz`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, config.DefaultProvider)
 
@@ -85,10 +85,9 @@ func (cc *decompressCmd) run() error {
 	// check is valid cache folder
 	file := config.GetString("file")
 	info, err := os.Stat(file)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
-	}
-	if info.IsDir() {
+	} else if err == nil && info.IsDir() {
 		return fmt.Errorf("%q is a directory", file)
 	}
 
