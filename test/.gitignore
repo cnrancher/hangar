@@ -1,0 +1,14 @@
+.pytest_cache
+__pycache__
+
+saved-image-cache
+
+pandaria-catalog
+rancher-charts
+system-charts
+
+*.tar.gz
+*.zstd
+*.txt
+*.json
+.dapper*

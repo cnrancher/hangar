@@ -59,6 +59,10 @@ Hangar 的 Mirror / Save / Load 相关命令支持的镜像仓库种类：
 
 1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
 
+## 测试脚本
+
+请参考 [测试文档](./test.md)。
+
 ## 常见问题
 
 常见报错信息及解释：[常见问题](./questions.md)

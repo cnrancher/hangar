@@ -50,6 +50,10 @@ To install hangar in your system, please install `skopeo`, `docker` and `docker-
 
 1. When using a self-signed SSL Certificate, please refer to [Self-signed SSL Certificate](./self-signed-ssl.md) for configuration.
 
+## Tests
+
+See [test docs](./test.md).
+
 ## FAQ
 
 [FAQ](./questions.md)

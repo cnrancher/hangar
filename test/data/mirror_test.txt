@@ -1,0 +1,19 @@
+# COMMENT LINE
+// COMMENT LINE
+
+INVALID LINE
+
+# mirror manifest.list.v2
+cnrancher/hardened-skopeo mirror-test/mirrored-hardened-skopeo v1.11.1
+
+# mirror manifest.v2
+hxstarrys/cas        mirror-test/mirrored-cas 6.5.6
+
+# mirror manifest.v1
+library/mysql mirror-test/mirrored-mysql 5.7.5
+
+# mirror OCI manifest index
+quay.io/containers/skopeo mirror-test/mirrored-skopeo v1.11.1
+
+# test image tag does not have project name
+nginx mirrored-nginx 1.23
