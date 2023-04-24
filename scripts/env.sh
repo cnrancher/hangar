@@ -33,7 +33,7 @@ fi
 echo "Build version: ${VERSION}"
 
 BUILD_FLAG=""
-if ! echo $DRONE_TAG | grep -q "rc"; then
+if ! echo ${DRONE_TAG:-} | grep -q "rc"; then
     BUILD_FLAG="-s -w"
 fi
 
