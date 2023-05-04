@@ -172,9 +172,9 @@ func (c *Chart) fetchChartsFromPath() error {
 		}
 		var versionValues []map[interface{}]interface{}
 		if info.IsDir() {
-			versionValues, err = decodeValuesInDir(path)
+			versionValues, err = DecodeValuesInDir(path)
 		} else {
-			versionValues, err = decodeValuesInTgz(path)
+			versionValues, err = DecodeValuesInTgz(path)
 		}
 		if err != nil {
 			logrus.Warn(err)
@@ -184,7 +184,7 @@ func (c *Chart) fetchChartsFromPath() error {
 		chartSource := fmt.Sprintf("[%s;%s:%s]",
 			c.Path, version.Name, version.Version)
 		for _, values := range versionValues {
-			err := pickImagesFromValuesMap(
+			err := PickImagesFromValuesMap(
 				c.ImageSet, values, chartSource, c.OS)
 			if err != nil {
 				return err
@@ -377,9 +377,9 @@ func compareRancherVersionToConstraint(
 	return c.Check(rSemVer), nil
 }
 
-// pickImagesFromValuesMap walks a values map to find images,
+// PickImagesFromValuesMap walks a values map to find images,
 // and add them to imagesSet.
-func pickImagesFromValuesMap(
+func PickImagesFromValuesMap(
 	imagesSet map[string]map[string]bool,
 	values map[interface{}]interface{},
 	chartSource string,
@@ -444,9 +444,9 @@ func walkMap(inputMap interface{}, cb func(map[interface{}]interface{})) {
 	}
 }
 
-// decodeValuesInTgz reads tarball and returns a slice of values
+// DecodeValuesInTgz reads tarball and returns a slice of values
 // corresponding to values.yaml files found inside of it.
-func decodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
+func DecodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
 	tgz, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -478,9 +478,9 @@ func decodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
 	}
 }
 
-// decodeValuesInDir reads directory and returns a slice of values
+// DecodeValuesInDir reads directory and returns a slice of values
 // corresponding to values.yaml files found inside of it.
-func decodeValuesInDir(dir string) ([]map[interface{}]interface{}, error) {
+func DecodeValuesInDir(dir string) ([]map[interface{}]interface{}, error) {
 	_, err := os.Stat(dir)
 	if err != nil {
 		return nil, err

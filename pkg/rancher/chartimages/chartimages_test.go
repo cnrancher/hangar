@@ -108,7 +108,7 @@ func Test_pickImagesFromValuesMap(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = pickImagesFromValuesMap(imageSet, value, "test", Linux)
+	err = PickImagesFromValuesMap(imageSet, value, "test", Linux)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,7 +118,7 @@ func Test_pickImagesFromValuesMap(t *testing.T) {
 }
 
 func Test_decodeValuesInDir(t *testing.T) {
-	values, err := decodeValuesInDir(
+	values, err := DecodeValuesInDir(
 		"test/rancher-charts/charts/epinio/102.0.0+up1.6.1")
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -129,7 +129,7 @@ func Test_decodeValuesInDir(t *testing.T) {
 	}
 	imageSet := map[string]map[string]bool{}
 	for _, value := range values {
-		pickImagesFromValuesMap(imageSet, value, "test", Linux)
+		PickImagesFromValuesMap(imageSet, value, "test", Linux)
 	}
 	var flag = false
 	for image := range imageSet {
@@ -144,7 +144,7 @@ func Test_decodeValuesInDir(t *testing.T) {
 }
 
 func Test_decodeValuesInTgz(t *testing.T) {
-	values, err := decodeValuesInTgz(
+	values, err := DecodeValuesInTgz(
 		"test/rancher-charts/assets/epinio/epinio-102.0.0+up1.6.1.tgz")
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -155,7 +155,7 @@ func Test_decodeValuesInTgz(t *testing.T) {
 	}
 	imageSet := map[string]map[string]bool{}
 	for _, value := range values {
-		pickImagesFromValuesMap(imageSet, value, "test", Linux)
+		PickImagesFromValuesMap(imageSet, value, "test", Linux)
 	}
 	var flag = false
 	for image := range imageSet {
