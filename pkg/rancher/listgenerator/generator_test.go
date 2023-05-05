@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/rancher/kdm"
+	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 )
 

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/rancher/kdm"
 	u "github.com/cnrancher/hangar/pkg/utils"
+	"github.com/rancher/rke/types"
 	"github.com/sirupsen/logrus"
 )
 
 type SystemImages struct {
 	RancherVersion    string
-	RkeSysImages      map[string]kdm.RKESystemImages
-	LinuxSvcOptions   map[string]kdm.KubernetesServicesOptions
-	WindowsSvcOptions map[string]kdm.KubernetesServicesOptions
-	RancherVersions   map[string]kdm.K8sVersionInfo
+	RkeSysImages      map[string]types.RKESystemImages
+	LinuxSvcOptions   map[string]types.KubernetesServicesOptions
+	WindowsSvcOptions map[string]types.KubernetesServicesOptions
+	RancherVersions   map[string]types.K8sVersionInfo
 
 	LinuxInfo   *VersionInfo
 	WindowsInfo *VersionInfo
@@ -153,7 +153,7 @@ func (s *SystemImages) getK8sVersionInfo() error {
 		// the following logic would not find `< v1.14` service options
 		if svcOptions, exist := s.WindowsSvcOptions[majorVersion]; exist {
 			// only keep the related images for windows
-			windowsSysImgs := kdm.RKESystemImages{
+			windowsSysImgs := types.RKESystemImages{
 				NginxProxy:                sysImgs.NginxProxy,
 				CertDownloader:            sysImgs.CertDownloader,
 				KubernetesServicesSidecar: sysImgs.KubernetesServicesSidecar,
@@ -185,19 +185,19 @@ func getTagMajorVersion(tag string) string {
 }
 
 type VersionInfo struct {
-	RKESystemImages           map[string]kdm.RKESystemImages
-	KubernetesServicesOptions map[string]kdm.KubernetesServicesOptions
+	RKESystemImages           map[string]types.RKESystemImages
+	KubernetesServicesOptions map[string]types.KubernetesServicesOptions
 }
 
 func newVersionInfo() *VersionInfo {
 	return &VersionInfo{
-		RKESystemImages:           map[string]kdm.RKESystemImages{},
-		KubernetesServicesOptions: map[string]kdm.KubernetesServicesOptions{},
+		RKESystemImages:           map[string]types.RKESystemImages{},
+		KubernetesServicesOptions: map[string]types.KubernetesServicesOptions{},
 	}
 }
 
 func toIgnoreForAllK8s(
-	rancherVersionInfo kdm.K8sVersionInfo,
+	rancherVersionInfo types.K8sVersionInfo,
 	rancherVersion string,
 ) bool {
 	if rancherVersionInfo.DeprecateRancherVersion != "" {
@@ -224,7 +224,7 @@ func toIgnoreForAllK8s(
 }
 
 func toIgnoreForK8sCurrent(
-	majorVersionInfo kdm.K8sVersionInfo,
+	majorVersionInfo types.K8sVersionInfo,
 	rancherVersion string,
 ) bool {
 	if majorVersionInfo.MaxRancherVersion != "" {

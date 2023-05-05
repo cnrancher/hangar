@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/rancher/kdm"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/rancher/rke/types/kdm"
 )
 
 func Test_Upgrade_GetImages(t *testing.T) {

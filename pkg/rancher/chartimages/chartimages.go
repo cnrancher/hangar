@@ -18,6 +18,7 @@ import (
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
+	"helm.sh/helm/v3/pkg/repo"
 )
 
 const RancherVersionAnnotationKey = "catalog.cattle.io/rancher-version"
@@ -113,7 +114,7 @@ func (c *Chart) fetchChartsFromPath() error {
 	if err != nil {
 		return err
 	}
-	var filteredVersions ChartVersions
+	var filteredVersions repo.ChartVersions
 	for _, versions := range index.Entries {
 		if len(versions) == 0 {
 			continue
@@ -265,7 +266,7 @@ func (c *Chart) fetchChartsFromURL() error {
 // if the rancher-version in the export configuration satisfies the chart's
 // constraint, false otherwise.
 func (c Chart) checkChartVersionConstraint(
-	version ChartVersion,
+	version repo.ChartVersion,
 ) (bool, error) {
 	constraintStr, ok := version.Annotations[RancherVersionAnnotationKey]
 	if ok {

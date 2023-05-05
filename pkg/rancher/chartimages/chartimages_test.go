@@ -117,7 +117,7 @@ func Test_pickImagesFromValuesMap(t *testing.T) {
 	}
 }
 
-func Test_decodeValuesInDir(t *testing.T) {
+func Test_DecodeValuesInDir(t *testing.T) {
 	values, err := DecodeValuesInDir(
 		"test/rancher-charts/charts/epinio/102.0.0+up1.6.1")
 	if err != nil {
@@ -143,7 +143,7 @@ func Test_decodeValuesInDir(t *testing.T) {
 	}
 }
 
-func Test_decodeValuesInTgz(t *testing.T) {
+func Test_DecodeValuesInTgz(t *testing.T) {
 	values, err := DecodeValuesInTgz(
 		"test/rancher-charts/assets/epinio/epinio-102.0.0+up1.6.1.tgz")
 	if err != nil {
