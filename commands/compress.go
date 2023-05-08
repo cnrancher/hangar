@@ -169,7 +169,7 @@ func (cc *compressCmd) run() error {
 		utils.CacheImageDirectory,
 		config.GetString("destination"),
 		cc.compressFormat,
-		0,
+		cc.compressPartSize,
 	)
 	if err != nil {
 		return err

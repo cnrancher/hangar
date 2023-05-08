@@ -133,15 +133,22 @@ def test_compress_gzip_segment():
         '-f', CACHE_DIRECTORY,
         '--format', 'gzip',
         '--part',
-        '--part-size=50M',
+        '--part-size=100M',
         '--destination=gzip-segment.tar.gz',
     ])
     saved_file_list = glob.glob('gzip-segment.tar.gz*')
-    assert len(saved_file_list) != 0
+    assert len(saved_file_list) > 1
     print('created part files:')
-    for name in saved_file_list:
-        print(name)
+    counter = 0
+    for i in range(len(saved_file_list)):
+        print(saved_file_list[i])
+        info = os.stat(saved_file_list[i])
+        print("File:", saved_file_list[i],
+              "size:", info.st_size / 1024 / 1024, "MB")
+        if info.st_size == 100 * 1024 * 1024:
+            counter += 1
     shutil.rmtree(CACHE_DIRECTORY)
+    assert counter >= len(saved_file_list) - 1
 
 # Decompress gzip
 def test_decompress_gzip():
