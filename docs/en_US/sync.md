@@ -2,11 +2,13 @@
 
 The sync command syncs the extra container images into the cache folder created by [Save](./save.md) command.
 
+## Background
+
+There may some images failed to save when running Save command, the save failed image list will output into `save-failed.txt`. You can use Sync command to re-save these images into `saved-image-cache` folder and use [Compress](./compress.md) to re-compress the tarball.
+
+Besides, the [decompress](./decompress.md) command supports to decompress the tarball created by hangar same as the decompress part of [hangar load](./load.md) command.
+
 ## QuickStart
-
-There may some images failed to save when running Save command, the save failed image list will output into `saved-failed.txt`. You can use Sync command to re-save these images into cache folder and use [Compress](./compress.md) to re-compress the tarball.
-
-----
 
 Re-save the images in `saved-failed.txt` into `saved-images-cache` folder:
 

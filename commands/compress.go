@@ -137,6 +137,10 @@ func (cc *compressCmd) setupFlags() error {
 func (cc *compressCmd) run() error {
 	// check is valid cache folder
 	directory := config.GetString("file")
+	directory, err := utils.GetAbsPath(directory)
+	if err != nil {
+		return fmt.Errorf("utils.GetAbsPath: %w", err)
+	}
 	info, err := os.Stat(directory)
 	if err != nil {
 		return err
@@ -145,14 +149,21 @@ func (cc *compressCmd) run() error {
 		return fmt.Errorf("%q is not a directory", directory)
 	}
 
-	if directory != utils.CacheImageDirectory {
-		logrus.Warnf("rename folder %q to %q",
-			directory, utils.CacheImageDirectory)
-		if err := os.Rename(directory, utils.CacheImageDirectory); err != nil {
+	dirSpecs := strings.Split(directory, string(filepath.Separator))
+	if len(dirSpecs) == 0 {
+		return fmt.Errorf("invalid directory path: %q", directory)
+	}
+	if dirSpecs[len(dirSpecs)-1] != utils.CacheImageDirectory {
+		dirSpecs[len(dirSpecs)-1] = utils.CacheImageDirectory
+		oldDir := directory
+		directory = string(filepath.Separator) + filepath.Join(dirSpecs...)
+		logrus.Warnf("rename folder %q to %q", oldDir, directory)
+		err := os.Rename(oldDir, directory)
+		if err != nil {
 			return err
 		}
-		directory = utils.CacheImageDirectory
 	}
+	logrus.Debugf("cache folder: %q", directory)
 
 	template := filepath.Join(directory, utils.SavedImageListFile)
 	info, err = os.Stat(template)
@@ -165,9 +176,20 @@ func (cc *compressCmd) run() error {
 
 	logrus.Infof("compressing %s...", config.GetString("destination"))
 
+	destination := config.GetString("destination")
+	destination, err = utils.GetAbsPath(destination)
+	if err != nil {
+		return fmt.Errorf("utils.GetAbsPath: %w", err)
+	}
+	err = os.Chdir(filepath.Join(directory, ".."))
+	if err != nil {
+		return fmt.Errorf("os.Chdir: %w", err)
+	}
 	err = archive.Compress(
+		// set to compress the cache folder only
 		utils.CacheImageDirectory,
-		config.GetString("destination"),
+		// output the compressed file to current dir
+		destination,
 		cc.compressFormat,
 		cc.compressPartSize,
 	)
@@ -177,10 +199,8 @@ func (cc *compressCmd) run() error {
 	if !config.GetBool("part") {
 		// if part compress not enabled,
 		// rename file name without .part extension
-		if err := os.Rename(
-			config.GetString("destination")+".part0",
-			config.GetString("destination")); err != nil {
-			logrus.Warn(err)
+		if err := os.Rename(destination+".part0", destination); err != nil {
+			logrus.Warnf("os.Rename: %v", err)
 		}
 	}
 	logrus.Infof("compressed %q", config.GetString("destination"))

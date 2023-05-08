@@ -1,6 +1,8 @@
 # Compress
 
-Compress 命令用来压缩 Save 命令生成的未压缩的 image 缓存文件夹。
+Compress 命令用来压缩 Save 命令生成的未压缩的 `saved-image-cache` 缓存文件夹。
+
+Compress 命令通常与 Sync 命令一起使用，可参考 Sync 文档的 [开发背景](./sync.md#开发背景)。
 
 ## QuickStart
 
@@ -43,4 +45,8 @@ hangar compress -f ./saved-image-cache --part --part-size=4G
 
 # 使用 --debug 参数，输出更详细的调试日志
 hangar compress -f ./saved-image-cache --debug
+
+# 使用 -d, --destination 命令指定输出的压缩文件的名称
+# 默认为 saved-images.[压缩格式后缀]
+hangar compress -f ./saved-image-cache -d compressed-images.tar.gz
 ```

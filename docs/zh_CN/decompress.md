@@ -1,6 +1,8 @@
 # Decompress
 
-Decompress 命令用来解压 Save 命令生成的压缩的压缩包文件。
+Decompress 命令用来解压 [Save](./save.md) 命令或 [Compress](./compress.md) 生成的压缩包文件。
+
+有关 Compress 和 Decompress 命令的开发背景可参考 [Sync文档](./sync.md#开发背景)。
 
 ## QuickStart
 

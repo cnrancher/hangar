@@ -2,16 +2,39 @@
 
 `sync` 命令将额外的容器镜像保存在未压缩的 [Save](./save.md) 缓存文件夹中。
 
-## QuickStart
+## 开发背景
 
-当执行 Save 时，有概率会出现部分镜像 Save 失败的情况，失败的镜像会保存在 `save-failed.txt` 中，若重新执行 Save 命令需要重新下载所有镜像并重新创建压缩包，因此可使用 Sync 命令只将部分镜像保存在未压缩的缓存文件夹中，并结合 [Compress](./compress.md) 命令创建压缩包供 [Load](./load.md) 命令使用。
+Sync 命令以及 Compress、Decompress 命令为 Hangar 的高级特性，主要用于辅助 [Save](./save.md) 命令在保存镜像的 Blobs 时存在部分镜像下载失败的情况。
 
-----
+在 [Hangar Save](./save.md) 保存镜像的 Blobs 至缓存文件夹时，有些镜像可能因网络或其他原因下载失败，重新执行 [Hangar Save](./save.md) 命令会删除掉之前已有的缓存文件，并重新按照镜像列表下载镜像 Blobs 至缓存文件夹中，会浪费更多的时间，因此 Hangar 的 Sync 命令用于只将 Save 失败的镜像附加到 `saved-image-cache` 缓存文件夹中。
 
-使用 Sync 命令，将 `saved-failed.txt` 中的镜像保存在 `saved-images-cache` 缓存目录中：
+除此之外，Hangar 的 [Decompress](./decompress.md) 命令单独提供了解压 Hangar 创建的压缩包文件的功能，与 Load 命令的解压压缩包功能一致，支持 `gzip`, `zstd` 压缩格式和分片压缩功能。 Hangar 的 [Compress](./compress.md) 命令单独提供了压缩 Hangar 创建的缓存文件夹功能，与 Save 命令的创建压缩包的功能一致，支持将缓存文件夹创建为 `gzip`, `zstd` 格式的压缩包文件，且支持分片压缩功能。
+
+将 Sync 和 Compress 命令结合使用的例子如下：
 
 ```sh
-hangar sync -f ./saved-failed.txt -d ./saved-images-cache -j 10
+# 查看 Save 命令创建的缓存文件夹及压缩包文件
+ls -al
+-rw-r--r--@  1 user  staff    13B May  8 14:53 save-failed.txt
+drwxr-xr-x@  6 user  staff   192B May  8 14:53 saved-image-cache
+-rw-r--r--@  1 user  staff   107M May  8 14:53 saved-images.tar.gz
+
+# 首先删掉 Save 命令创建的压缩文件
+rm saved-images.tar.gz
+
+# 使用 Sync 命令将 save-failed.txt 中的镜像下载至缓存文件夹 saved-image-cache
+hangar sync -f ./save-failed.txt -d saved-image-cache -j 10
+
+# 之后使用 Compress 命令创建压缩文件
+hangar compress -f ./saved-image-cache
+```
+
+## QuickStart
+
+使用 Sync 命令，将 `save-failed.txt` 中的镜像保存在 `saved-image-cache` 缓存目录中：
+
+```sh
+hangar sync -f ./save-failed.txt -d ./saved-image-cache -j 10
 ```
 
 > Sync 失败的镜像会保存在 `sync-failed.txt`。
