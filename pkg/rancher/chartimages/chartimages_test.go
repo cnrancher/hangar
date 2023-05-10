@@ -105,10 +105,10 @@ func Test_BuildOrGetIndex(t *testing.T) {
 	}
 }
 
-func Test_pickImagesFromValuesMap(t *testing.T) {
+func Test_PickImagesFromValuesMap(t *testing.T) {
 	imageSet := map[string]map[string]bool{}
 	r, err := os.Open(
-		"test/rancher-charts/charts/epinio/101.0.1+up1.4.0/values.yaml")
+		"test/pandaria-catalog/charts/rancher-macvlan/0.8.2/values.yaml")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return
@@ -125,14 +125,17 @@ func Test_pickImagesFromValuesMap(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	counter := 0
 	for image := range imageSet {
 		t.Logf("%v\n", image)
+		counter++
 	}
+	assert.NotZero(t, counter)
 }
 
 func Test_DecodeValuesInDir(t *testing.T) {
 	values, err := DecodeValuesInDir(
-		"test/rancher-charts/charts/epinio/102.0.0+up1.6.1")
+		"test/rancher-charts/charts/epinio/102.0.1+up1.6.2")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return
@@ -158,7 +161,7 @@ func Test_DecodeValuesInDir(t *testing.T) {
 
 func Test_DecodeValuesInTgz(t *testing.T) {
 	values, err := DecodeValuesInTgz(
-		"test/rancher-charts/assets/epinio/epinio-102.0.0+up1.6.1.tgz")
+		"test/rancher-charts/assets/epinio/epinio-102.0.1+up1.6.2.tgz")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return

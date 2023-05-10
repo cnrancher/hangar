@@ -17,7 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yamlv2 "gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
@@ -178,7 +178,8 @@ func (c *Chart) fetchChartsFromPath() error {
 			versionValues, err = DecodeValuesInTgz(path)
 		}
 		if err != nil {
-			logrus.Warn(err)
+			logrus.Warnf("failed to get values from %q: %v",
+				path, err)
 			continue
 		}
 		// chartRepoName := filepath.Base(c.Path)
@@ -386,7 +387,7 @@ func PickImagesFromValuesMap(
 	chartSource string,
 	OS OsType,
 ) error {
-	walkMap(values, func(inputMap map[interface{}]interface{}) {
+	walkMap(values, func(inputMap map[any]any) {
 		repository, ok := inputMap["repository"].(string)
 		if !ok {
 			return
@@ -431,14 +432,14 @@ func PickImagesFromValuesMap(
 
 // walkMap walks inputMap and calls the callback function on all map
 // type nodes including the root node.
-func walkMap(inputMap interface{}, cb func(map[interface{}]interface{})) {
+func walkMap(inputMap interface{}, cb func(map[any]any)) {
 	switch data := inputMap.(type) {
-	case map[interface{}]interface{}:
+	case map[any]any:
 		cb(data)
 		for _, value := range data {
 			walkMap(value, cb)
 		}
-	case []interface{}:
+	case []any:
 		for _, elem := range data {
 			walkMap(elem, cb)
 		}
@@ -470,7 +471,7 @@ func DecodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
 		case header.Typeflag == tar.TypeReg && isValuesFile(header.Name):
 			var values map[interface{}]interface{}
 			if err := decodeYAMLFile(tr, &values); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("DecodeValuesInTgz: %w", err)
 			}
 			valuesSlice = append(valuesSlice, values)
 		default:
@@ -525,5 +526,5 @@ func decodeYAMLFile(r io.Reader, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	return yaml.Unmarshal(data, target)
+	return yamlv2.Unmarshal(data, target)
 }
