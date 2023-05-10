@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	k8sYaml "sigs.k8s.io/yaml"
+
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
 )
@@ -106,7 +107,7 @@ func LoadMetadata(path string) (*chart.Metadata, error) {
 		return nil, fmt.Errorf("LoadMetadata: %w", err)
 	}
 	metadata := new(chart.Metadata)
-	if err := yaml.Unmarshal(d, metadata); err != nil {
+	if err := k8sYaml.Unmarshal(d, metadata); err != nil {
 		return metadata, fmt.Errorf("cannot load Chart.yaml: %w", err)
 	}
 	if metadata.APIVersion == "" {
@@ -139,7 +140,7 @@ func IsChartDir(dirName string) (bool, error) {
 	}
 
 	chartContent := new(chart.Metadata)
-	if err := yaml.Unmarshal(chartYamlContent, &chartContent); err != nil {
+	if err := k8sYaml.Unmarshal(chartYamlContent, &chartContent); err != nil {
 		return false, err
 	}
 	if chartContent == nil {

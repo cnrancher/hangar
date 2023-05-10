@@ -8,6 +8,7 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -76,6 +77,18 @@ func Test_BuildOrGetIndex(t *testing.T) {
 		}
 		t.Error(err)
 		return
+	}
+
+	assert.NotEqual(t, len(index.Entries), 0)
+	for name, versions := range index.Entries {
+		assert.NotEqual(t, name, "")
+		for _, v := range versions {
+			assert.NotEqual(t, v.APIVersion, "")
+			assert.NotEqual(t, v.AppVersion, "",
+				"chart %v:%v appVersion is empty", name, v.Version)
+			assert.NotEqual(t, v.Version, "")
+			assert.NotEqual(t, v.Name, "")
+		}
 	}
 	versions := index.Entries["rancher-logging"]
 	if versions == nil {
