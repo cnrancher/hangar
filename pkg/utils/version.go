@@ -1,6 +1,6 @@
 package utils
 
 var (
-	Version   = "v1.5.0-rc"
+	Version   = "v1.5.0"
 	GitCommit = ""
 )
