@@ -8,6 +8,6 @@ WORKINGDIR=$(pwd)
 docker build --tag "${REGISTRY}/${TAG}:${VERSION}-amd64" \
     --build-arg ARCH="amd64" \
     --platform linux/amd64 \
-    -f Dockerfile .
+    -f package/Dockerfile .
 
 docker push "${REGISTRY}/${TAG}:${VERSION}-amd64"

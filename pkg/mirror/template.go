@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/image"
+	"github.com/cnrancher/hangar/pkg/mirror/image"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
@@ -41,18 +41,6 @@ type SavedImagesTemplate struct {
 	OsVersion string
 	Variant   string
 	Folder    string
-}
-
-type DockerBuildxManifest struct {
-	Digest   string               `json:"digest"`
-	Platform DockerBuildxPlatform `json:"platform"`
-}
-
-type DockerBuildxPlatform struct {
-	Architecture string `json:"architecture,omitempty"`
-	OS           string `json:"os,omitempty"`
-	Variant      string `json:"variant,omitempty"`
-	OsVersion    string `json:"os.version,omitempty"`
 }
 
 func NewSavedListTemplate() *SavedListTemplate {
@@ -198,41 +186,4 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 	}
 
 	return mirrorList, nil
-}
-
-func CompareBuildxManifests(src, dst []DockerBuildxManifest) bool {
-	if src == nil || dst == nil {
-		return false
-	}
-	if len(src) != len(dst) {
-		return false
-	}
-	for i := range src {
-		if !CompareBuildxManifest(&src[i], &dst[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func CompareBuildxManifest(src, dst *DockerBuildxManifest) bool {
-	if src == nil || dst == nil {
-		return false
-	}
-	if src.Digest != dst.Digest {
-		return false
-	}
-	if src.Platform.Architecture != dst.Platform.Architecture {
-		return false
-	}
-	if src.Platform.OS != dst.Platform.OS {
-		return false
-	}
-	if src.Platform.Variant != dst.Platform.Variant {
-		return false
-	}
-	if src.Platform.OsVersion != dst.Platform.OsVersion {
-		return false
-	}
-	return true
 }

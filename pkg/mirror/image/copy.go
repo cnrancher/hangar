@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func (img *Image) Copy() error {
 		// get digests from copied dest image
 		destImage := fmt.Sprintf("docker://%s", img.Destination)
 		// skopeo inspect docker://docker.io/${repository}:${version}-${arch}
-		out, err := registry.SkopeoInspect(destImage, "--format", "{{ .Digest }}")
+		out, err := skopeo.Inspect(destImage, "--format", "{{ .Digest }}")
 		if err != nil {
 			return fmt.Errorf("Copy: %w", err)
 		}
@@ -47,15 +47,16 @@ func (img *Image) copyIfChanged() error {
 
 	if img.SourceMediaType == manifest.DockerV2Schema1MediaType ||
 		img.SourceMediaType == manifest.DockerV2Schema1SignedMediaType {
-		return registry.SkopeoCopy(
+		return skopeo.Copy(
 			srcDockerImage, dstDockerImage, "--format=v2s2")
 	}
 
-	destDigest, err := registry.SkopeoInspect(
+	destDigest, err := skopeo.Inspect(
 		dstDockerImage, "--format", "{{ .Digest }}")
 	if err != nil {
 		destDigest = "NEW_IMAGE"
 	}
+	destDigest = strings.TrimSpace(destDigest)
 	// compare the source manifest with the dest manifest
 	if img.Digest == destDigest {
 		logrus.WithFields(logrus.Fields{
@@ -79,7 +80,7 @@ func (img *Image) copyIfChanged() error {
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
-		Infof("Copying: [%s] => [%s]", img.Source, img.Destination)
+		Infof("copying: [%s] => [%s]", img.Source, img.Destination)
 
-	return registry.SkopeoCopy(srcDockerImage, dstDockerImage)
+	return skopeo.Copy(srcDockerImage, dstDockerImage)
 }

@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 )
 
 func Test_StartSave(t *testing.T) {
@@ -29,7 +29,6 @@ func Test_StartSave(t *testing.T) {
 		Directory:   "",
 		Mode:        MODE_SAVE,
 	})
-	// mirror.AppendImage(image.NewImage(&image.ImageOptions{}))
 
 	// fake skopeo inspect / skopeo copy function
 	fake := func(a string, in io.Reader, out io.Writer, p ...string) error {
@@ -42,7 +41,7 @@ func Test_StartSave(t *testing.T) {
 		}
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err = mirror.StartSave(); err != nil {
 		t.Error(err)
 	}

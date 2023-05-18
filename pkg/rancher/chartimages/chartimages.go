@@ -108,7 +108,7 @@ func (c *Chart) FetchImages() error {
 }
 
 func (c *Chart) fetchChartsFromPath() error {
-	logrus.Infof("Fetching %q chart images from %q",
+	logrus.Infof("fetching %q chart images from %q",
 		c.OS.String(), c.Path)
 	index, err := BuildOrGetIndex(c.Path)
 	if err != nil {
@@ -193,7 +193,7 @@ func (c *Chart) fetchChartsFromPath() error {
 			}
 		}
 	}
-	logrus.Infof("Finished fetching %q image from %q", c.OS.String(), c.Path)
+	logrus.Infof("finished fetching %q image from %q", c.OS.String(), c.Path)
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (c *Chart) fetchChartsFromURL() error {
 	}
 	directory := filepath.Join(u.CacheCloneRepoDirectory,
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
-	logrus.Infof("Cloning git repo into %q, branch %q",
+	logrus.Infof("cloning git repo into %q, branch %q",
 		directory, c.Branch)
 	r, err := git.PlainClone(directory, false, &option)
 	if err != nil {
@@ -228,7 +228,7 @@ func (c *Chart) fetchChartsFromURL() error {
 		}
 	}
 	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
-		logrus.Infof("Git repo %q already exists", directory)
+		logrus.Infof("git repo %q already exists", directory)
 		r, err = git.PlainOpen(directory)
 		if err != nil {
 			return fmt.Errorf("fetchChartsFromURL: %w", err)

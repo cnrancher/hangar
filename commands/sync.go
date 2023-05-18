@@ -50,14 +50,13 @@ After syncing images into the decompressed folder, you can compress the folder w
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 
-			if err := cc.baseCmd.selfCheckDependencies(
-				checkDockerSkopeo); err != nil {
+			if err := cc.baseCmd.selfCheckDependencies(); err != nil {
 				return err
 			}
 			if err := cc.setupFlags(); err != nil {
 				return err
 			}
-			if err := cc.baseCmd.processDockerLogin(); err != nil {
+			if err := cc.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
 			if err := cc.prepareSavedTemplate(); err != nil {
@@ -193,7 +192,7 @@ func (cc *syncCmd) processImageList() error {
 	}
 
 	for r := range cc.registriesSet {
-		if err := cc.baseCmd.runDockerLogin(r); err != nil {
+		if err := cc.baseCmd.runSkopeoLogin(r); err != nil {
 			// output the login failed message only
 			logrus.Warn(err)
 		}

@@ -47,14 +47,13 @@ func newSaveCmd() *saveCmd {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 
-			if err := cc.baseCmd.selfCheckDependencies(
-				checkDockerSkopeo); err != nil {
+			if err := cc.baseCmd.selfCheckDependencies(); err != nil {
 				return err
 			}
 			if err := cc.setupFlags(); err != nil {
 				return err
 			}
-			if err := cc.baseCmd.processDockerLogin(); err != nil {
+			if err := cc.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
 			if err := cc.processImageList(); err != nil {
@@ -231,7 +230,7 @@ func (cc *saveCmd) processImageList() error {
 	}
 
 	for r := range cc.registriesSet {
-		if err := cc.baseCmd.runDockerLogin(r); err != nil {
+		if err := cc.baseCmd.runSkopeoLogin(r); err != nil {
 			// output the login failed message only
 			logrus.Warn(err)
 		}

@@ -27,8 +27,7 @@ func newLoadValidateCmd() *loadValidateCmd {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 
-			if err := cc.loadCmd.baseCmd.selfCheckDependencies(
-				checkDockerSkopeo); err != nil {
+			if err := cc.loadCmd.baseCmd.selfCheckDependencies(); err != nil {
 				return err
 			}
 			if err := cc.loadCmd.setupFlags(); err != nil {
@@ -43,7 +42,7 @@ func newLoadValidateCmd() *loadValidateCmd {
 			if err := cc.loadCmd.decompressTarball(); err != nil {
 				return err
 			}
-			if err := cc.loadCmd.baseCmd.processDockerLogin(); err != nil {
+			if err := cc.loadCmd.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
 			if err := cc.loadCmd.prepareMirrorers(); err != nil {

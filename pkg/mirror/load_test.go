@@ -4,9 +4,14 @@ import (
 	"io"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/image"
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/mirror/image"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 )
+
+func init() {
+	config.Set("TESTING", true)
+}
 
 func Test_StartLoad(t *testing.T) {
 	var mirror *Mirror = nil
@@ -60,7 +65,7 @@ func Test_StartLoad(t *testing.T) {
 	fake := func(a string, in io.Reader, out io.Writer, p ...string) error {
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err = mirror.StartLoad(); err != nil {
 		t.Fatal(err)
 	}

@@ -9,22 +9,12 @@ import (
 	"sync"
 
 	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/credential"
 	"github.com/cnrancher/hangar/pkg/mirror"
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-)
-
-const (
-	checkDocker = 0x01
-	checkBuildx = 0x02
-	checkSkopeo = 0x04
-
-	checkDockerBuildx = checkDocker | checkBuildx
-	checkDockerSkopeo = checkDocker | checkSkopeo
-
-	checkAll = checkDocker | checkBuildx | checkSkopeo
 )
 
 type baseCmd struct {
@@ -40,23 +30,11 @@ func (cc *baseCmd) getCommand() *cobra.Command {
 	return cc.cmd
 }
 
-// check docker, docker-buildx, skopeo are installed or not
-func (cc *baseCmd) selfCheckDependencies(flag uint8) error {
-	ni := make([]string, 0, 3)
-	if flag&checkDocker > 0 {
-		if err := registry.SelfCheckDocker(); err != nil {
-			ni = append(ni, "docker")
-		}
-	}
-	if flag&checkBuildx > 0 {
-		if err := registry.SelfCheckBuildX(); err != nil {
-			ni = append(ni, "docker-buildx")
-		}
-	}
-	if flag&checkSkopeo > 0 {
-		if err := registry.SelfCheckSkopeo(); err != nil {
-			ni = append(ni, "skopeo")
-		}
+// check skopeo is installed or not
+func (cc *baseCmd) selfCheckDependencies() error {
+	ni := make([]string, 0)
+	if err := skopeo.Installed(); err != nil {
+		ni = append(ni, "skopeo")
 	}
 	if len(ni) != 0 {
 		b := strings.Builder{}
@@ -64,31 +42,35 @@ func (cc *baseCmd) selfCheckDependencies(flag uint8) error {
 			b.WriteString(ni[i])
 			b.WriteString(" ")
 		}
-		return fmt.Errorf("some dependencies not installed: %q", b.String())
+		return fmt.Errorf("dependency not installed: %q", b.String())
 	}
 	return nil
 }
 
-func (cc *baseCmd) processDockerLogin() error {
+func (cc *baseCmd) processSkopeoLogin() error {
 	if utils.EnvSourcePassword != "" && utils.EnvSourceUsername != "" {
-		logrus.Infof("running docker login to source registry")
-		err := registry.DockerLogin(
+		if utils.EnvSourceRegistry == "" {
+			utils.EnvSourceRegistry = utils.DockerHubRegistry
+		}
+		logrus.Infof("running skopeo login to %q", utils.EnvSourceRegistry)
+		if err := skopeo.Login(
 			utils.EnvSourceRegistry,
 			utils.EnvSourceUsername,
-			utils.EnvSourcePassword)
-		if err != nil {
+			utils.EnvSourcePassword); err != nil {
 			return fmt.Errorf("failed to login to %s: %w",
 				utils.EnvSourceRegistry, err)
 		}
 	}
 
 	if utils.EnvDestPassword != "" && utils.EnvDestUsername != "" {
-		logrus.Infof("running docker login to destination registry")
-		err := registry.DockerLogin(
+		if utils.EnvDestRegistry == "" {
+			utils.EnvDestRegistry = utils.DockerHubRegistry
+		}
+		logrus.Infof("running skopeo login to %q", utils.EnvSourceRegistry)
+		if err := skopeo.Login(
 			utils.EnvDestRegistry,
 			utils.EnvDestUsername,
-			utils.EnvDestPassword)
-		if err != nil {
+			utils.EnvDestPassword); err != nil {
 			return fmt.Errorf("failed to login to %s: %w",
 				utils.EnvDestRegistry, err)
 		}
@@ -129,17 +111,14 @@ func (cc *baseCmd) prepareImageCacheDirectory() error {
 	return nil
 }
 
-func (cc *baseCmd) runDockerLogin(reg string) error {
-	logrus.Infof("logging into %q", reg)
-	username, passwd, err := registry.GetDockerPassword(reg)
+func (cc *baseCmd) runSkopeoLogin(reg string) error {
+	logrus.Infof("runnning skopeo login %q", reg)
+	username, passwd, err := credential.GetRegistryCredential(reg)
 	if err != nil {
 		logrus.Warnf("please input password of registry %q manually", reg)
 		username, passwd, _ = utils.ReadUsernamePasswd()
 	}
-	if err := registry.DockerLogin(reg, username, passwd); err != nil {
-		return err
-	}
-	if err := registry.SkopeoLogin(reg, username, passwd); err != nil {
+	if err := skopeo.Login(reg, username, passwd); err != nil {
 		return err
 	}
 	return nil

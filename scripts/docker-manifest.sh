@@ -30,7 +30,7 @@ if ! docker buildx version &> /dev/null ; then
     # Add buildx plugin from github
     mkdir -p ${HOME}/.docker/cli-plugins/ && \
     curl -sLo ${HOME}/.docker/cli-plugins/docker-buildx \
-        https://github.com/docker/buildx/releases/download/v0.9.1/buildx-v0.9.1.linux-${BUILDX_ARCH} && \
+        https://github.com/docker/buildx/releases/download/v0.10.4/buildx-v0.10.4.linux-${BUILDX_ARCH} && \
     chmod +x ${HOME}/.docker/cli-plugins/docker-buildx
 fi
 

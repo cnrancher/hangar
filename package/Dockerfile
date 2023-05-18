@@ -4,17 +4,11 @@ RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 vim && \
     zypper clean
 
-# Add docker cli
-COPY --from=docker.io/library/docker:23.0 /usr/local/bin/docker /usr/local/bin/
-# Add docker-buildx
-COPY --from=docker.io/docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 # Add skopeo compiled binary file
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.10.0 /usr/local/bin/skopeo /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.11.0 /usr/local/bin/skopeo /usr/local/bin/
 
 # Check docker, docker-buildx, skopeo version
-RUN docker --version && \
-    docker buildx version && \
-    skopeo -v
+RUN skopeo -v
 
 WORKDIR /images
 # Add buildx plugin from github

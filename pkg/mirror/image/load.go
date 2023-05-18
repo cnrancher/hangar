@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -29,10 +29,10 @@ func (img *Image) Load() error {
 		"--format=v2s2",
 		"--src-shared-blob-dir=" + share,
 	}
-	if err = registry.SkopeoCopy(sourceImage, destImage, args...); err != nil {
+	if err = skopeo.Copy(sourceImage, destImage, args...); err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}
-	destManifest, err := registry.SkopeoInspect(destImage, "--raw")
+	destManifest, err := skopeo.Inspect(destImage, "--raw")
 	if err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}

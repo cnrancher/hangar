@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/config"
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
@@ -91,7 +91,7 @@ func Test_Copy(t *testing.T) {
 		}
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := imageV2.Copy(); err != nil {
 		t.Error(err.Error())
 	}
@@ -126,7 +126,7 @@ func Test_Copy(t *testing.T) {
 		}
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 
 	var imageListV2 *Image = NewImage(&ImageOptions{
 		Source:          "docker.io/example",
@@ -145,7 +145,7 @@ func Test_Copy(t *testing.T) {
 	if !imageListV2.Copied {
 		t.Error("Copy failed")
 	}
-	registry.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 func Test_CopiedTag(t *testing.T) {
@@ -188,14 +188,14 @@ func Test_Load(t *testing.T) {
 	fake := func(a string, i io.Reader, o io.Writer, p ...string) error {
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := img.Load(); err != nil {
 		t.Fatal(err)
 	}
 	if !img.Loaded {
 		t.Error("load failed")
 	}
-	registry.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 func Test_Save(t *testing.T) {
@@ -208,12 +208,12 @@ func Test_Save(t *testing.T) {
 	fake := func(a string, i io.Reader, o io.Writer, p ...string) error {
 		return nil
 	}
-	registry.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := img.Save(); err != nil {
 		t.Fatal(err)
 	}
 	if !img.Saved {
 		t.Error("load failed")
 	}
-	registry.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }

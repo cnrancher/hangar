@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/image"
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/credential"
+	hm "github.com/cnrancher/hangar/pkg/manifest"
+	"github.com/cnrancher/hangar/pkg/mirror/image"
+	"github.com/cnrancher/hangar/pkg/skopeo"
+	"github.com/cnrancher/hangar/pkg/utils"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
@@ -125,17 +129,17 @@ func (m *Mirror) StartMirror() error {
 	}
 
 	// If the source manifest list does not equal to the dest manifest list
-	if !m.compareSourceDestManifest() {
-		logrus.WithField("M_ID", m.MID).
-			Info("Creating dest manifest list...")
-		// Create a new dest manifest list
-		if err := m.updateDestManifest(); err != nil {
-			return fmt.Errorf("Mirror: %w", err)
-		}
-	} else {
-		logrus.WithField("M_ID", m.MID).
-			Info("Dest manifest list already exists, no need to recreate")
+	// if !m.compareSourceDestManifest() {
+	logrus.WithField("M_ID", m.MID).
+		Info("creating dest manifest list...")
+	// Create a new dest manifest list
+	if err := m.updateDestManifest(); err != nil {
+		return fmt.Errorf("Mirror: %w", err)
 	}
+	// } else {
+	// 	logrus.WithField("M_ID", m.MID).
+	// 		Info("Dest manifest list already exists, no need to recreate")
+	// }
 
 	logrus.WithField("M_ID", m.MID).
 		Infof("MIRROR [%s:%s] => [%s:%s]",
@@ -196,13 +200,13 @@ func (m *Mirror) AppendImage(img *image.Image) {
 }
 
 // SourceManifestSpec gets the source manifest data used by docker-buildx
-func (m *Mirror) SourceManifestSpec() []DockerBuildxManifest {
-	var spec []DockerBuildxManifest = make([]DockerBuildxManifest, 0)
+func (m *Mirror) SourceManifestSpec() []hm.BuildManifestListParam {
+	var spec []hm.BuildManifestListParam = make([]hm.BuildManifestListParam, 0)
 	for _, img := range m.images {
 		if img.Copied {
-			spec = append(spec, DockerBuildxManifest{
+			spec = append(spec, hm.BuildManifestListParam{
 				Digest: img.Digest,
-				Platform: DockerBuildxPlatform{
+				Platform: hm.BuildManifestListPlatform{
 					Architecture: img.Arch,
 					OS:           img.OS,
 					Variant:      img.Variant,
@@ -215,17 +219,17 @@ func (m *Mirror) SourceManifestSpec() []DockerBuildxManifest {
 }
 
 // DestinationManifestSpec gets the dest manifest data used by docker-buildx
-func (m *Mirror) DestinationManifestSpec() []DockerBuildxManifest {
-	var spec []DockerBuildxManifest = make([]DockerBuildxManifest, 0)
+func (m *Mirror) DestinationManifestSpec() []hm.BuildManifestListParam {
+	var spec []hm.BuildManifestListParam = make([]hm.BuildManifestListParam, 0)
 	switch m.destMIMEType {
 	case manifest.DockerV2ListMediaType:
 		for _, manifest := range m.destSchema2List.Manifests {
 			if !m.HasArch(manifest.Platform.Architecture) {
 				continue
 			}
-			spec = append(spec, DockerBuildxManifest{
+			spec = append(spec, hm.BuildManifestListParam{
 				Digest: string(manifest.Digest),
-				Platform: DockerBuildxPlatform{
+				Platform: hm.BuildManifestListPlatform{
 					Architecture: manifest.Platform.Architecture,
 					OS:           manifest.Platform.OS,
 					Variant:      manifest.Platform.Variant,
@@ -243,7 +247,7 @@ func (m *Mirror) compareSourceDestManifest() bool {
 		// Compare the source image manifest list with dest manifest list
 		srcSpecs := m.SourceManifestSpec()
 		dstSpecs := m.DestinationManifestSpec()
-		return CompareBuildxManifests(srcSpecs, dstSpecs)
+		return hm.CompareBuildManifests(srcSpecs, dstSpecs)
 	}
 
 	return false
@@ -266,7 +270,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 
 	// Get source manifest
 	inspectSourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
-	out, err = registry.SkopeoInspect(inspectSourceImage, "--raw")
+	out, err = skopeo.Inspect(inspectSourceImage, "--raw")
 	if err != nil {
 		return fmt.Errorf("inspect source image failed: %w", err)
 	}
@@ -314,7 +318,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 
 	// Get destination manifest
 	inspectDestImage := fmt.Sprintf("docker://%s:%s", m.Destination, m.Tag)
-	out, err = registry.SkopeoInspect(inspectDestImage, "--raw")
+	out, err = skopeo.Inspect(inspectDestImage, "--raw")
 	if err != nil {
 		// destination image not found, this error is expected
 		return nil
@@ -444,7 +448,7 @@ func (m *Mirror) initImageListByV2() error {
 		func(bi types.BlobInfo) ([]byte, error) {
 			// get source image config
 			sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
-			o, e := registry.SkopeoInspect(sourceImage, "--raw", "--config")
+			o, e := skopeo.Inspect(sourceImage, "--raw", "--config")
 			return []byte(o), e
 		},
 	)
@@ -466,7 +470,7 @@ func (m *Mirror) initImageListByV2() error {
 		m.sourceImageInfo.Variant)
 	sourceImage := fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
-	digest, err := registry.SkopeoInspect(
+	digest, err := skopeo.Inspect(
 		"docker://"+sourceImage, "--format", "{{ .Digest }}")
 	if err != nil {
 		return fmt.Errorf("initImageListByV2: %w", err)
@@ -493,7 +497,7 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 	var err error
 	m.sourceImageInfo = &types.ImageInspectInfo{}
 	sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
-	o, err := registry.SkopeoInspect(sourceImage, "--raw", "--config")
+	o, err := skopeo.Inspect(sourceImage, "--raw", "--config")
 	if err != nil {
 		return fmt.Errorf("initImageListByOCIManifestV1: %w", err)
 	}
@@ -517,7 +521,7 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 		m.sourceImageInfo.Variant)
 	sourceImage = fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
-	digest, err := registry.SkopeoInspect(
+	digest, err := skopeo.Inspect(
 		"docker://"+sourceImage, "--format", "{{ .Digest }}")
 	if err != nil {
 		return fmt.Errorf("initImageListByOCIManifestV1: %w", err)
@@ -546,7 +550,7 @@ func (m *Mirror) initImageListByV1() error {
 		func(bi types.BlobInfo) ([]byte, error) {
 			// get source image config
 			sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
-			o, e := registry.SkopeoInspect(sourceImage, "--raw", "--config")
+			o, e := skopeo.Inspect(sourceImage, "--raw", "--config")
 			return []byte(o), e
 		},
 	)
@@ -568,7 +572,7 @@ func (m *Mirror) initImageListByV1() error {
 		m.sourceImageInfo.Variant)
 	sourceImage := fmt.Sprintf("%s:%s", m.Source, m.Tag)
 	destImage := fmt.Sprintf("%s:%s", m.Destination, copiedTag)
-	digest, err := registry.SkopeoInspect(
+	digest, err := skopeo.Inspect(
 		"docker://"+sourceImage, "--format", "{{ .Digest }}")
 	if err != nil {
 		return fmt.Errorf("initImageListByV1: %w", err)
@@ -593,41 +597,49 @@ func (m *Mirror) initImageListByV1() error {
 
 // updateDestManifest
 func (m *Mirror) updateDestManifest() error {
-	var args []string = []string{
-		"imagetools",
-		"create",
-		fmt.Sprintf("--tag=%s:%s", m.Destination, m.Tag),
-	}
-
+	var params []hm.BuildManifestListParam
 	for _, img := range m.images {
 		if !img.Copied && !img.Loaded {
 			continue
 		}
-		// args = append(args, img.Destination)
-		manifest := DockerBuildxManifest{
+		param := hm.BuildManifestListParam{
 			Digest: img.Digest,
-			Platform: DockerBuildxPlatform{
+			Platform: hm.BuildManifestListPlatform{
 				Architecture: img.Arch,
 				OS:           img.OS,
 				Variant:      img.Variant,
 				OsVersion:    img.OsVersion,
 			},
 		}
-		data, err := json.MarshalIndent(manifest, "", "  ")
-		if err != nil {
-			logrus.Warnf("updateDestManifest: %v", err)
-			continue
-		}
-		logrus.WithFields(logrus.Fields{
-			"M_ID":   img.MID,
-			"IMG_ID": img.IID}).
-			Debugf("updateDestManifest: %s", string(data))
-		args = append(args, string(data))
+		params = append(params, param)
 	}
 
-	// docker buildx imagetools create --tag=registry/repository:tag <images>
-	if err := registry.DockerBuildx(args...); err != nil {
+	if len(params) == 0 {
+		logrus.Warnf("updateDestManifest: no manifest to build")
+		return fmt.Errorf("updateDestManifest: image list is empty")
+	}
+
+	if config.GetBool("TESTING") {
+		return nil
+	}
+
+	uname, passwd, _ := credential.GetRegistryCredential(
+		utils.GetRegistryName(m.Source))
+	s2, err := hm.BuildManifestList(m.Source, uname, passwd, params)
+	if err != nil {
 		return fmt.Errorf("updateDestManifest: %w", err)
 	}
+	dt, _ := json.MarshalIndent(s2, "", "  ")
+	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
+		Debugf("updateDestManifest: %s", string(dt))
+
+	dst := fmt.Sprintf("%s:%s", m.Destination, m.Tag)
+	uname, passwd, _ = credential.GetRegistryCredential(
+		utils.GetRegistryName(m.Destination))
+	err = hm.PushManifest(dst, uname, passwd, dt)
+	if err != nil {
+		return fmt.Errorf("updateDestManifest: %w", err)
+	}
+
 	return nil
 }

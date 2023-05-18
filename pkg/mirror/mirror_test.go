@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/cnrancher/hangar/pkg/config"
-	"github.com/cnrancher/hangar/pkg/image"
-	r "github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/mirror/image"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -30,6 +30,7 @@ var testFs embed.FS
 func init() {
 	logrus.SetOutput(io.Discard)
 	config.Set("jobs", 2)
+	config.Set("TESTING", true)
 }
 
 // StartMirror method should test manually,
@@ -100,7 +101,7 @@ func Test_S2V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
@@ -117,7 +118,7 @@ func Test_S2V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initImageListByV2(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
@@ -127,7 +128,7 @@ func Test_S2V2(t *testing.T) {
 		m.images[i].Digest = sourceSum
 	}
 	// reset the override command function
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 
 	// test MIME type
 	if m.sourceMIMEType != manifest.DockerV2Schema2MediaType {
@@ -152,7 +153,7 @@ func Test_S2V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -211,7 +212,7 @@ func Test_S2V2(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 // Test_S2V2List simulates the mirror operations when
@@ -238,11 +239,11 @@ func Test_S2V2List(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 
 	// test MIME Type
 	if m.sourceMIMEType != manifest.DockerV2ListMediaType {
@@ -271,7 +272,7 @@ func Test_S2V2List(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -323,7 +324,7 @@ func Test_S2V2List(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 // Test_S1V2 simulates the mirror operations when
@@ -349,7 +350,7 @@ func Test_S1V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest:", err.Error())
 	}
@@ -380,12 +381,12 @@ func Test_S1V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	// Generate imager from source manifest
 	if err := m.initImageListByV1(); err != nil {
 		t.Error("initImageListByV2 failed:", err.Error())
 	}
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 
 	if m.ImageNum() != 1 {
 		t.Error("initImageListByV1 should only generate 1 image")
@@ -401,7 +402,7 @@ func Test_S1V2(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -448,12 +449,12 @@ func Test_S1V2(t *testing.T) {
 	fake = func(p string, i io.Reader, o io.Writer, a ...string) error {
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	// updateDestManifest
 	if err := m.updateDestManifest(); err != nil {
 		t.Error("updateDestManifest:", err.Error())
 	}
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 // Test_OCI_Index simulates the mirror operations when
@@ -480,11 +481,11 @@ func Test_OCI_Index(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 
 	// test MIME Type
 	if m.sourceMIMEType != imgspecv1.MediaTypeImageIndex {
@@ -513,7 +514,7 @@ func Test_OCI_Index(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	for _, img := range m.images {
 		if err := img.Copy(); err != nil {
 			t.Error("img.Copy failed:", err.Error())
@@ -585,7 +586,7 @@ func Test_OCI_Index(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }
 
 // Test_OCI_Manifest simulates the mirror operations when
@@ -612,7 +613,7 @@ func Test_OCI_Manifest(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initSourceDestinationManifest(); err != nil {
 		t.Error("initSourceDestinationManifest failed:", err.Error())
 	}
@@ -629,12 +630,12 @@ func Test_OCI_Manifest(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	if err := m.initImageListByOCIManifestV1(); err != nil {
 		t.Error("initImageListByOCIManifestV1 failed:", err.Error())
 	}
 	// reset the override command function
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 
 	// test MIME type
 	if m.sourceMIMEType != imgspecv1.MediaTypeImageManifest {
@@ -659,7 +660,7 @@ func Test_OCI_Manifest(t *testing.T) {
 		}
 		return nil
 	}
-	r.RunCommandFunc = fake
+	skopeo.RunCommandFunc = fake
 	srcManifest, _ := testFs.ReadFile(TestOCIManifestFileName)
 	sourceSum := "sha256:" + u.Sha256Sum(string(srcManifest[:]))
 	for _, img := range m.images {
@@ -721,5 +722,5 @@ func Test_OCI_Manifest(t *testing.T) {
 	}
 
 	// Reset the override run command func
-	r.RunCommandFunc = nil
+	skopeo.RunCommandFunc = nil
 }

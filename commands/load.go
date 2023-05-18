@@ -9,8 +9,9 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/archive"
 	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/credential"
+	"github.com/cnrancher/hangar/pkg/harbor"
 	"github.com/cnrancher/hangar/pkg/mirror"
-	"github.com/cnrancher/hangar/pkg/registry"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -42,7 +43,7 @@ func newLoadCmd() *loadCmd {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 
-			if err := cc.baseCmd.selfCheckDependencies(checkAll); err != nil {
+			if err := cc.baseCmd.selfCheckDependencies(); err != nil {
 				return err
 			}
 			if err := cc.setupFlags(); err != nil {
@@ -56,7 +57,7 @@ func newLoadCmd() *loadCmd {
 			if err := cc.decompressTarball(); err != nil {
 				return err
 			}
-			if err := cc.baseCmd.processDockerLogin(); err != nil {
+			if err := cc.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
 			if err := cc.prepareMirrorers(); err != nil {
@@ -101,7 +102,7 @@ func (cc *loadCmd) setupFlags() error {
 		return fmt.Errorf("destination registry URL not specified, " +
 			"use '-d' to specify the destination registry URL")
 	}
-	err := cc.baseCmd.runDockerLogin(config.GetString("destination"))
+	err := cc.baseCmd.runSkopeoLogin(config.GetString("destination"))
 	if err != nil {
 		// output login failed message only
 		logrus.Warn(err)
@@ -186,8 +187,8 @@ func (cc *loadCmd) createHarborProject() {
 			} else {
 				url = "http://" + url
 			}
-			user, passwd, _ := registry.GetDockerPassword(dstReg)
-			err := registry.CreateHarborProject(dstProj, url, user, passwd)
+			user, passwd, _ := credential.GetRegistryCredential(dstReg)
+			err := harbor.CreateProject(dstProj, url, user, passwd)
 			if err != nil {
 				logrus.Errorf("failed to create harbor project %q: %q",
 					dstProj, err)

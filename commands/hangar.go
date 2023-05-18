@@ -46,6 +46,7 @@ Documents of this tool: https://github.com/cnrancher/hangar#docs
 	cc.cmd.SilenceUsage = true
 
 	cc.cmd.PersistentFlags().BoolP("debug", "", false, "enable debug output")
+	cc.cmd.PersistentFlags().BoolP("tls-verify", "", true, "enable https tls verify")
 
 	return cc
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/cnrancher/hangar/pkg/registry"
+	"github.com/cnrancher/hangar/pkg/skopeo"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -52,7 +52,7 @@ func (img *Image) Save() error {
 		"--dest-compress-level=9",
 		"--dest-shared-blob-dir=" + share,
 	}
-	err = registry.SkopeoCopy(sourceImage, destImageDir, args...)
+	err = skopeo.Copy(sourceImage, destImageDir, args...)
 	if err != nil {
 		return fmt.Errorf("Save: skopeo copy :%w", err)
 	}

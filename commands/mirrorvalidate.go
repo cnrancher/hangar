@@ -32,14 +32,13 @@ func newMirrorValidateCmd() *mirrorValidateCmd {
 				logrus.SetLevel(logrus.DebugLevel)
 			}
 
-			if err := cc.mirrorCmd.baseCmd.selfCheckDependencies(
-				checkDockerSkopeo); err != nil {
+			if err := cc.mirrorCmd.baseCmd.selfCheckDependencies(); err != nil {
 				return err
 			}
 			if err := cc.mirrorCmd.setupFlags(); err != nil {
 				return err
 			}
-			if err := cc.mirrorCmd.baseCmd.processDockerLogin(); err != nil {
+			if err := cc.mirrorCmd.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
 			if err := cc.mirrorCmd.processImageList(); err != nil {
