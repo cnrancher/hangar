@@ -40,5 +40,5 @@ mkdir -p $WORKINGDIR/build
 cd $WORKINGDIR/build
 
 OUTPUT="hangar-$OS-$ARCH-$VERSION"
-GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
+CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
 echo $(pwd)/$OUTPUT

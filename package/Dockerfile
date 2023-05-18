@@ -5,9 +5,7 @@ RUN zypper up -y && \
     zypper clean
 
 # Add skopeo compiled binary file
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.11.0 /usr/local/bin/skopeo /usr/local/bin/
-
-# Check docker, docker-buildx, skopeo version
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.11.2 /usr/local/bin/skopeo /usr/local/bin/
 RUN skopeo -v
 
 WORKDIR /images

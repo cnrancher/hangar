@@ -23,6 +23,7 @@ func Test_GetVersions(t *testing.T) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			t.Log("skip test")
+			return
 		}
 		t.Error(err)
 		return

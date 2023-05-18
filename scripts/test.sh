@@ -26,17 +26,4 @@ if [[ ! -e "pkg/rancher/kdmimages/test/data.json" ]]; then
     wget --no-check-certificate https://github.com/rancher/kontainer-driver-metadata/raw/dev-v2.7/data/data.json -O pkg/rancher/kdmimages/test/data.json
 fi
 
-go test -v -cover --count=1 ./pkg/archive
-go test -v -cover --count=1 ./pkg/config
-go test -v -cover --count=1 ./pkg/credential
-go test -v -cover --count=1 ./pkg/credential/cache
-go test -v -cover --count=1 ./pkg/harbor
-go test -v -cover --count=1 ./pkg/manifest
-go test -v -cover --count=1 ./pkg/mirror
-go test -v -cover --count=1 ./pkg/mirror/image
-go test -v -cover --count=1 ./pkg/rancher/chartimages
-go test -v -cover --count=1 ./pkg/rancher/kdmimages
-go test -v -cover --count=1 ./pkg/rancher/listgenerator
-go test -v -cover --count=1 ./pkg/skopeo
-go test -v -cover --count=1 ./pkg/utils
-
+CGO_ENABLED=0 go test -v -cover --count=1 ./...

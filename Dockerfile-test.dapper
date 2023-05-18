@@ -11,7 +11,7 @@ COPY --from=docker.io/library/docker:23.0 /usr/local/bin/docker /usr/local/bin/
 # docker-buildx
 COPY --from=docker.io/docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 # skopeo
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.10.0 /usr/local/bin/skopeo /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.11.2 /usr/local/bin/skopeo /usr/local/bin/
 
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 vim wget git && \
