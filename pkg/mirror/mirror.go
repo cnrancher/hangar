@@ -624,8 +624,8 @@ func (m *Mirror) updateDestManifest() error {
 	}
 
 	uname, passwd, _ := credential.GetRegistryCredential(
-		utils.GetRegistryName(m.Source))
-	s2, err := hm.BuildManifestList(m.Source, uname, passwd, params)
+		utils.GetRegistryName(m.Destination))
+	s2, err := hm.BuildManifestList(m.Destination, uname, passwd, params)
 	if err != nil {
 		return fmt.Errorf("updateDestManifest: %w", err)
 	}

@@ -61,7 +61,7 @@ func compareBuildManifest(src, dst *BuildManifestListParam) bool {
 }
 
 func BuildManifestList(
-	sourceImage, uname, passwd string,
+	destImage, uname, passwd string,
 	params []BuildManifestListParam,
 ) (*manifest.Schema2List, error) {
 	skipTls := !config.GetBool("tls-verify")
@@ -81,8 +81,8 @@ func BuildManifestList(
 	}
 
 	for _, p := range params {
-		src := fmt.Sprintf("docker://%s@%s", sourceImage, p.Digest)
-		ref, err := alltransports.ParseImageName(src)
+		dst := fmt.Sprintf("docker://%s@%s", destImage, p.Digest)
+		ref, err := alltransports.ParseImageName(dst)
 		if err != nil {
 			return nil, fmt.Errorf("BuildManifestList: %w", err)
 		}
