@@ -195,7 +195,7 @@ func Test_S2V2(t *testing.T) {
 	}
 
 	// simulate the docker buildx operation
-	if err := m.updateDestManifest(); err != nil {
+	if err := m.updateDestManifest(m.SourceManifestSpec()); err != nil {
 		t.Error("updateDestManifest failed:", err.Error())
 	}
 	// now the mirror operation of s2v2 is finished
@@ -451,7 +451,7 @@ func Test_S1V2(t *testing.T) {
 	}
 	skopeo.RunCommandFunc = fake
 	// updateDestManifest
-	if err := m.updateDestManifest(); err != nil {
+	if err := m.updateDestManifest(m.SourceManifestSpec()); err != nil {
 		t.Error("updateDestManifest:", err.Error())
 	}
 	skopeo.RunCommandFunc = nil
@@ -705,7 +705,7 @@ func Test_OCI_Manifest(t *testing.T) {
 	}
 
 	// simulate the docker buildx operation
-	if err := m.updateDestManifest(); err != nil {
+	if err := m.updateDestManifest(m.SourceManifestSpec()); err != nil {
 		t.Error("updateDestManifest failed:", err.Error())
 	}
 	// now the mirror operation of s2v2 is finished

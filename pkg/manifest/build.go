@@ -60,6 +60,19 @@ func compareBuildManifest(src, dst *BuildManifestListParam) bool {
 	return true
 }
 
+func BuildManifestExists(
+	src []BuildManifestListParam, e BuildManifestListParam) bool {
+	if len(src) == 0 {
+		return false
+	}
+	for _, p := range src {
+		if compareBuildManifest(&p, &e) {
+			return true
+		}
+	}
+	return false
+}
+
 func BuildManifestList(
 	destImage, uname, passwd string,
 	params []BuildManifestListParam,

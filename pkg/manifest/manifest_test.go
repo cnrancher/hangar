@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cnrancher/hangar/pkg/credential"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_CompareBuildManifest(t *testing.T) {
@@ -49,6 +50,36 @@ func Test_CompareBuildManifest(t *testing.T) {
 	if compareBuildManifest(&src, &dst) {
 		t.Error("CompareBuildxManifest 3 failed")
 	}
+}
+
+func Test_BuildManifestExists(t *testing.T) {
+	assert.False(t, BuildManifestExists(nil, BuildManifestListParam{}))
+	assert.False(t, BuildManifestExists(
+		[]BuildManifestListParam{}, BuildManifestListParam{}))
+	params := []BuildManifestListParam{
+		{
+			Digest: "sha256:aaa",
+			Platform: BuildManifestListPlatform{
+				Architecture: "amd64",
+			},
+		},
+	}
+	assert.False(t, BuildManifestExists(
+		params, BuildManifestListParam{}))
+	assert.False(t, BuildManifestExists(
+		params, BuildManifestListParam{
+			Digest: "sha256:bbb",
+			Platform: BuildManifestListPlatform{
+				Architecture: "amd64",
+			},
+		}))
+	assert.True(t, BuildManifestExists(
+		params, BuildManifestListParam{
+			Digest: "sha256:aaa",
+			Platform: BuildManifestListPlatform{
+				Architecture: "amd64",
+			},
+		}))
 }
 
 func Test_PushManifest(t *testing.T) {

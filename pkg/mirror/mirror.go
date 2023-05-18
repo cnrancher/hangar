@@ -11,7 +11,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/mirror/image"
 	"github.com/cnrancher/hangar/pkg/skopeo"
 	"github.com/cnrancher/hangar/pkg/utils"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -98,7 +97,7 @@ func (m *Mirror) Start() error {
 
 func (m *Mirror) StartMirror() error {
 	if m == nil {
-		return fmt.Errorf("StartMirror: %w", u.ErrNilPointer)
+		return fmt.Errorf("StartMirror: %w", utils.ErrNilPointer)
 	}
 	if m.Mode != MODE_MIRROR {
 		return fmt.Errorf("StartSave: mirror is not in MIRROR mode")
@@ -129,17 +128,17 @@ func (m *Mirror) StartMirror() error {
 	}
 
 	// If the source manifest list does not equal to the dest manifest list
-	// if !m.compareSourceDestManifest() {
-	logrus.WithField("M_ID", m.MID).
-		Info("creating dest manifest list...")
-	// Create a new dest manifest list
-	if err := m.updateDestManifest(); err != nil {
-		return fmt.Errorf("Mirror: %w", err)
+	if !m.compareSourceDestManifest() {
+		logrus.WithField("M_ID", m.MID).
+			Info("creating dest manifest list...")
+		// Create a new dest manifest list
+		if err := m.updateDestManifest(m.SourceManifestSpec()); err != nil {
+			return fmt.Errorf("Mirror: %w", err)
+		}
+	} else {
+		logrus.WithField("M_ID", m.MID).
+			Info("dest manifest list already exists, no need to recreate")
 	}
-	// } else {
-	// 	logrus.WithField("M_ID", m.MID).
-	// 		Info("Dest manifest list already exists, no need to recreate")
-	// }
 
 	logrus.WithField("M_ID", m.MID).
 		Infof("MIRROR [%s:%s] => [%s:%s]",
@@ -199,26 +198,27 @@ func (m *Mirror) AppendImage(img *image.Image) {
 	m.images = append(m.images, img)
 }
 
-// SourceManifestSpec gets the source manifest data used by docker-buildx
+// SourceManifestSpec gets the source manifest data
 func (m *Mirror) SourceManifestSpec() []hm.BuildManifestListParam {
 	var spec []hm.BuildManifestListParam = make([]hm.BuildManifestListParam, 0)
 	for _, img := range m.images {
-		if img.Copied {
-			spec = append(spec, hm.BuildManifestListParam{
-				Digest: img.Digest,
-				Platform: hm.BuildManifestListPlatform{
-					Architecture: img.Arch,
-					OS:           img.OS,
-					Variant:      img.Variant,
-					OsVersion:    img.OsVersion,
-				},
-			})
+		if !img.Copied && !img.Loaded {
+			continue
 		}
+		spec = append(spec, hm.BuildManifestListParam{
+			Digest: img.Digest,
+			Platform: hm.BuildManifestListPlatform{
+				Architecture: img.Arch,
+				OS:           img.OS,
+				Variant:      img.Variant,
+				OsVersion:    img.OsVersion,
+			},
+		})
 	}
 	return spec
 }
 
-// DestinationManifestSpec gets the dest manifest data used by docker-buildx
+// DestinationManifestSpec gets the dest manifest data
 func (m *Mirror) DestinationManifestSpec() []hm.BuildManifestListParam {
 	var spec []hm.BuildManifestListParam = make([]hm.BuildManifestListParam, 0)
 	switch m.destMIMEType {
@@ -383,7 +383,8 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	if images == 0 {
 		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
 			m.Source, m.ArchList)
-		return fmt.Errorf("initImageListByListV2: %w", u.ErrNoAvailableImage)
+		return fmt.Errorf("initImageListByListV2: %w",
+			utils.ErrNoAvailableImage)
 	}
 
 	return nil
@@ -436,7 +437,7 @@ func (m *Mirror) initSourceImageListByOCIIndexV1() error {
 		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
 			m.Source, m.ArchList)
 		return fmt.Errorf("initSourceImageListByOCIIndexV1: %w",
-			u.ErrNoAvailableImage)
+			utils.ErrNoAvailableImage)
 	}
 
 	return nil
@@ -460,7 +461,7 @@ func (m *Mirror) initImageListByV2() error {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
-		return fmt.Errorf("initImageListByV2: %w", u.ErrNoAvailableImage)
+		return fmt.Errorf("initImageListByV2: %w", utils.ErrNoAvailableImage)
 	}
 
 	copiedTag := image.CopiedTag(
@@ -511,7 +512,7 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
 		return fmt.Errorf("initImageListByOCIManifestV1: %w",
-			u.ErrNoAvailableImage)
+			utils.ErrNoAvailableImage)
 	}
 
 	copiedTag := image.CopiedTag(
@@ -596,24 +597,7 @@ func (m *Mirror) initImageListByV1() error {
 }
 
 // updateDestManifest
-func (m *Mirror) updateDestManifest() error {
-	var params []hm.BuildManifestListParam
-	for _, img := range m.images {
-		if !img.Copied && !img.Loaded {
-			continue
-		}
-		param := hm.BuildManifestListParam{
-			Digest: img.Digest,
-			Platform: hm.BuildManifestListPlatform{
-				Architecture: img.Arch,
-				OS:           img.OS,
-				Variant:      img.Variant,
-				OsVersion:    img.OsVersion,
-			},
-		}
-		params = append(params, param)
-	}
-
+func (m *Mirror) updateDestManifest(params []hm.BuildManifestListParam) error {
 	if len(params) == 0 {
 		logrus.Warnf("updateDestManifest: no manifest to build")
 		return fmt.Errorf("updateDestManifest: image list is empty")

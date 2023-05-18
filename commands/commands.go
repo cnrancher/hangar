@@ -52,7 +52,7 @@ func (cc *baseCmd) processSkopeoLogin() error {
 		if utils.EnvSourceRegistry == "" {
 			utils.EnvSourceRegistry = utils.DockerHubRegistry
 		}
-		logrus.Infof("running skopeo login to %q", utils.EnvSourceRegistry)
+		logrus.Infof("running skopeo login %q", utils.EnvSourceRegistry)
 		if err := skopeo.Login(
 			utils.EnvSourceRegistry,
 			utils.EnvSourceUsername,
@@ -66,7 +66,7 @@ func (cc *baseCmd) processSkopeoLogin() error {
 		if utils.EnvDestRegistry == "" {
 			utils.EnvDestRegistry = utils.DockerHubRegistry
 		}
-		logrus.Infof("running skopeo login to %q", utils.EnvSourceRegistry)
+		logrus.Infof("running skopeo login %q", utils.EnvDestRegistry)
 		if err := skopeo.Login(
 			utils.EnvDestRegistry,
 			utils.EnvDestUsername,

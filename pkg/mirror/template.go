@@ -6,11 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/mirror/image"
-	u "github.com/cnrancher/hangar/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -106,25 +105,26 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 // LoadSavedTemplates loads the saved json templates to *Mirror slice
 func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 	var err error
-	if directory, err = u.GetAbsPath(directory); err != nil {
-		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
+	if directory, err = utils.GetAbsPath(directory); err != nil {
+		return nil, fmt.Errorf("LoadSavedTemplates: %w", err)
 	}
 	logrus.Debugf("LoadSavedTemplates from dir: %v", directory)
 
 	savedList := SavedListTemplate{}
-	f, err := os.Open(filepath.Join(directory, u.SavedImageListFile))
+	f, err := os.Open(filepath.Join(directory, utils.SavedImageListFile))
 	if err != nil {
-		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
+		return nil, fmt.Errorf("LoadSavedTemplates: %w", err)
 	}
 	err = json.NewDecoder(f).Decode(&savedList)
 	if err != nil {
-		return nil, fmt.Errorf("LoadSavedMirrorTemplate: %w", err)
+		return nil, fmt.Errorf("LoadSavedTemplates: %w", err)
 	}
 
 	logrus.Debugf("savedList.Version: %v", savedList.Version)
 	sVersion := savedList.Version
-	if !strings.HasPrefix(sVersion, "v") {
-		sVersion = "v" + sVersion
+	sVersion, err = utils.EnsureSemverValid(sVersion)
+	if err != nil {
+		return nil, fmt.Errorf("LoadSavedTemplates: %w", err)
 	}
 	if semver.Compare(sVersion, SavedTemplateVersion) != 0 {
 		logrus.Warnf("Template version in saved tarball is %q", sVersion)
@@ -138,14 +138,14 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 	var mirrorList []*Mirror
 	for i, mT := range savedList.List {
 		source := mT.Source
-		if u.GetProjectName(source) == "" && proj != "" {
+		if utils.GetProjectName(source) == "" && proj != "" {
 			logrus.Warnf("%q does not have project name, set to %q",
 				source, proj)
-			source = u.ReplaceProjectName(source, proj)
+			source = utils.ReplaceProjectName(source, proj)
 		}
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
-			Destination: u.ConstructRegistry(source, destReg),
+			Destination: utils.ConstructRegistry(source, destReg),
 			Directory:   directory,
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
@@ -165,7 +165,7 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 			// Source is a directory
 			srcImageDir := filepath.Join(directory, iT.Folder)
 			// Destination is the dest registry
-			repo := u.ConstructRegistry(source, destReg)
+			repo := utils.ConstructRegistry(source, destReg)
 			destImage := fmt.Sprintf("%s:%s", repo, copiedTag)
 			img := image.NewImage(&image.ImageOptions{
 				Source:      srcImageDir,

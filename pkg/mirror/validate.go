@@ -209,14 +209,27 @@ func (m *Mirror) validateLoadImages() error {
 	for i := range dstSpecs {
 		dstSpecs[i].Digest = ""
 	}
-	if !hm.CompareBuildManifests(srcSpecs, dstSpecs) {
+	sourcesInDestSpec := true
+	for _, s := range srcSpecs {
+		if !hm.BuildManifestExists(dstSpecs, s) {
+			sourcesInDestSpec = false
+			logrus.WithField("M_ID", m.MID).Warnf(
+				"image %q in loaded file but does not exists "+
+					"in dest manifest list",
+				s.Digest)
+			break
+		}
+	}
+	if !sourcesInDestSpec {
 		srcJson, _ := json.MarshalIndent(srcSpecs, "", "  ")
 		dstJson, _ := json.MarshalIndent(dstSpecs, "", "  ")
 		logrus.WithField("M_ID", m.MID).
 			Errorf("srcSpec: %+v", string(srcJson))
 		logrus.WithField("M_ID", m.MID).
 			Errorf("dstSpec: %+v", string(dstJson))
-		return fmt.Errorf("source manifest %q != dest %q, tag %q",
+
+		return fmt.Errorf(
+			"source %q\ndest manifest %q\ntag %q",
 			m.Source, m.Destination, m.Tag)
 	}
 	logrus.WithField("M_ID", m.MID).Infof("PASS [%s:%s] == [%s:%s]",

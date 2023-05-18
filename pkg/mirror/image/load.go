@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/skopeo"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,11 +32,11 @@ func (img *Image) Load() error {
 	if err = skopeo.Copy(sourceImage, destImage, args...); err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}
-	destManifest, err := skopeo.Inspect(destImage, "--raw")
+	destDigest, err := skopeo.Inspect(destImage, "--format", "{{ .Digest }}")
 	if err != nil {
 		return fmt.Errorf("Load: %w", err)
 	}
-	img.Digest = "sha256:" + u.Sha256Sum(destManifest)
+	img.Digest = strings.TrimSpace(destDigest)
 	img.Loaded = true
 	logrus.WithFields(logrus.Fields{
 		"M_ID":   img.MID,
