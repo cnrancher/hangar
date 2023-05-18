@@ -68,6 +68,32 @@ def ensure_load_file_exists():
         ], timeout=300, env=e)
         u.check_failed('save-failed.txt')
 
+    if not os.path.isdir('amd64-images'):
+        print('prepare load amd64-images directory: ')
+        e = get_save_env()
+        u.run_subprocess(u.hangar, args=[
+            'save',
+            '-f', './data/save_test_one.txt',
+            '-j', '10',
+            '--compress', 'dir',
+            '-a', 'amd64',
+            '-d', 'amd64-images'
+        ], timeout=300, env=e)
+        u.check_failed('save-failed.txt')
+
+    if not os.path.isdir('arm64-images'):
+        print('prepare load amd64-images directory: ')
+        e = get_save_env()
+        u.run_subprocess(u.hangar, args=[
+            'save',
+            '-f', './data/save_test_one.txt',
+            '-j', '10',
+            '--compress', 'dir',
+            '-a', 'arm64',
+            '-d', 'arm64-images'
+        ], timeout=300, env=e)
+        u.check_failed('save-failed.txt')
+
 def cleanup_generated_files():
     if os.path.exists(CACHE_DIRECTORY):
         shutil.rmtree(CACHE_DIRECTORY)
@@ -184,5 +210,39 @@ def test_load_part():
         '-s', 'load-part.tar.gz.part0',
         '-j', '10',
         '--compress', 'gzip'
+    ], timeout=300)
+    cleanup_generated_files()
+
+# Load from mullti files
+def test_load_multi_files():
+    print('test_load_multi_files')
+    ensure_load_file_exists()
+    # Load from amd64-images first
+    u.run_subprocess(u.hangar, args=[
+        'load',
+        '-s', 'amd64-images',
+        '-j', '1',
+        '--compress', 'dir'
+    ], timeout=300)
+    # The manifest list should contain images for the amd64 and arm64
+    u.run_subprocess(u.hangar, args=[
+        'load-validate',
+        '-s', './load-directory',
+        '-j', '10',
+        '--compress=dir',
+    ], timeout=300)
+    # Then load from arm64-images
+    u.run_subprocess(u.hangar, args=[
+        'load',
+        '-s', 'arm64-images',
+        '-j', '1',
+        '--compress', 'dir'
+    ], timeout=300)
+    # The manifest list should contain images for the amd64 and arm64
+    u.run_subprocess(u.hangar, args=[
+        'load-validate',
+        '-s', './load-directory',
+        '-j', '10',
+        '--compress=dir',
     ], timeout=300)
     cleanup_generated_files()
