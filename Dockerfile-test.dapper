@@ -1,27 +1,18 @@
 FROM registry.suse.com/bci/python:3.10
 
 ENV DAPPER_ENV SOURCE_REGISTRY SOURCE_USERNAME SOURCE_PASSWORD \
-DEST_REGISTRY DEST_USERNAME DEST_PASSWORD
+DEST_REGISTRY DEST_USERNAME DEST_PASSWORD TEST_SKIP_TLS
 ENV DAPPER_SOURCE /source/test
 ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
-# docker cli
-COPY --from=docker.io/library/docker:23.0 /usr/local/bin/docker /usr/local/bin/
-# docker-buildx
-COPY --from=docker.io/docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 # skopeo
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.11.2 /usr/local/bin/skopeo /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.12.0 /usr/local/bin/skopeo /usr/local/bin/
 
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 vim wget git && \
     zypper clean
-
-# Check docker, docker-buildx, skopeo version
-RUN docker --version && \
-    docker buildx version && \
-    skopeo -v
-
+RUN skopeo -v
 RUN pip install pytest
 
 ENTRYPOINT [ "test/scripts/entrypoint.sh" ]
