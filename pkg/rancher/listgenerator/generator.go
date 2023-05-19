@@ -1,6 +1,7 @@
 package listgenerator
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/config"
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	u "github.com/cnrancher/hangar/pkg/utils"
@@ -298,8 +300,13 @@ func (g *Generator) handleImageArguments() error {
 }
 
 func getHttpData(link string, timeout time.Duration) ([]byte, error) {
-	client := http.Client{
+	client := &http.Client{
 		Timeout: timeout,
+	}
+	if !config.GetBool("tls-verify") {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 	}
 	resp, err := client.Get(link)
 	if err != nil {
