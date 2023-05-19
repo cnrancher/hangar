@@ -17,6 +17,9 @@ in `./scripts/env.sh`.
     export DEST_USERNAME="" # harbor username
     export DEST_PASSWORD="" # harbor password
     ```
+
+    > If the Harbor v2 uses HTTP or insecure TLS certificate,
+    > set `export TEST_SKIP_TLS="true"` to skip tls verify.
 1. Run tests for subcommand:
     Run `pytest -s ./test_mirror.py` before test `save/load/compress/decompress` commands.
     ```console

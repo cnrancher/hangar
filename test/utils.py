@@ -39,6 +39,9 @@ def get_hangar_path(version):
 # Run the subprocess and return its stdout, stderr, return code
 def run_subprocess(path, args, timeout=300, stdin=None, stdout=None, stderr=None, env=None):
     print("run_subprocess: run: " + path)
+    if path == hangar and os.getenv("TEST_SKIP_TLS") == "true":
+        args.append("--tls-verify=false")
+
     args.insert(0, path)
     if stdin is None:
         stdin = sys.stdin
