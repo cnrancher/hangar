@@ -15,6 +15,10 @@ func (img *Image) Load() error {
 		"M_ID":   img.MID,
 		"IMG_ID": img.IID}).
 		Debugf("Load image directory: %s", img.Source)
+	logrus.WithFields(logrus.Fields{
+		"M_ID":   img.MID,
+		"IMG_ID": img.IID}).
+		Infof("loading to [%s]", img.Destination)
 	info, err := os.Stat(img.Source)
 	if err != nil {
 		return fmt.Errorf("Load: %w", err)

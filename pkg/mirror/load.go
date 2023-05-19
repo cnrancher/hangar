@@ -54,7 +54,7 @@ func (m *Mirror) loadedManifestParams() ([]hm.BuildManifestListParam, error) {
 
 		var srcContains = false
 		for _, sp := range srcParams {
-			if reflect.DeepEqual(dp, sp) {
+			if reflect.DeepEqual(dp.Platform, sp.Platform) {
 				srcContains = true
 			}
 		}
@@ -95,6 +95,8 @@ func (m *Mirror) StartLoad() error {
 	if err != nil {
 		return fmt.Errorf("StartLoad: %w", err)
 	}
+	logrus.WithField("M_ID", m.MID).
+		Info("creating dest manifest list...")
 	if err := m.updateDestManifest(param); err != nil {
 		return fmt.Errorf("StartLoad: %w", err)
 	}
