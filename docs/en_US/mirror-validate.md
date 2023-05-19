@@ -1,4 +1,5 @@
 # mirror-validate
+> [简体中文](/docs/zh_CN/mirror-validate.md)
 
 `mirror-validate` for validating the mirrored container images.
 
@@ -33,7 +34,8 @@ Flags:
   -s, --source string            override the source registry defined in image list
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```
 
 # FAQ

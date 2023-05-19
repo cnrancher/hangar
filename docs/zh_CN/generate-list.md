@@ -58,6 +58,11 @@ hangar generate-list --rancher="v2.7.0" --system-chart ./system-chart
 hangar generate-list --rancher="v2.7.0" --kdm ./data.json
 hangar generate-list --rancher="v2.7.0" --kdm https://releases.rancher.com/kontainer-driver-metadata/release-v2.7/data.json
 
+# 使用 --tls-verify=false 参数，跳过 URL 链接的 TLS 验证
+hangar generate-list --rancher="v2.7.0" \
+    --kdm "https://[insecure-https-url]/data.json" \
+    --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
 hangar generate-list --rancher="v2.7.0" --debug
 ```

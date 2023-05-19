@@ -1,4 +1,5 @@
 # generate-list
+> [简体中文](/docs/zh_CN/generate-list.md)
 
 ## QuickStart
 
@@ -32,7 +33,8 @@ Flags:
       --system-chart strings    cloned system chart repo path (URL is not supported)
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```
 
 ### Customize KDM data file and Chart repositories

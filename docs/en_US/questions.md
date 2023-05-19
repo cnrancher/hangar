@@ -1,12 +1,13 @@
 # FAQ
+> [简体中文](/docs/zh_CN/questions.md)
 
 ## Questions about Hangar
 
 1. Principle of Mirror / Load / Save functions
 
-    Hangar uses `skopeo` to copy container images from source registry server to destination registry server / local file, and use `docker-buildx` to create Manifest list for destination registry server.
+    Hangar uses `skopeo` to copy container images from source registry server to destination registry server / local file.
 
-    Dependencies used by Hangar: `skopeo`, `docker` (client) and `docker-buildx`. The docker daemon is not required.
+    It requires `skopeo` installed when running Hangar.
 
 ## Common errors
 

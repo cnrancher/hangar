@@ -42,6 +42,9 @@ hangar load-validate -s ./saved-image-cache -d private.registry.io --default-pro
 # 默认输出至 load-validate-failed.txt
 hangar load-validate -s ./saved-images.tar.gz -d private.registry.io -o failed.txt
 
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar load-validate -s ./saved-images.tar.gz --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
 hangar load-validate -s ./saved-images.tar.gz -d private.registry.io --debug
 ```

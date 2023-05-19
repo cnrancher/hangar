@@ -1,4 +1,5 @@
 # Compress
+> [简体中文](/docs/zh_CN/compress.md)
 
 Use compress command to compress the cache folder.
 

@@ -1,4 +1,5 @@
 # docker-images
+> [简体中文](/docs/zh_CN/docker-images.md)
 
 > `hangar` supports Docker images from `v1.3.0`.
 

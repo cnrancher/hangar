@@ -1,4 +1,5 @@
 # Mirror
+> [简体中文](/docs/zh_CN/mirror.md)
 
 ## Image List Format
 
@@ -32,6 +33,8 @@ hangar mirror -f ./image-list.txt -d <DESTINATION_REGISTRY_URL>
 
 If the destination image registry is Harbor V2, you can use the `--repo-type=harbor` parameter to automatically create the Harbor project (namespace).
 
+> Add `--harbor-https=false` when Harbor registry is HTTP.
+
 If the image in the image list does not have Project defined during Save (such as `mysql:8.0`, `busybox:latest`), then the `library` project will be automatically added to it during the Load process (`library/mysql:8.0`, `library/busybox:latest`).
 
 You can use `--default-project=library` parameter to specify the name of the added Project (default is `library`).
@@ -58,5 +61,6 @@ Flags:
   -s, --source string            override the source registry defined in image list
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```

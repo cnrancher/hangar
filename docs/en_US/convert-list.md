@@ -27,6 +27,7 @@ nginx custom.private.io/nginx latest
 ```
 
 ## Usages
+> [简体中文](/docs/zh_CN/convert-list.md)
 
 ```txt
 Usage:
@@ -43,5 +44,6 @@ Flags:
   -s, --source string        specify the source registry
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```

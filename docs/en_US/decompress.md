@@ -31,6 +31,7 @@ $ hangar decompress -f saved-images.tar.gz
 ```
 
 ## Usage
+> [简体中文](/docs/zh_CN/decompress.md)
 
 ```txt
 Usage:
@@ -42,5 +43,6 @@ Flags:
   -h, --help            help for decompress
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```

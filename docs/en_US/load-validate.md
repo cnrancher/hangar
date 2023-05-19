@@ -1,4 +1,5 @@
 # load-validate
+> [简体中文](/docs/zh_CN/load-validate.md)
 
 The `load-validate` command will verify the loaded image after executing `load` command to ensure that the image has been loaded to the destination registry. The list of images that fail the verification will be saved into the `load-validate-failed.txt` file.
 
@@ -35,7 +36,8 @@ Flags:
   -s, --source string            saved file to load validate (need to use '--compress' to specify the file format if not gzip)
 
 Global Flags:
-  --debug   enable debug output
+  --debug        enable debug output
+  --tls-verify   enable https tls verify (default true)
 ```
 
 # FAQ

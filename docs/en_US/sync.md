@@ -1,4 +1,5 @@
 # Sync
+> [简体中文](/docs/zh_CN/sync.md)
 
 The sync command syncs the extra container images into the cache folder created by [Save](./save.md) command.
 
@@ -37,7 +38,8 @@ Flags:
   -s, --source string        override the source registry defined in image list
 
 Global Flags:
-      --debug   enable debug output
+      --debug        enable debug output
+      --tls-verify   enable https tls verify (default true)
 ```
 
 ## Others

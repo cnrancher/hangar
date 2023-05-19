@@ -4,9 +4,9 @@
 
 1. Hangar 的 Mirror / Load / Save 功能的原理
 
-    Hangar 使用 `skopeo` 拷贝容器镜像至目标镜像服务器或本地文件夹中，并使用 `docker-buildx` 为目标镜像服务器创建 Manifest 列表。
+    Hangar 使用 `skopeo` 拷贝容器镜像至目标镜像服务器或本地文件夹中。
 
-    Hangar 的第三方依赖为 `skopeo`，`docker` 客户端以及 `docker-buildx` 插件，但不需要 Docker Daemon。
+    目前 Hangar 运行时使用了 `skopeo` 第三方依赖。
 
 ## 可能遇到的报错
 

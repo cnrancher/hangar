@@ -44,6 +44,8 @@ $ hangar load -s saved-images.tar.gz -d private.registry.io
 
 若目标镜像仓库类型为 Harbor V2，那么可使用 `--repo-type=harbor` 参数，该参数会在导入时自动为 Harbor V2 仓库创建 Project。
 
+> 若 Harbor V2 为 HTTP，还需要添加 `--harbor-https=false` 参数。
+
 若 Save 时镜像列表中的目标镜像不包含 `Project` （例如 `mysql:8.0`, `busybox:latest`），那么在 Load 的过程中会自动为其添加 `library` Project 前缀（`library/mysql:8.0`，`library/busybox:latest`）。
 
 可使用 `--default-project=library` 参数设定添加 Project 的名称 （默认为 `library`）。
@@ -81,8 +83,11 @@ hangar load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程
 # 默认输出至 mirror-failed.txt
 hangar load -s ./saved-images.tar.gz -o failed-list.txt
 
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar load -s ./saved-images.tar.gz --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
-hangar load -s ./saved-images.tar.gz -debug
+hangar load -s ./saved-images.tar.gz --debug
 ```
 
 ## 加载分卷压缩包
@@ -108,3 +113,81 @@ $ hangar load -s saved-images.tar.gz -d private.registry.io
 ```
 
 > 请不要尝试单独 Load 某一个 Part 文件，因文件不完整，无法解压。
+
+## 加载不同架构的镜像包
+
+> `v1.6.0` 及后续版本支持此功能
+
+Load 命令支持导入不同架构的镜像包，请参照下面的例子了解此特性的用法：
+
+使用 Hangar Save 命令创建了多个不同架构的压缩包，例如：
+
+```sh
+# 样例镜像列表
+cat list.txt
+docker.io/library/nginx:1.22
+docker.io/library/nginx:1.23
+
+# 仅生成包含 AMD64 架构的镜像包
+hangar save -f list.txt -a "amd64" -d amd64-images.tar.gz
+
+# 仅生成包含 ARM64 架构的镜像包
+hangar save -f list.txt -a "arm64" -d arm64-images.tar.gz
+```
+
+Hangar 的 Load 命令支持依次导入此例子中的 `amd64-images.tar.gz` 和 `arm64-images.tar.gz` 至 Registry Server 中，最终构建的 Manifest List 包含两种架构的镜像索引。
+
+```sh
+# 先导入仅包含 AMD64 架构的镜像包至 Registry Server
+hangar load -s amd64-images.tar.gz -d <REGISTRY_URL>
+
+# 此时查看已导入的镜像的 Manifest List，仅包含 ARM64 架构
+skopeo inspect docker://<REGISTRY_URL>/library/nginx:1.22 --raw | jq
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+  "manifests": [
+    {
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "size": 1235,
+      "digest": "sha256:66f1a9ae96f5a18068fcbd53e0171c78b40adffa3d70f565341eb453a34bb099",
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux",
+        "variant": "v8"
+      }
+    }
+  ]
+}
+
+# 再导入包含 ARM64 架构的镜像包至 Registry Server
+hangar load -s arm64-images.tar.gz -d <REGISTRY_URL>
+
+# 导入两种架构的镜像包后，查看导入后的镜像的 Manifest List，包含 AMD64 和 ARM64 两种架构
+skopeo inspect docker://<REGISTRY_URL>/library/nginx:1.22 --raw | jq
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+  "manifests": [
+    {
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "size": 1235,
+      "digest": "sha256:66f1a9ae96f5a18068fcbd53e0171c78b40adffa3d70f565341eb453a34bb099",
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux",
+        "variant": "v8"
+      }
+    },
+    {
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "size": 1235,
+      "digest": "sha256:7dcde3f4d7eec9ccd22f2f6873a1f0b10be189405dcbfbaac417487e4fb44c4b",
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      }
+    }
+  ]
+}
+```

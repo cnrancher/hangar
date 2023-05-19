@@ -23,6 +23,8 @@ Validation Test 包含以下内容：
     export DEST_USERNAME="" # harbor 用户名
     export DEST_PASSWORD="" # harbor 密码
     ```
+    > 若搭建的 Harbor V2 仓库为 HTTP 或使用了自签名 SSL 证书，请设置环境变量
+    > `export TEST_SKIP_TLS="true"` 以启用 Hangar 的 `--tls-verify=false` 参数。
 1. 在本工程的根目录中执行 `make build` 编译生成可执行文件，供测试使用。
 
 ### 在容器中运行测试代码

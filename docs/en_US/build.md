@@ -1,5 +1,7 @@
 # Build
 
+> [简体中文](/docs/zh_CN/build.md)
+
 ## Dependencies
 
 - Install `docker` and `make`

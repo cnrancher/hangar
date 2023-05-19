@@ -32,6 +32,8 @@ hangar mirror -f ./image-list.txt -d <DEST_REGISTRY_URL>
 
 若目标镜像仓库类型为 Harbor V2，可使用 `--repo-type=harbor` 参数，自动为 Harbor V2 仓库创建 Project。
 
+> 若 Harbor V2 为 HTTP，还需要添加 `--harbor-https=false` 参数。
+
 除此之外若镜像列表中的目标镜像不包含 `Project` （例如 `mysql:8.0`, `busybox:latest`），那么在 mirror 过程中会自动为其添加 `library` Project 前缀（`library/mysql:8.0`，`library/busybox:latest`）。
 
 可使用 `--default-project=library` 参数设定添加 Project 的名称 （默认为 `library`）。
@@ -41,7 +43,7 @@ hangar mirror -f ./image-list.txt -d <DEST_REGISTRY_URL>
 命令行参数：
 
 ```sh
-# 使用 -f, --file) 参数指定镜像列表文件
+# 使用 -f, --file 参数指定镜像列表文件
 hangar mirror -f ./list.txt
 
 # 使用 -d, --destination 参数，可以在不修改镜像列表的情况下，指定目标镜像的 registry
@@ -67,9 +69,12 @@ hangar mirror -f ./list.txt --repo-type=harbor
 # 此参数会将 `private.io/mysql:5.8` 这种镜像重命名为 `private.io/library/mysql:5.8`
 hangar mirror -f ./list.txt --default-project=library
 
-# 使用 -o (output) 参数，将 mirror 失败的镜像列表输出至指定文件中
+# 使用 -o, --failed 参数，将 mirror 失败的镜像列表输出至指定文件中
 # 默认输出至 mirror-failed.txt
 hangar mirror -f image-list.txt -o failed-list.txt
+
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar mirror -f ./list.txt --tls-verify=false
 
 # 使用 --debug 参数，输出更详细的调试日志
 hangar mirror --debug

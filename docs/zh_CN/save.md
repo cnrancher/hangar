@@ -74,6 +74,9 @@ hangar save -f image-list.txt -o failed-list.txt
 hangar save -f image-list.txt --compress=zstd -d saved.tar.zstd
 hangar save -f image-list.txt --compress=dir -d saved-directory
 
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar save -f ./list.txt --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
 hangar save -f ./list.txt --debug
 ```

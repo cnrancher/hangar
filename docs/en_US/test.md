@@ -1,4 +1,5 @@
 # Test
+> [简体中文](/docs/zh_CN/test.md)
 
 This project includes Unit tests & Validation tests.
 
@@ -21,6 +22,8 @@ This project includes Unit tests & Validation tests.
     export DEST_USERNAME="" # harbor username
     export DEST_PASSWORD="" # harbor password
     ```
+    > If the Harbor v2 uses HTTP or insecure TLS certificate,
+    > set `export TEST_SKIP_TLS="true"` to skip tls verify.
 1. Run `make build` to generate executable file first.
 
 ### Run tests in container

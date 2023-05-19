@@ -1,6 +1,6 @@
 # Hangar Usage (CN)
 
-> 本仓库 `main` 分支的使用文档会随着版本更新而不断修改，若需要查看之前已发布的版本的使用文档，请切换至之前已发布的版本对应的 Tag:
+> `main` 分支的文档会随着版本更新而修改，若需要查看旧版本所对应的使用文档，请切换至旧版本对应的 Tag:<br>
 > `https://github.com/cnrancher/hangar/blob/${TAG}/docs/zh_CN/README.md`
 
 Hangar 是一个容器镜像拷贝以及生成 Rancher 离线安装时所需的镜像列表的工具，它支持下方 [Commands](#commands) 所介绍的命令，通过使用此工具，可简化离线环境安装 Rancher 时部署容器镜像到私有镜像仓库的步骤。
@@ -35,11 +35,10 @@ Hangar 的 Mirror / Save / Load 相关命令支持的镜像仓库种类：
 
 ----
 
-若需要在系统中安装/运行此工具，请按照此部分安装 `skopeo`、`docker` 和 `docker-buildx` 第三方依赖：
+若需要在系统中安装/运行此工具，请按照此部分安装 `skopeo` 第三方依赖：
 
 1. Hangar 支持运行的系统为 Linux 或 macOS，架构为 amd64 或 arm64。
 1. 安装 [skopeo](https://github.com/containers/skopeo/blob/main/install.md)。
-1. 安装 `docker` 和 `docker-buildx` 插件。
 1. 环境变量（可选）：
 
     在执行 Mirror / Save / Load 命令时，Hangar 支持读取系统中以下的环境变量，适用于在 CI 中自动执行镜像 Mirror / Save 等操作。
@@ -57,7 +56,7 @@ Hangar 的 Mirror / Save / Load 相关命令支持的镜像仓库种类：
 
     若未获取到用户名密码，那么 Hangar 会提示手动输入用户名和密码。
 
-1. 在使用自建 SSL Certificate 时，请参照 [自建 SSL Certificate](./self-signed-ssl.md) 进行配置。
+1. 当 Registry Server 为 HTTP 或使用自建 SSL Certificate 时，可以添加 `--tls-verify=false` 全局参数，跳过 TLS 认证。
 
 ## 测试脚本
 

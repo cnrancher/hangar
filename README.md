@@ -7,16 +7,16 @@
 Hangar is a tool for mirroring/copying multi-arch container images from the public registry to your registry with manifest list support, it also can generate an image list file according to Rancher KDM data and chart repositories for mirroring/saving images.
 
 It provides the following subcommands:
-- [mirror](docs/en_US/mirror.md): Mirror the container image to the private registry.
-- [save](docs/en_US/save.md): Download the container image to the local file and generate a compressed package.
-- [load](docs/en_US/load.md): Load the file created by [save](./docs/en_US/save.md) command onto the private registry.
-- [convert-list](docs/en_US/convert-list.md): Convert image list from `rancher-images.txt` to format used by [mirror](./docs/en_US/mirror.md) command.
-- [mirror-validate](docs/en_US/mirror-validate.md): Validate the mirrored images.
-- [load-validate](docs/en_US/load-validate.md): Validate the loaded images.
-- [sync](./docs/en_US/sync.md): Sync extra images into image cache folder.
-- [compress](./docs/en_US/compress.md): Compress the image cache folder.
-- [decompress](./docs/en_US/decompress.md): Decompress tarball created by [save](./save.md) command.
-- [generate-list](docs/en_US/generate-list.md): Generate an image-list by KDM data and Chart repositories.
+- [mirror](docs/zh_CN/mirror.md): Mirror the container image to the private registry.
+- [save](docs/zh_CN/save.md): Download the container image to the local file and generate a compressed package.
+- [load](docs/zh_CN/load.md): Load the file created by [save](./docs/zh_CN/save.md) command onto the private registry.
+- [convert-list](docs/zh_CN/convert-list.md): Convert image list from `rancher-images.txt` to format used by [mirror](./docs/zh_CN/mirror.md) command.
+- [mirror-validate](docs/zh_CN/mirror-validate.md): Validate the mirrored images.
+- [load-validate](docs/zh_CN/load-validate.md): Validate the loaded images.
+- [sync](./docs/zh_CN/sync.md): Sync extra images into image cache folder.
+- [compress](./docs/zh_CN/compress.md): Compress the image cache folder.
+- [decompress](./docs/zh_CN/decompress.md): Decompress tarball created by [save](./save.md) command.
+- [generate-list](docs/zh_CN/generate-list.md): Generate an image-list by KDM data and Chart repositories.
 
 ## Docs
 
@@ -26,7 +26,7 @@ For more detailed usage information about this project, please refer to the docu
 
 ## QuickStart
 
-It's recommended to run `hangar` from the docker image without installing `skopeo` and `docker-buildx` dependencies manually, see [docker-images.md](./docs/en_US/docker-images.md).
+It's recommended to run `hangar` from the docker image without installing `skopeo` dependency manually, see [docker-images.md](./docs/zh_CN/docker-images.md).
 
 ```console
 $ docker pull cnrancher/hangar:${VERSION}
@@ -53,7 +53,7 @@ chmod +x ./hangar
 
 ## Build
 
-See [build.md](./docs/en_US/build.md) document.
+See [build.md](./docs/zh_CN/build.md) document.
 
 ## LICENSE
 

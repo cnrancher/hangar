@@ -59,6 +59,9 @@ hangar sync -f ./list.txt -d [DIRECTORY] -a amd64,arm64
 # 使用 -j, --jobs 参数，指定 Worker 数量，并发下载镜像至本地（支持 1~20 个 jobs）
 hangar sync -f ./list.txt -d [DIRECTORY] -j 10 # 启动 10 个 Worker
 
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar sync -f ./list.txt -d [DIRECTORY] --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
 hangar sync -f ./list.txt -d [DIRECTORY] --debug
 ```

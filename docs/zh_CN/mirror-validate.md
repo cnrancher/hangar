@@ -37,6 +37,9 @@ hangar mirror-validate -f ./list.txt -j 20 # 启动 20 个 Worker
 # 默认输出至 mirror-validate-failed.txt
 hangar mirror-validate -f ./list.txt -o validate-failed-list.txt
 
+# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+hangar mirror-validate -f ./list.txt --tls-verify=false
+
 # 使用 --debug 参数，输出更详细的调试日志
 hangar mirror-validate -f ./list.txt --debug
 ```

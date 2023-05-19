@@ -1,6 +1,7 @@
 # Hangar usage (EN)
+> [简体中文](/docs/zh_CN/README.md)
 
-> The documentation of the `main` will be continuously modified. You can adjust the TAG to view the preivious documents:
+> The documentation of the `main` branch will be continuously modified. You can modify the TAG to view the preivious documents:
 > `https://github.com/cnrancher/hangar/blob/${TAG}/docs/en_US/README.md`
 
 ## COMMANDS
@@ -27,11 +28,10 @@
 
 Hangar supports running in container, see [docker-images.md](./docker-images.md).
 
-To install hangar in your system, please install `skopeo`, `docker` and `docker-buildx` dependencies:
+To install hangar in your system, please install `skopeo` dependency:
 
 1. Linux / macOS, architecture amd64 / arm64
 1. Install [skopeo](https://github.com/containers/skopeo/blob/main/install.md)
-1. Make sure `docker` and `docker-buildx` are installed.
 1. Set environment variables (optional):
 
     When running Mirror / Save / Load, following environment variables sets the username, password and URL of the source / destination registry
@@ -48,7 +48,7 @@ To install hangar in your system, please install `skopeo`, `docker` and `docker-
 
     If the user name and password are not set, hangar will prompt to enter the user name and password manually.
 
-1. When using a self-signed SSL Certificate, please refer to [Self-signed SSL Certificate](./self-signed-ssl.md) for configuration.
+1. When the registry server is HTTP or using a self-signed insecure SSL Certificate, you can add `--tls-verify=false` global option to skip tls verify.
 
 ## Tests
 
