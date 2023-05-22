@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -108,6 +109,11 @@ func (m *Mirror) StartMirror() error {
 
 	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			logrus.WithField("M_ID", m.MID).
+				Warnf("%v", err)
+			return nil
+		}
 		return fmt.Errorf("StartMirror: %w", err)
 	}
 	// Copy images
@@ -148,35 +154,32 @@ func (m *Mirror) StartMirror() error {
 }
 
 func (m *Mirror) initImageList() error {
+	var err error
 	// Init source and destination manifest
-	if err := m.initSourceDestinationManifest(); err != nil {
+	if err = m.initSourceDestinationManifest(); err != nil {
 		return fmt.Errorf("initImageList: %w", err)
 	}
 
 	switch m.sourceMIMEType {
 	case manifest.DockerV2ListMediaType: // schemaVersion 2 manifest.list.v2
-		if err := m.initSourceImageListByListV2(); err != nil {
-			return fmt.Errorf("initImageList: %w", err)
-		}
+		err = m.initSourceImageListByListV2()
 	case manifest.DockerV2Schema2MediaType: // schemaVersion 2 manifest.v2
-		if err := m.initImageListByV2(); err != nil {
-			return fmt.Errorf("initImageList: %w", err)
-		}
+		err = m.initImageListByV2()
 	case manifest.DockerV2Schema1MediaType,
 		manifest.DockerV2Schema1SignedMediaType: // schemaVersion 1 manifest.v1
-		if err := m.initImageListByV1(); err != nil {
-			return fmt.Errorf("initImageList: %w", err)
-		}
+		err = m.initImageListByV1()
 	case imgspecv1.MediaTypeImageIndex: // OCI image manifest index (list)
-		if err := m.initSourceImageListByOCIIndexV1(); err != nil {
-			return fmt.Errorf("initImageList: %w", err)
-		}
+		err = m.initSourceImageListByOCIIndexV1()
 	case imgspecv1.MediaTypeImageManifest: // OCI image manifest
-		if err := m.initImageListByOCIManifestV1(); err != nil {
-			return fmt.Errorf("initImageList: %w", err)
-		}
+		err = m.initImageListByOCIManifestV1()
 	default:
 		return fmt.Errorf("unsupported MIME type %q", m.sourceMIMEType)
+	}
+	if err != nil {
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			return err
+		}
+		return fmt.Errorf("initImageList: %w", err)
 	}
 
 	return nil
@@ -383,8 +386,7 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	if images == 0 {
 		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
 			m.Source, m.ArchList)
-		return fmt.Errorf("initImageListByListV2: %w",
-			utils.ErrNoAvailableImage)
+		return utils.ErrNoAvailableImage
 	}
 
 	return nil
@@ -436,8 +438,7 @@ func (m *Mirror) initSourceImageListByOCIIndexV1() error {
 	if images == 0 {
 		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
 			m.Source, m.ArchList)
-		return fmt.Errorf("initSourceImageListByOCIIndexV1: %w",
-			utils.ErrNoAvailableImage)
+		return utils.ErrNoAvailableImage
 	}
 
 	return nil
@@ -461,7 +462,7 @@ func (m *Mirror) initImageListByV2() error {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
-		return fmt.Errorf("initImageListByV2: %w", utils.ErrNoAvailableImage)
+		return utils.ErrNoAvailableImage
 	}
 
 	copiedTag := image.CopiedTag(
@@ -511,8 +512,7 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
-		return fmt.Errorf("initImageListByOCIManifestV1: %w",
-			utils.ErrNoAvailableImage)
+		return utils.ErrNoAvailableImage
 	}
 
 	copiedTag := image.CopiedTag(

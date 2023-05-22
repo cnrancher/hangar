@@ -71,6 +71,9 @@ func newMirrorCmd() *mirrorCmd {
 	cc.cmd.Flags().StringP("repo-type", "", "", "repository type of dest registry server (can be 'harbor' or empty string)")
 	cc.cmd.Flags().StringP("default-project", "", "library", "project name (also called 'namespace') when destination image project is empty")
 	cc.cmd.Flags().BoolP("harbor-https", "", true, "use https when create harbor project")
+	cc.cmd.Flags().BoolP("no-arch-failed", "", true,
+		"output image name into the failed list if the image arch does not in the arch list "+
+			"specified by the '--arch' parameter")
 
 	return cc
 }

@@ -92,11 +92,14 @@ func newSaveCmd() *saveCmd {
 			"\n(default \"saved-images.[FORMAT_SUFFIX]\")")
 	cc.cmd.Flags().StringP("failed", "o", "save-failed.txt", "file name of the save failed image list")
 	cc.cmd.Flags().StringP("compress", "c", "gzip",
-		"compress format, can be 'gzip', 'zstd' or 'dir' "+
+		"compress format, can be 'gzip', 'zstd' or 'dir\n"+
 			"(set to 'dir' to disable compression, rename the cache directory only)")
 	cc.cmd.Flags().BoolP("part", "", false, "enable segment compress")
 	cc.cmd.Flags().StringP("part-size", "", "2G",
 		"segment part size (number(Bytes), or a string with 'K', 'M', 'G' suffix)")
+	cc.cmd.Flags().BoolP("no-arch-failed", "", true,
+		"output image name into the failed list if the image arch does not in the arch list "+
+			"specified by the '--arch' parameter")
 	cc.cmd.Flags().IntP("jobs", "j", 1, "worker number, concurrent mode if larger than 1, max 20")
 
 	return cc

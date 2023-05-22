@@ -2,10 +2,12 @@ package mirror
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	hm "github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/skopeo"
+	"github.com/cnrancher/hangar/pkg/utils"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
@@ -22,6 +24,11 @@ func (m *Mirror) MirrorValidate() error {
 
 	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			logrus.WithField("M_ID", m.MID).
+				Warnf("skip: %v", err)
+			return nil
+		}
 		return fmt.Errorf("MirrorValidate: %w", err)
 	}
 
