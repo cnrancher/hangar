@@ -57,6 +57,7 @@ Flags:
       --harbor-https             use https when create harbor project (default true)
   -h, --help                     help for mirror
   -j, --jobs int                 worker number, concurrent mode if larger than 1 (default 1)
+      --no-arch-failed           output image name into the failed list if the image arch does not in the arch list specified by the '--arch' parameter (default true)
       --repo-type string         repository type of dest registry server (can be 'harbor' or empty string)
   -s, --source string            override the source registry defined in image list
 

@@ -43,6 +43,7 @@ Flags:
   -f, --file string          image list file (the format as same as 'rancher-images.txt')
   -h, --help                 help for save
   -j, --jobs int             worker number, concurrent mode if larger than 1, max 20 (default 1)
+      --no-arch-failed       output image name into the failed list if the image arch does not in the arch list specified by the '--arch' parameter (default true)
       --part                 enable segment compress
       --part-size string     segment part size (number(Bytes), or a string with 'K', 'M', 'G' suffix) (default "2G")
   -s, --source string        override the source registry defined in image list

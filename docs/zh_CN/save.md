@@ -56,6 +56,12 @@ hangar save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
 # 默认为 amd64,arm64
 hangar save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
 
+# 使用 --no-arch-failed=false 参数，若镜像所支持的架构不在 -a | --arch 参数所提供的架构列表内，
+# 不输出 Save 失败的错误信息，并不将镜像名称保存至 Save 失败的列表内
+# FYI: https://github.com/cnrancher/hangar/issues/24
+# 默认为 true
+hangar save -f ./list.txt -a arm64 --no-arch-failed=false
+
 # 使用 -j, --jobs 参数，指定 Worker 数量，并发下载镜像至本地（支持 1~20 个 jobs）
 hangar save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
 
