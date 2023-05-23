@@ -6,13 +6,12 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/config"
 	"github.com/cnrancher/hangar/pkg/utils"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
 func (m *Mirror) StartSave() error {
 	if m == nil {
-		return fmt.Errorf("StartSave: %w", u.ErrNilPointer)
+		return fmt.Errorf("StartSave: %w", utils.ErrNilPointer)
 	}
 	if m.Mode != MODE_SAVE {
 		return fmt.Errorf("StartSave: mirror is not in SAVE mode")
@@ -23,10 +22,10 @@ func (m *Mirror) StartSave() error {
 
 	var err error
 	// Get Absolute path of saved directory & ensure dir exists
-	if m.Directory, err = u.GetAbsPath(m.Directory); err != nil {
+	if m.Directory, err = utils.GetAbsPath(m.Directory); err != nil {
 		return fmt.Errorf("StartSave: %w", err)
 	}
-	if err = u.EnsureDirExists(m.Directory); err != nil {
+	if err = utils.EnsureDirExists(m.Directory); err != nil {
 		return fmt.Errorf("StartSave: %w", err)
 	}
 	// Init image list from source

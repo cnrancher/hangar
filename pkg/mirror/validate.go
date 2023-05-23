@@ -8,14 +8,13 @@ import (
 	hm "github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/skopeo"
 	"github.com/cnrancher/hangar/pkg/utils"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/manifest"
 	"github.com/sirupsen/logrus"
 )
 
 func (m *Mirror) MirrorValidate() error {
 	if m == nil {
-		return fmt.Errorf("MirrorValidate: %w", u.ErrNilPointer)
+		return fmt.Errorf("MirrorValidate: %w", utils.ErrNilPointer)
 	}
 
 	if m.Mode != MODE_MIRROR_VALIDATE {
@@ -169,7 +168,7 @@ func (m *Mirror) validateMirrorImages() error {
 
 func (m *Mirror) LoadValidate() error {
 	if m == nil {
-		return u.ErrNilPointer
+		return utils.ErrNilPointer
 	}
 	if m.Mode != MODE_LOAD_VALIDATE {
 		return fmt.Errorf("LoadValidate: not in LOAD_VALIDATE mode")

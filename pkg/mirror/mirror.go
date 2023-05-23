@@ -564,7 +564,7 @@ func (m *Mirror) initImageListByV1() error {
 		logrus.WithField("M_ID", m.MID).
 			Debugf("skip image %s arch %s",
 				m.Source, m.sourceImageInfo.Architecture)
-		return nil
+		return utils.ErrNoAvailableImage
 	}
 
 	// Calculate sha256sum of source manifest
