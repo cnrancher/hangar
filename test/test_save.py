@@ -66,6 +66,18 @@ def test_save_jobs_1():
     ], timeout=300, env=e)
     process_saved_files('saved-images.tar.gz', True)
 
+# Save arch: arm64
+def test_save_no_arch_failed():
+    print('test_save_no_arch_failed')
+    e = get_save_env()
+    u.run_subprocess(u.hangar, args=[
+        'save',
+        '-a', 'arm64',
+        '--no-arch-failed=false',
+        '-f', './data/save_test.txt',
+    ], timeout=300, env=e)
+    process_saved_files('saved-images.tar.gz', True)
+
 # Save jobs less than 1
 def test_save_jobs_lt_1():
     print('test_save_jobs_lt_1')

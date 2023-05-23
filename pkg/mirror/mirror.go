@@ -101,7 +101,7 @@ func (m *Mirror) StartMirror() error {
 		return fmt.Errorf("StartMirror: %w", utils.ErrNilPointer)
 	}
 	if m.Mode != MODE_MIRROR {
-		return fmt.Errorf("StartSave: mirror is not in MIRROR mode")
+		return fmt.Errorf("StartMirror: mirror is not in MIRROR mode")
 	}
 	logrus.WithField("M_ID", m.MID).Debug("Start Mirror")
 	logrus.WithField("M_ID", m.MID).Infof("SOURCE: [%v] DEST: [%v] TAG: [%v]",
@@ -109,7 +109,8 @@ func (m *Mirror) StartMirror() error {
 
 	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
-		if errors.Is(err, utils.ErrNoAvailableImage) {
+		if errors.Is(err, utils.ErrNoAvailableImage) &&
+			!config.GetBool("no-arch-failed") {
 			logrus.WithField("M_ID", m.MID).
 				Warnf("%v", err)
 			return nil

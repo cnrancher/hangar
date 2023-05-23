@@ -1,8 +1,11 @@
 package mirror
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/utils"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -28,6 +31,11 @@ func (m *Mirror) StartSave() error {
 	}
 	// Init image list from source
 	if err = m.initImageList(); err != nil {
+		if errors.Is(err, utils.ErrNoAvailableImage) &&
+			!config.GetBool("no-arch-failed") {
+			logrus.WithField("M_ID", m.MID).Warnf("%v", err)
+			return nil
+		}
 		return fmt.Errorf("StartSave: %w", err)
 	}
 
