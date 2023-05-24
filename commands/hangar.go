@@ -39,9 +39,9 @@ Documents of this tool: https://github.com/cnrancher/hangar#docs
 			cmd.Help()
 		},
 	}
-	cc.cmd.CompletionOptions = cobra.CompletionOptions{
-		HiddenDefaultCmd: true,
-	}
+	// cc.cmd.CompletionOptions = cobra.CompletionOptions{
+	// 	HiddenDefaultCmd: true,
+	// }
 	cc.cmd.Version = getVersion()
 	cc.cmd.SilenceUsage = true
 
