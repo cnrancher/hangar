@@ -1,7 +1,7 @@
 FROM registry.suse.com/bci/bci-base:latest
 
 RUN zypper up -y && \
-    zypper in -y -f libdevmapper1_03 vim && \
+    zypper in -y -f libdevmapper1_03 bash-completion vim && \
     zypper clean
 
 # Add skopeo binary
@@ -12,6 +12,7 @@ WORKDIR /images
 ARG ARCH
 COPY build/hangar-linux-${ARCH}-* /usr/local/bin/
 RUN mv /usr/local/bin/hangar-linux-${ARCH}-* /usr/local/bin/hangar
+RUN echo "source <(hangar completion bash)" >> /root/.bashrc
 ENV SOURCE_REGISTRY="" \
     SOURCE_USERNAME="" \
     SOURCE_PASSWORD="" \

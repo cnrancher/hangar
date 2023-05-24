@@ -13,7 +13,7 @@ steps:
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
       - dapper test
-      - dapper build_all
+      - dapper build-all
     volumes:
       - name: docker
         path: /var/run/docker.sock

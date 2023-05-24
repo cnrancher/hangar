@@ -26,6 +26,7 @@ func Test_StartSave(t *testing.T) {
 		Destination: "",
 		Tag:         "",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"windows", "linux"},
 		Directory:   "",
 		Mode:        MODE_SAVE,
 	})
