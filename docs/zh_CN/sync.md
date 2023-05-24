@@ -64,7 +64,7 @@ hangar sync -f ./list.txt --os linux -d [DIRECTORY]
 # 若镜像所支持的架构不在 --arch 参数所提供的架构列表内，且镜像的 OS 不在 --os 参数所提供的系统列表内，
 # 则将其视为镜像 Sync 失败，并输出错误日志。
 # 默认为 false （仅输出 Warn 信息，不视为镜像 Sync 失败）
-hangar sync -f ./list.txt -d [DIRECTORY] -a arm64 --no-arch-failed=false
+hangar sync -f ./list.txt -d [DIRECTORY] -a arm64 --no-arch-os-fail
 
 # 使用 -j, --jobs 参数，指定 Worker 数量，并发下载镜像至本地（支持 1~20 个 jobs）
 hangar sync -f ./list.txt -d [DIRECTORY] -j 10 # 启动 10 个 Worker
