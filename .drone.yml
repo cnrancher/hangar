@@ -1,12 +1,10 @@
 ---
 kind: pipeline
 type: docker
-name: ci-pipeline-amd64
-
+name: ci-amd64
 platform:
   os: linux
   arch: amd64
-
 steps:
   - name: ci
     image: rancher/dapper:v0.6.0
@@ -14,55 +12,53 @@ steps:
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
-      - dapper ci
+      - dapper test
+      - dapper build_all
     volumes:
       - name: docker
         path: /var/run/docker.sock
     when:
       event:
-      - push
-      - pull_request
-      - tag
-
-  - name: github_binary_release
+        - push
+        - pull_request
+        - tag
+  - name: github_release
     image: plugins/github-release
     settings:
       api_key:
         from_secret: github_token
       checksum:
-      - sha256
+        - sha256
       files:
-      - "build/hangar-*"
+        - "build/hangar-*"
       title: "${DRONE_TAG}"
     when:
       event:
-      - tag
+        - tag
       ref:
         include:
-        - "refs/tags/v*"
+          - "refs/tags/v*"
         exclude:
-        - "refs/tags/*rc*"
-        - "refs/tags/*alpha*"
-
-  - name: github_binary_prerelease
+          - "refs/tags/*rc*"
+          - "refs/tags/*alpha*"
+  - name: github_prerelease
     image: plugins/github-release
     settings:
       api_key:
         from_secret: github_token
       checksum:
-      - sha256
+        - sha256
       files:
-      - "build/hangar-*"
+        - "build/hangar-*"
       prerelease: true
       title: "Pre-release ${DRONE_TAG}"
     when:
       event:
-      - tag
+        - tag
       ref:
         include:
-        - "refs/tags/*rc*"
-        - "refs/tags/*alpha*"
-
+          - "refs/tags/*rc*"
+          - "refs/tags/*alpha*"
   - name: docker-publish-amd64
     pull: default
     image: rancher/dapper:v0.6.0
@@ -81,30 +77,24 @@ steps:
         path: /var/run/docker.sock
     when:
       event:
-      - tag
-
+        - tag
 volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
-
 node:
   instance: agent-amd64
 
 ---
 kind: pipeline
-name: ci-pipeline-arm64
-
+name: ci-arm64
 platform:
   os: linux
   arch: arm64
-
 steps:
   - name: ci
     image: rancher/dapper:v0.6.0
     environment:
-      PROXY:
-        from_secret: proxy
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
@@ -115,9 +105,9 @@ steps:
         path: /var/run/docker.sock
     when:
       event:
-      - push
-      - pull_request
-      - tag
+        - push
+        - pull_request
+        - tag
   - name: docker-publish-arm64
     pull: default
     image: rancher/dapper:v0.6.0
@@ -136,21 +126,23 @@ steps:
         path: /var/run/docker.sock
     when:
       event:
-      - tag
-
+        - tag
 volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
-
+trigger:
+  event:
+    include:
+      - push
+      - pull_request
+      - tag
 node:
   instance: agent-arm64
 
 ---
-
 kind: pipeline
-name: ci-manifest-amd64
-
+name: manifest
 steps:
   - name: docker-publish-manifest
     pull: default
@@ -170,14 +162,13 @@ steps:
         path: /var/run/docker.sock
     when:
       event:
-      - tag
+        - tag
       ref:
         include:
-        - "refs/tags/v*"
+          - "refs/tags/v*"
         exclude:
-        - "refs/tags/*rc*"
-        - "refs/tags/*alpha*"
-
+          - "refs/tags/*rc*"
+          - "refs/tags/*alpha*"
   - name: docker-publish-manifest-prerelease
     pull: default
     image: rancher/dapper:v0.6.0
@@ -200,17 +191,18 @@ steps:
         - tag
       ref:
         include:
-        - "refs/tags/*rc*"
-        - "refs/tags/*alpha*"
-
+          - "refs/tags/*rc*"
+          - "refs/tags/*alpha*"
 volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
-
+trigger:
+  event:
+    include:
+      - tag
 depends_on:
-  - ci-pipeline-amd64
-  - ci-pipeline-arm64
-
+  - ci-amd64
+  - ci-arm64
 node:
   instance: agent-amd64
