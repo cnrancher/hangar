@@ -21,25 +21,26 @@ const (
 )
 
 type SavedListTemplate struct {
-	List      []SavedMirrorTemplate
-	Version   string
-	SavedTime string
+	List      []SavedMirrorTemplate `json:"List,omitempty"`
+	Version   string                `json:"Version,omitempty"`
+	SavedTime string                `json:"SavedTime,omitempty"`
 }
 
 type SavedMirrorTemplate struct {
-	Source   string
-	Tag      string
-	ArchList []string
-	Images   []SavedImagesTemplate
+	Source   string                `json:"Source,omitempty"`
+	Tag      string                `json:"Tag,omitempty"`
+	ArchList []string              `json:"ArchList,omitempty"`
+	OsList   []string              `json:"OsList,omitempty"`
+	Images   []SavedImagesTemplate `json:"Images,omitempty"`
 }
 
 type SavedImagesTemplate struct {
-	Digest    string
-	Arch      string
-	OS        string
-	OsVersion string
-	Variant   string
-	Folder    string
+	Digest    string `json:"Digest,omitempty"`
+	Arch      string `json:"Arch,omitempty"`
+	OS        string `json:"OS,omitempty"`
+	OsVersion string `json:"OsVersion,omitempty"`
+	Variant   string `json:"Variant,omitempty"`
+	Folder    string `json:"Folder,omitempty"`
 }
 
 func NewSavedListTemplate() *SavedListTemplate {
@@ -78,12 +79,15 @@ func (m *Mirror) GetSavedImageTemplate() *SavedMirrorTemplate {
 		Source:   m.Source,
 		Tag:      m.Tag,
 		ArchList: make([]string, 0),
+		OsList:   make([]string, 0),
 		Images:   make([]SavedImagesTemplate, 0),
 	}
 	for _, img := range m.images {
-		if mT.ArchList == nil ||
-			!slices.Contains(mT.ArchList, img.Arch) {
+		if !slices.Contains(mT.ArchList, img.Arch) {
 			mT.ArchList = append(mT.ArchList, img.Arch)
+		}
+		if !slices.Contains(mT.OsList, img.OS) {
+			mT.OsList = append(mT.OsList, img.OS)
 		}
 		iT := SavedImagesTemplate{
 			Digest:    img.Digest,
@@ -143,12 +147,19 @@ func LoadSavedTemplates(directory, destReg, proj string) ([]*Mirror, error) {
 				source, proj)
 			source = utils.ReplaceProjectName(source, proj)
 		}
+		// For compatible with older version
+		if len(mT.OsList) == 0 {
+			for _, i := range mT.Images {
+				mT.OsList = append(mT.OsList, i.OS)
+			}
+		}
 		m := NewMirror(&MirrorOptions{
 			Source:      mT.Source,
 			Destination: utils.ConstructRegistry(source, destReg),
 			Directory:   directory,
 			Tag:         mT.Tag,
 			ArchList:    mT.ArchList,
+			OsList:      mT.OsList,
 			Line:        fmt.Sprintf("%s:%s", mT.Source, mT.Tag),
 			Mode:        MODE_LOAD,
 			ID:          i + 1,

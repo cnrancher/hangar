@@ -53,6 +53,7 @@ func newMirrorValidateCmd() *mirrorValidateCmd {
 
 	cc.cmd.Flags().StringP("file", "f", "", "image list file (should be 'mirror' format)")
 	cc.cmd.Flags().StringP("arch", "a", "amd64,arm64", "architecture list of images, separate with ','")
+	cc.cmd.Flags().StringP("os", "", "linux,windows", "OS list of images, separate with ','")
 	cc.cmd.Flags().StringP("source", "s", "", "override the source registry defined in image list")
 	cc.cmd.Flags().StringP("destination", "d", "", "override the destination registry defined in image list")
 	cc.cmd.Flags().StringP("failed", "o", "mirror-validate-failed.txt", "file name of the mirror validate failed image list")
@@ -72,6 +73,7 @@ func (cc *mirrorValidateCmd) run() {
 			Destination: v.destination,
 			Tag:         v.tag,
 			ArchList:    strings.Split(config.GetString("arch"), ","),
+			OsList:      strings.Split(config.GetString("os"), ","),
 			Line:        v.line,
 			Mode:        mirror.MODE_MIRROR_VALIDATE,
 			ID:          i + 1,

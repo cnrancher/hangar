@@ -35,6 +35,13 @@ hangar save -f ./rancher-images.txt -d saved-images.tar.zstd --compress=zstd
 hangar save -f ./rancher-images.txt -d saved-images --compress=dir
 ```
 
+使用 `--arch` 和 `--os` 参数，指定保存镜像的架构 & 系统。
+
+```sh
+# 仅保存 amd64 架构的 linux 镜像
+hangar save -f ./rancher-images.txt -d saved-images.tar.gz --arch=amd64 --os=linux
+```
+
 ## Parameters
 
 命令行参数：
@@ -56,11 +63,15 @@ hangar save -f ./list.txt -s custom.registry.io -d saved-images.tar.gz
 # 默认为 amd64,arm64
 hangar save -f ./list.txt -a amd64,arm64 -d saved-images.tar.gz
 
-# 使用 --no-arch-failed=false 参数，若镜像所支持的架构不在 -a | --arch 参数所提供的架构列表内，
-# 不输出 Save 失败的错误信息，并不将镜像名称保存至 Save 失败的列表内
-# FYI: https://github.com/cnrancher/hangar/issues/24
-# 默认为 true
-hangar save -f ./list.txt -a arm64 --no-arch-failed=false
+# 使用 --os 参数，设定镜像的 OS（以逗号分隔）
+# 默认为 linux,windows
+hangar save -f ./list.txt --os linux -d saved-images.tar.gz
+
+# 使用 --no-arch-os-fail 参数
+# 若镜像所支持的架构不在 --arch 参数所提供的架构列表内，且镜像的 OS 不在 --os 参数所提供的系统列表内，
+# 则将其视为镜像 Save 失败，并输出错误日志。
+# 默认为 false （仅输出 Warn 信息，不视为镜像 Save 失败）
+hangar save -f ./list.txt -a arm64 --no-arch-failed
 
 # 使用 -j, --jobs 参数，指定 Worker 数量，并发下载镜像至本地（支持 1~20 个 jobs）
 hangar save -f ./list.txt -d saved-images.tar.gz -j 10 # 启动 10 个 Worker
@@ -80,7 +91,8 @@ hangar save -f image-list.txt -o failed-list.txt
 hangar save -f image-list.txt --compress=zstd -d saved.tar.zstd
 hangar save -f image-list.txt --compress=dir -d saved-directory
 
-# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+# 若 Registry Server 为 HTTP 或使用自签名 TLS Certificate，
+# 需要使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
 hangar save -f ./list.txt --tls-verify=false
 
 # 使用 --debug 参数，输出更详细的调试日志

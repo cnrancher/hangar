@@ -35,6 +35,8 @@ Flags:
   -f, --file string          image list file (the format as same as 'rancher-images.txt') (required)
   -h, --help                 help for sync
   -j, --jobs int             worker number, concurrent mode if larger than 1, max 20 (default 1)
+      --no-arch-os-fail      image copy failed when the OS and architecture of the image are not supported
+      --os string            OS list of images, separate with ',' (default "linux,windows")
   -s, --source string        override the source registry defined in image list
 
 Global Flags:

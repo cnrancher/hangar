@@ -94,10 +94,13 @@ After syncing images into the decompressed folder, you can compress the folder w
 	}
 	cc.cmd.Flags().StringP("file", "f", "", "image list file (the format as same as 'rancher-images.txt') (required)")
 	cc.cmd.Flags().StringP("arch", "a", "amd64,arm64", "architecture list of images, separate with ','")
+	cc.cmd.Flags().StringP("os", "", "linux,windows", "OS list of images, separate with ','")
 	cc.cmd.Flags().StringP("source", "s", "", "override the source registry defined in image list")
 	cc.cmd.Flags().StringP("destination", "d", "", "decompressed saved images folder (required)")
 	cc.cmd.Flags().IntP("jobs", "j", 1, "worker number, concurrent mode if larger than 1, max 20")
 	cc.cmd.Flags().StringP("failed", "o", "sync-failed.txt", "file name of the sync failed image list")
+	cc.cmd.Flags().BoolP("no-arch-os-fail", "", false,
+		"image copy failed when the OS and architecture of the image are not supported")
 
 	return cc
 }
@@ -213,6 +216,7 @@ func (cc *syncCmd) run() error {
 			Tag:         v.tag,
 			Directory:   config.GetString("destination"),
 			ArchList:    strings.Split(config.GetString("arch"), ","),
+			OsList:      strings.Split(config.GetString("os"), ","),
 			Line:        v.line,
 			Mode:        mirror.MODE_SAVE,
 			ID:          i + 1,
@@ -223,15 +227,13 @@ func (cc *syncCmd) run() error {
 }
 
 func (cc *syncCmd) updateTemplate() error {
-	if len(cc.savedTemplate.List) > 0 {
-		f := filepath.Join(
-			config.GetString("destination"),
-			utils.SavedImageListFile)
-		utils.SaveJson(cc.savedTemplate, f)
-	} else {
+	if len(cc.savedTemplate.List) == 0 {
 		logrus.Error("no images saved into local directory, skip.")
 		return fmt.Errorf("no images saved")
 	}
+	f := filepath.Join(config.GetString("destination"),
+		utils.SavedImageListFile)
+	utils.SaveJson(cc.savedTemplate, f)
 
 	return nil
 }

@@ -31,7 +31,7 @@ func (m *Mirror) StartSave() error {
 	// Init image list from source
 	if err = m.initImageList(); err != nil {
 		if errors.Is(err, utils.ErrNoAvailableImage) &&
-			!config.GetBool("no-arch-failed") {
+			!config.GetBool("no-arch-os-fail") {
 			logrus.WithField("M_ID", m.MID).Warnf("%v", err)
 			return nil
 		}

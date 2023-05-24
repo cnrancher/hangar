@@ -56,10 +56,21 @@ hangar sync -f ./list.txt -s custom.registry.io -d [DIRECTORY]
 # 默认为 amd64,arm64
 hangar sync -f ./list.txt -d [DIRECTORY] -a amd64,arm64
 
+# 使用 --os 参数，设定镜像的 OS（以逗号分隔）
+# 默认为 linux,windows
+hangar sync -f ./list.txt --os linux -d [DIRECTORY]
+
+# 使用 --no-arch-os-fail 参数
+# 若镜像所支持的架构不在 --arch 参数所提供的架构列表内，且镜像的 OS 不在 --os 参数所提供的系统列表内，
+# 则将其视为镜像 Sync 失败，并输出错误日志。
+# 默认为 false （仅输出 Warn 信息，不视为镜像 Sync 失败）
+hangar sync -f ./list.txt -d [DIRECTORY] -a arm64 --no-arch-failed=false
+
 # 使用 -j, --jobs 参数，指定 Worker 数量，并发下载镜像至本地（支持 1~20 个 jobs）
 hangar sync -f ./list.txt -d [DIRECTORY] -j 10 # 启动 10 个 Worker
 
-# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+# 若 Registry Server 为 HTTP 或使用自签名 TLS Certificate，
+# 需要使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
 hangar sync -f ./list.txt -d [DIRECTORY] --tls-verify=false
 
 # 使用 --debug 参数，输出更详细的调试日志

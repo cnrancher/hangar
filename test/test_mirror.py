@@ -36,15 +36,28 @@ def test_mirror_jobs_20():
     u.check_failed(MIRROR_FAILED_LIST)
 
 # Mirror arm64
-def test_mirror_no_arch_failed():
-    print('test_mirror_no_arch_failed')
+def test_mirror_no_arch_fail():
+    print('test_mirror_no_arch_fail')
     u.run_subprocess(u.hangar, [
         'mirror',
         '-f', './data/mirror_test.txt',
         '-j', '20',
         '--repo-type=harbor',
         '--arch', 'arm64',
-        '--no-arch-failed=false',
+        '--no-arch-os-fail=false',
+    ], timeout=600)
+    u.check_failed(MIRROR_FAILED_LIST)
+
+# Mirror arm64
+def test_mirror_no_os_fail():
+    print('test_mirror_no_arch_fail')
+    u.run_subprocess(u.hangar, [
+        'mirror',
+        '-f', './data/mirror_test.txt',
+        '-j', '20',
+        '--repo-type=harbor',
+        '--os', 'windows',
+        '--no-arch-os-fail=false',
     ], timeout=600)
     u.check_failed(MIRROR_FAILED_LIST)
 

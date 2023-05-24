@@ -83,7 +83,8 @@ hangar load -s ./saved-images.tar.gz -j 10    # 启动 10 个协程
 # 默认输出至 mirror-failed.txt
 hangar load -s ./saved-images.tar.gz -o failed-list.txt
 
-# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+# 若 Registry Server 为 HTTP 或使用自签名 TLS Certificate，
+# 需要使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
 hangar load -s ./saved-images.tar.gz --tls-verify=false
 
 # 使用 --debug 参数，输出更详细的调试日志

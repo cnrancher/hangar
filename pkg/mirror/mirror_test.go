@@ -43,6 +43,7 @@ func Test_NewMirror(t *testing.T) {
 		Tag:         "v1.0.0",
 		Directory:   ".saved-cache",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 
@@ -85,6 +86,7 @@ func Test_S2V2(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 
@@ -223,6 +225,7 @@ func Test_S2V2List(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 
@@ -335,6 +338,7 @@ func Test_S1V2(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 
@@ -465,6 +469,7 @@ func Test_OCI_Index(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 
@@ -597,6 +602,7 @@ func Test_OCI_Manifest(t *testing.T) {
 		Destination: "private.io/example",
 		Tag:         "v1.0.0",
 		ArchList:    []string{"amd64", "arm64"},
+		OsList:      []string{"linux", "windows"},
 		Mode:        MODE_MIRROR,
 	})
 

@@ -64,6 +64,7 @@ func newMirrorCmd() *mirrorCmd {
 
 	cc.cmd.Flags().StringP("file", "f", "", "image list file (should be 'mirror' format)")
 	cc.cmd.Flags().StringP("arch", "a", "amd64,arm64", "architecture list of images, separate with ','")
+	cc.cmd.Flags().StringP("os", "", "linux,windows", "OS list of images, separate with ','")
 	cc.cmd.Flags().StringP("source", "s", "", "override the source registry defined in image list")
 	cc.cmd.Flags().StringP("destination", "d", "", "override the destination registry defined in image list")
 	cc.cmd.Flags().StringP("failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
@@ -71,9 +72,8 @@ func newMirrorCmd() *mirrorCmd {
 	cc.cmd.Flags().StringP("repo-type", "", "", "repository type of dest registry server (can be 'harbor' or empty string)")
 	cc.cmd.Flags().StringP("default-project", "", "library", "project name (also called 'namespace') when destination image project is empty")
 	cc.cmd.Flags().BoolP("harbor-https", "", true, "use https when create harbor project")
-	cc.cmd.Flags().BoolP("no-arch-failed", "", true,
-		"output image name into the failed list if the image arch does not in the arch list "+
-			"specified by the '--arch' parameter")
+	cc.cmd.Flags().BoolP("no-arch-os-fail", "", false,
+		"image copy failed when the OS and architecture of the image are not supported")
 
 	return cc
 }
@@ -184,6 +184,7 @@ func (cc *mirrorCmd) run() {
 			Destination: v.destination,
 			Tag:         v.tag,
 			ArchList:    strings.Split(config.GetString("arch"), ","),
+			OsList:      strings.Split(config.GetString("os"), ","),
 			Line:        v.line,
 			Mode:        mirror.MODE_MIRROR,
 			ID:          i + 1,

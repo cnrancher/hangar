@@ -25,6 +25,7 @@ type Mirror struct {
 	Tag         string
 	Directory   string
 	ArchList    []string
+	OsList      []string
 	RepoType    int
 
 	sourceMIMEType    string
@@ -53,6 +54,7 @@ type MirrorOptions struct {
 	Tag         string
 	Directory   string
 	ArchList    []string
+	OsList      []string
 	Line        string
 	Mode        int
 	ID          int
@@ -74,6 +76,7 @@ func NewMirror(opts *MirrorOptions) *Mirror {
 		Tag:         opts.Tag,
 		Directory:   opts.Directory,
 		ArchList:    slices.Clone(opts.ArchList),
+		OsList:      slices.Clone(opts.OsList),
 		Line:        opts.Line,
 		Mode:        opts.Mode,
 		MID:         opts.ID,
@@ -110,7 +113,7 @@ func (m *Mirror) StartMirror() error {
 	// Init image list from source and destination
 	if err := m.initImageList(); err != nil {
 		if errors.Is(err, utils.ErrNoAvailableImage) &&
-			!config.GetBool("no-arch-failed") {
+			!config.GetBool("no-arch-os-fail") {
 			logrus.WithField("M_ID", m.MID).
 				Warnf("%v", err)
 			return nil
@@ -348,8 +351,14 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	for _, manifest := range m.sourceSchema2List.Manifests {
 		if !slices.Contains(m.ArchList, manifest.Platform.Architecture) {
 			logrus.WithField("M_ID", m.MID).
-				Debugf("skip image %s arch %s",
+				Debugf("skip image %q, arch %q",
 					m.Source, manifest.Platform.Architecture)
+			continue
+		}
+		if !slices.Contains(m.OsList, manifest.Platform.OS) {
+			logrus.WithField("M_ID", m.MID).
+				Debugf("skip image %q, OS %q",
+					m.Source, manifest.Platform.OS)
 			continue
 		}
 		extra := []string{}
@@ -385,8 +394,9 @@ func (m *Mirror) initSourceImageListByListV2() error {
 	}
 
 	if images == 0 {
-		logrus.WithField("M_ID", m.MID).Warnf("[%s] does not have arch %v",
-			m.Source, m.ArchList)
+		logrus.WithField("M_ID", m.MID).
+			Warnf("[%s] does not have OS %v, arch %v",
+				m.Source, m.OsList, m.ArchList)
 		return utils.ErrNoAvailableImage
 	}
 
@@ -400,7 +410,7 @@ func (m *Mirror) initSourceImageListByOCIIndexV1() error {
 	for _, manifest := range m.sourceOCIIndex.Manifests {
 		if !slices.Contains(m.ArchList, manifest.Platform.Architecture) {
 			logrus.WithField("M_ID", m.MID).
-				Debugf("skip image %s arch %s",
+				Debugf("skip image %q, arch %q",
 					m.Source, manifest.Platform.Architecture)
 			continue
 		}
@@ -461,8 +471,14 @@ func (m *Mirror) initImageListByV2() error {
 
 	if !slices.Contains(m.ArchList, m.sourceImageInfo.Architecture) {
 		logrus.WithField("M_ID", m.MID).
-			Debugf("skip image %s arch %s",
+			Debugf("skip image %q, arch %q",
 				m.Source, m.sourceImageInfo.Architecture)
+		return utils.ErrNoAvailableImage
+	}
+	if !slices.Contains(m.OsList, m.sourceImageInfo.Os) {
+		logrus.WithField("M_ID", m.MID).
+			Debugf("skip image %q, OS %q",
+				m.Source, m.sourceImageInfo.Os)
 		return utils.ErrNoAvailableImage
 	}
 
@@ -511,8 +527,14 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 
 	if !slices.Contains(m.ArchList, m.sourceImageInfo.Architecture) {
 		logrus.WithField("M_ID", m.MID).
-			Debugf("skip image %s arch %s",
+			Debugf("skip image %q, arch %q",
 				m.Source, m.sourceImageInfo.Architecture)
+		return utils.ErrNoAvailableImage
+	}
+	if !slices.Contains(m.OsList, m.sourceImageInfo.Os) {
+		logrus.WithField("M_ID", m.MID).
+			Debugf("skip image %q, os %q",
+				m.Source, m.sourceImageInfo.Os)
 		return utils.ErrNoAvailableImage
 	}
 
@@ -548,26 +570,24 @@ func (m *Mirror) initImageListByOCIManifestV1() error {
 
 func (m *Mirror) initImageListByV1() error {
 	var err error
-	m.sourceImageInfo, err = m.sourceSchema1.Inspect(
-		func(bi types.BlobInfo) ([]byte, error) {
-			// get source image config
-			sourceImage := fmt.Sprintf("docker://%s:%s", m.Source, m.Tag)
-			o, e := skopeo.Inspect(sourceImage, "--raw", "--config")
-			return []byte(o), e
-		},
-	)
+	m.sourceImageInfo, err = m.sourceSchema1.Inspect(nil)
 	if err != nil {
 		return fmt.Errorf("initImageListByV1: %w", err)
 	}
 
 	if !slices.Contains(m.ArchList, m.sourceImageInfo.Architecture) {
 		logrus.WithField("M_ID", m.MID).
-			Debugf("skip image %s arch %s",
+			Debugf("skip image %q, arch %q",
 				m.Source, m.sourceImageInfo.Architecture)
 		return utils.ErrNoAvailableImage
 	}
+	if !slices.Contains(m.OsList, m.sourceImageInfo.Os) {
+		logrus.WithField("M_ID", m.MID).
+			Debugf("skip image %q, os %q",
+				m.Source, m.sourceImageInfo.Os)
+		return utils.ErrNoAvailableImage
+	}
 
-	// Calculate sha256sum of source manifest
 	copiedTag := image.CopiedTag(
 		m.Tag, m.sourceImageInfo.Os,
 		m.sourceImageInfo.Architecture,
@@ -618,6 +638,8 @@ func (m *Mirror) updateDestManifest(params []hm.BuildManifestListParam) error {
 	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
 		Debugf("updateDestManifest: %s", string(dt))
 
+	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
+		Infof("creating dest manifest list...")
 	dst := fmt.Sprintf("%s:%s", m.Destination, m.Tag)
 	uname, passwd, _ = credential.GetRegistryCredential(
 		utils.GetRegistryName(m.Destination))

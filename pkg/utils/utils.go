@@ -34,7 +34,7 @@ var (
 	ErrSkopeoNotFound       = errors.New("skopeo not found")
 	ErrDockerNotFound       = errors.New("docker not found")
 	ErrLoginFailed          = errors.New("login failed")
-	ErrNoAvailableImage     = errors.New("no image available for specified arch list")
+	ErrNoAvailableImage     = errors.New("no image available for specified arch & OS list")
 	ErrInvalidParameter     = errors.New("invalid parameter")
 	ErrInvalidMediaType     = errors.New("invalid media type")
 	ErrInvalidSchemaVersion = errors.New("invalid schema version")

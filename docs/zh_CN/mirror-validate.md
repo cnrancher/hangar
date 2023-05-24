@@ -30,6 +30,10 @@ hangar mirror-validate -f ./list.txt -s docker.io
 # 默认为 amd64,arm64
 hangar mirror-validate -f ./list.txt -a amd64,arm64,arm
 
+# 使用 --os 参数，设定镜像的 OS（以逗号分隔）
+# 默认为 linux,windows
+hangar mirror-validate -f ./list.txt --os linux
+
 # 使用 -j, --jobs 参数，设定协程池数量，并发校验镜像（支持 1~20 个 jobs）
 hangar mirror-validate -f ./list.txt -j 20 # 启动 20 个 Worker
 
@@ -37,7 +41,8 @@ hangar mirror-validate -f ./list.txt -j 20 # 启动 20 个 Worker
 # 默认输出至 mirror-validate-failed.txt
 hangar mirror-validate -f ./list.txt -o validate-failed-list.txt
 
-# 使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
+# 若 Registry Server 为 HTTP 或使用自签名 TLS Certificate，
+# 需要使用 --tls-verify=false 参数，跳过 Registry 仓库的 TLS 验证
 hangar mirror-validate -f ./list.txt --tls-verify=false
 
 # 使用 --debug 参数，输出更详细的调试日志

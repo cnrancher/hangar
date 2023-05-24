@@ -85,6 +85,7 @@ func newSaveCmd() *saveCmd {
 
 	cc.cmd.Flags().StringP("file", "f", "", "image list file (the format as same as 'rancher-images.txt')")
 	cc.cmd.Flags().StringP("arch", "a", "amd64,arm64", "architecture list of images, separate with ','")
+	cc.cmd.Flags().StringP("os", "", "linux,windows", "OS list of images, separate with ','")
 	cc.cmd.Flags().StringP("source", "s", "", "override the source registry defined in image list")
 	cc.cmd.Flags().StringP("destination", "d", "",
 		"file name of saved images "+
@@ -97,9 +98,8 @@ func newSaveCmd() *saveCmd {
 	cc.cmd.Flags().BoolP("part", "", false, "enable segment compress")
 	cc.cmd.Flags().StringP("part-size", "", "2G",
 		"segment part size (number(Bytes), or a string with 'K', 'M', 'G' suffix)")
-	cc.cmd.Flags().BoolP("no-arch-failed", "", true,
-		"output image name into the failed list if the image arch does not in the arch list "+
-			"specified by the '--arch' parameter")
+	cc.cmd.Flags().BoolP("no-arch-os-fail", "", false,
+		"image copy failed when the OS and architecture of the image are not supported")
 	cc.cmd.Flags().IntP("jobs", "j", 1, "worker number, concurrent mode if larger than 1, max 20")
 
 	return cc
@@ -254,6 +254,7 @@ func (cc *saveCmd) run() error {
 			Tag:         v.tag,
 			Directory:   utils.CacheImageDirectory,
 			ArchList:    strings.Split(config.GetString("arch"), ","),
+			OsList:      strings.Split(config.GetString("os"), ","),
 			Line:        v.line,
 			Mode:        mirror.MODE_SAVE,
 			ID:          i + 1,

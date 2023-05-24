@@ -31,6 +31,7 @@ Flags:
   -f, --file string              image list file (should be 'mirror' format)
   -h, --help                     help for mirror-validate
   -j, --jobs int                 worker number, concurrent mode if larger than 1, max 20 (default 1)
+      --os string                OS list of images, separate with ',' (default "linux,windows")
   -s, --source string            override the source registry defined in image list
 
 Global Flags:
