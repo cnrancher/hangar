@@ -638,8 +638,6 @@ func (m *Mirror) updateDestManifest(params []hm.BuildManifestListParam) error {
 	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
 		Debugf("updateDestManifest: %s", string(dt))
 
-	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
-		Infof("creating dest manifest list...")
 	dst := fmt.Sprintf("%s:%s", m.Destination, m.Tag)
 	uname, passwd, _ = credential.GetRegistryCredential(
 		utils.GetRegistryName(m.Destination))
@@ -647,6 +645,8 @@ func (m *Mirror) updateDestManifest(params []hm.BuildManifestListParam) error {
 	if err != nil {
 		return fmt.Errorf("updateDestManifest: %w", err)
 	}
+	logrus.WithFields(logrus.Fields{"M_ID": m.MID}).
+		Infof("created manifest list [%v:%v]", m.Destination, m.Tag)
 
 	return nil
 }
