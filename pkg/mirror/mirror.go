@@ -145,14 +145,13 @@ func (m *Mirror) StartMirror() error {
 		if err := m.updateDestManifest(m.SourceManifestSpec()); err != nil {
 			return fmt.Errorf("Mirror: %w", err)
 		}
+		logrus.WithField("M_ID", m.MID).
+			Infof("MIRROR [%s:%s] => [%s:%s]",
+				m.Source, m.Tag, m.Destination, m.Tag)
 	} else {
 		logrus.WithField("M_ID", m.MID).
 			Info("dest manifest list already exists, no need to recreate")
 	}
-
-	logrus.WithField("M_ID", m.MID).
-		Infof("MIRROR [%s:%s] => [%s:%s]",
-			m.Source, m.Tag, m.Destination, m.Tag)
 
 	return nil
 }
@@ -284,7 +283,7 @@ func (m *Mirror) initSourceDestinationManifest() error {
 
 	m.sourceMIMEType = manifest.GuessMIMEType([]byte(out))
 	logrus.WithField("M_ID", m.MID).
-		Infof("[%s:%s] is [%s]", m.Source, m.Tag, m.sourceMIMEType)
+		Debugf("[%s:%s] is [%s]", m.Source, m.Tag, m.sourceMIMEType)
 	switch m.sourceMIMEType {
 	case manifest.DockerV2Schema1MediaType,
 		manifest.DockerV2Schema1SignedMediaType: // schemaVersion 1 manifest.v1
