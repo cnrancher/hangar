@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/bci-base:latest
+FROM registry.suse.com/bci/bci-base:15.5
 
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 bash-completion vim && \
@@ -6,18 +6,13 @@ RUN zypper up -y && \
 
 # Add skopeo binary
 COPY --from=docker.io/cnrancher/hardened-skopeo:v1.12.0 /usr/local/bin/skopeo /usr/local/bin/
-RUN skopeo -v
 
-WORKDIR /images
+WORKDIR /hangar
 ARG ARCH
-COPY build/hangar-linux-${ARCH}-* /usr/local/bin/
-RUN mv /usr/local/bin/hangar-linux-${ARCH}-* /usr/local/bin/hangar
-RUN echo "source <(hangar completion bash)" >> /root/.bashrc
-ENV SOURCE_REGISTRY="" \
-    SOURCE_USERNAME="" \
-    SOURCE_PASSWORD="" \
-    DEST_REGISTRY="" \
-    DEST_USERNAME="" \
-    DEST_PASSWORD=""
+COPY build/hangar-linux-${ARCH} /usr/local/bin/hangar
+COPY package/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["hangar"]
+RUN echo "# Add hangar bash completion" >> /root/.bashrc && \
+    echo "source <(hangar completion bash)" >> /root/.bashrc
+
+ENTRYPOINT [ "/bin/bash" ]

@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: ci-amd64
+name: linux-amd64
 platform:
   os: linux
   arch: amd64
@@ -12,8 +12,7 @@ steps:
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
-      - dapper test
-      - dapper build-all
+      - dapper ci
     volumes:
       - name: docker
         path: /var/run/docker.sock
@@ -27,57 +26,65 @@ steps:
     settings:
       api_key:
         from_secret: github_token
+      prerelease: false
       checksum:
         - sha256
+      checksum_file: CHECKSUMsum-amd64.txt
+      checksum_flatten: true
       files:
-        - "build/hangar-*"
+        - "dist/artifacts/*"
       title: "${DRONE_TAG}"
     when:
-      event:
-        - tag
       ref:
         include:
           - "refs/tags/v*"
         exclude:
           - "refs/tags/*rc*"
           - "refs/tags/*alpha*"
+          - "refs/tags/*beta*"
   - name: github_prerelease
     image: plugins/github-release
     settings:
       api_key:
         from_secret: github_token
+      prerelease: true
       checksum:
         - sha256
+      checksum_file: CHECKSUMsum-amd64.txt
+      checksum_flatten: true
       files:
-        - "build/hangar-*"
-      prerelease: true
+        - "dist/artifacts/*"
       title: "Pre-release ${DRONE_TAG}"
     when:
-      event:
-        - tag
       ref:
         include:
           - "refs/tags/*rc*"
           - "refs/tags/*alpha*"
-  - name: docker-publish-amd64
-    pull: default
-    image: rancher/dapper:v0.6.0
-    environment:
-      DOCKER_USERNAME:
+          - "refs/tags/*beta*"
+  - name: docker-publish
+    image: plugins/docker
+    settings:
+      dockerfile: package/Dockerfile
+      username:
         from_secret: docker_username
-      DOCKER_PASSWORD:
+      password:
         from_secret: docker_password
-      REGISTRY: "docker.io/cnrancher"
-      DRONE_TAG: ${DRONE_TAG}
-      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
-    commands:
-      - dapper docker
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
+      repo: "cnrancher/hangar"
+      tag: "${DRONE_TAG}-amd64"
     when:
       event:
         - tag
+  - name: docker-build
+    image: plugins/docker
+    settings:
+      dockerfile: package/Dockerfile
+      repo: "cnrancher/hangar"
+      tag: "${DRONE_COMMIT}-amd64"
+      dry_run: true
+    when:
+      event:
+        - push
+        - pull_request
 volumes:
   - name: docker
     host:
@@ -87,7 +94,7 @@ node:
 
 ---
 kind: pipeline
-name: ci-arm64
+name: linux-arm64
 platform:
   os: linux
   arch: arm64
@@ -98,8 +105,7 @@ steps:
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
     commands:
-      - dapper test
-      - dapper build
+      - dapper ci
     volumes:
       - name: docker
         path: /var/run/docker.sock
@@ -108,91 +114,125 @@ steps:
         - push
         - pull_request
         - tag
-  - name: docker-publish-arm64
-    pull: default
-    image: rancher/dapper:v0.6.0
-    environment:
-      DOCKER_USERNAME:
+  - name: github_release
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      prerelease: false
+      checksum:
+        - sha256
+      checksum_file: CHECKSUMsum-arm64.txt
+      checksum_flatten: true
+      files:
+        - "dist/artifacts/*"
+      title: "${DRONE_TAG}"
+    when:
+      ref:
+        include:
+          - refs/tags/v*
+        exclude:
+          - refs/tags/*rc*
+          - refs/tags/*alpha*
+          - refs/tags/*beta*
+      event:
+        - tag
+  - name: github_prerelease
+    image: plugins/github-release
+    settings:
+      api_key:
+        from_secret: github_token
+      prerelease: true
+      checksum:
+        - sha256
+      checksum_file: CHECKSUMsum-arm64.txt
+      checksum_flatten: true
+      files:
+        - "dist/artifacts/*"
+      title: "Pre-release ${DRONE_TAG}"
+    when:
+      ref:
+        include:
+          - refs/tags/*rc*
+          - refs/tags/*alpha*
+          - refs/tags/*beta*
+      event:
+        - tag
+  - name: docker-publish
+    image: plugins/docker
+    settings:
+      dockerfile: package/Dockerfile
+      username:
         from_secret: docker_username
-      DOCKER_PASSWORD:
+      password:
         from_secret: docker_password
-      REGISTRY: "docker.io/cnrancher"
-      DRONE_TAG: ${DRONE_TAG}
-      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
-    commands:
-      - dapper docker
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
+      repo: "cnrancher/hangar"
+      tag: "${DRONE_TAG}-arm64"
     when:
       event:
         - tag
+  - name: docker-build
+    image: plugins/docker
+    settings:
+      dockerfile: package/Dockerfile
+      repo: "cnrancher/hangar"
+      tag: "${DRONE_COMMIT}-arm64"
+      dry_run: true
+    when:
+      event:
+        - push
+        - pull_request
 volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
-trigger:
-  event:
-    include:
-      - push
-      - pull_request
-      - tag
 node:
   instance: agent-arm64
 
 ---
 kind: pipeline
 name: manifest
+platform:
+  os: linux
+  arch: amd64
 steps:
-  - name: docker-publish-manifest
-    pull: default
-    image: rancher/dapper:v0.6.0
-    environment:
-      DOCKER_USERNAME:
+  - name: manifest
+    image: plugins/manifest
+    settings:
+      username:
         from_secret: docker_username
-      DOCKER_PASSWORD:
+      password:
         from_secret: docker_password
-      REGISTRY: "docker.io/cnrancher"
-      DRONE_TAG: ${DRONE_TAG}
-      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
-    commands:
-      - dapper docker-manifest
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      target: "cnrancher/hangar:${DRONE_TAG}"
+      template: "cnrancher/hangar:${DRONE_TAG}-ARCH"
+    when:
+      event:
+        - tag
+  - name: manifest-latest
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      target: "cnrancher/hangar:latest"
+      template: "cnrancher/hangar:${DRONE_TAG}-ARCH"
     when:
       event:
         - tag
       ref:
         include:
-          - "refs/tags/v*"
+          - refs/tags/v*
         exclude:
-          - "refs/tags/*rc*"
-          - "refs/tags/*alpha*"
-  - name: docker-publish-manifest-prerelease
-    pull: default
-    image: rancher/dapper:v0.6.0
-    environment:
-      DOCKER_USERNAME:
-        from_secret: docker_username
-      DOCKER_PASSWORD:
-        from_secret: docker_password
-      SKIP_LATEST_TAG: "1"
-      REGISTRY: "docker.io/cnrancher"
-      DRONE_TAG: ${DRONE_TAG}
-      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
-    commands:
-      - dapper docker-manifest
-    volumes:
-      - name: docker
-        path: /var/run/docker.sock
-    when:
-      event:
-        - tag
-      ref:
-        include:
-          - "refs/tags/*rc*"
-          - "refs/tags/*alpha*"
+          - refs/tags/*rc*
+          - refs/tags/*alpha*
+          - refs/tags/*beta*
 volumes:
   - name: docker
     host:
@@ -202,7 +242,7 @@ trigger:
     include:
       - tag
 depends_on:
-  - ci-amd64
-  - ci-arm64
+  - linux-amd64
+  - linux-arm64
 node:
   instance: agent-amd64

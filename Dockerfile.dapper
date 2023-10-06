@@ -1,34 +1,29 @@
-FROM registry.suse.com/bci/golang:1.19
+FROM registry.suse.com/bci/golang:1.21
 
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ENV http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}
 ARG DRONE_TAG
-ARG DRONE_COMMIT_SHA
-ARG DOCKER_USERNAME
-ARG DOCKER_PASSWORD
-ARG SKIP_LATEST_TAG
-
 ENV DRONE_TAG=${DRONE_TAG}
+ARG DRONE_COMMIT_SHA
 ENV DRONE_COMMIT_SHA=${DRONE_COMMIT_SHA}
-ENV DAPPER_SOURCE /source
-ENV DAPPER_OUTPUT build
-ENV DOCKER_USERNAME=${DOCKER_USERNAME}
-ENV DOCKER_PASSWORD=${DOCKER_PASSWORD}
+ENV DAPPER_SOURCE /go/src/github.com/cnrancher/hangar/
+ENV DAPPER_OUTPUT bin dists
 ENV DAPPER_DOCKER_SOCKET=true
-ENV SKIP_LATEST_TAG=${SKIP_LATEST_TAG}
 WORKDIR ${DAPPER_SOURCE}
 
-# Add docker cli
-RUN zypper in -y -f docker wget vim libbtrfs-devel libdevmapper1_03 && \
+RUN echo "proxy: ${http_proxy}" && \
+    zypper ref && \
+    zypper in -y -f wget vim libbtrfs-devel libdevmapper1_03 && \
     zypper clean
-# Add docker-buildx & skopeo
-COPY --from=docker.io/docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
+
 COPY --from=docker.io/cnrancher/hardened-skopeo:v1.12.0 /usr/local/bin/skopeo /usr/local/bin/
 
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
-RUN go env -w GO111MODULE=on && \
-    go env -w GOPROXY=${GOPROXY} && \
-    go mod download && go mod verify
+RUN go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
 CMD ["ci"]

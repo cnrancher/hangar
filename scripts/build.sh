@@ -5,40 +5,24 @@ set -euo pipefail
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
-source ${WORKINGDIR}/scripts/env.sh
+source ${WORKINGDIR}/scripts/version.sh
 
-RUNNER_ARCH=$(uname -m)
-case ${RUNNER_ARCH} in
-    amd64 | x86_64)
-        ARCH="amd64"
-        ;;
-    arm64 | aarch64)
-        ARCH="arm64"
-        ;;
-    *)
-        echo "Unrecognized arch: ${RUNNER_ARCH}"
-        exit 1
-        ;;
-esac
+mkdir -p $WORKINGDIR/bin
+cd $WORKINGDIR/bin
 
-RUNNER_OS=$(uname -s)
-case ${RUNNER_OS} in
-    Darwin)
-        OS="darwin"
-        ;;
-    Linux)
-        OS="linux"
-        ;;
-    *)
-        echo "Unrecognized OS: ${RUNNER_OS}"
-        exit 1
-        ;;
-esac
+BUILD_FLAG=""
+if [[ -z "${DEBUG:-}" ]]; then
+    BUILD_FLAG="-extldflags -static -s -w"
+else
+    echo "Debug enabled"
+fi
+if [[ ! -z "${COMMIT}" ]]; then
+    BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${COMMIT}'"
+fi
+BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"
 
+CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o hangar ..
 
-mkdir -p $WORKINGDIR/build
-cd $WORKINGDIR/build
-
-OUTPUT="hangar-$OS-$ARCH-$VERSION"
-CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o $OUTPUT ..
-echo $(pwd)/$OUTPUT
+echo "--------------------------"
+ls -alh hangar*
+echo "--------------------------"

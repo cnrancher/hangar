@@ -6,9 +6,10 @@ cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
 files=(
-    "image-tools"
+    ".dapper*"
     "hangar"
-    "build/"
+    "bin/"
+    "dists/"
     "pkg/archive/part/test/test*"
     "pkg/rancher/chartimages/test/*"
     "pkg/rancher/kdmimages/test/*"

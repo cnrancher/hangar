@@ -1,9 +1,9 @@
-TARGETS := build test ci build-all
+TARGETS := ci build test validate
 TEST_TARGETS := test_convert-list test_generate-list \
 	test_help test_load test_save test_mirror test_version \
 	test_mirror-validate test_load-validate \
 	test_sync test_compress test_decompress test_all
-.PHONY: $(TARGETS) $(TEST_TARGETS) docker manifest clean help
+.PHONY: $(TARGETS) $(TEST_TARGETS) clean help
 
 .dapper:
 	@echo Downloading dapper
@@ -18,15 +18,12 @@ $(TARGETS): .dapper
 $(TEST_TARGETS): .dapper
 	@./.dapper --file Dockerfile-test.dapper $@
 
-docker:
-	@./scripts/docker.sh
-
 clean:
 	@./scripts/clean.sh
 
 help:
 	@echo "Usage:"
-	@echo "    make build          - Build 'hangar' executable files in 'build' folder"
+	@echo "    make build          - Build 'hangar' executable files in 'bin' folder"
 	@echo "    make test           - Run unit test"
 	@echo "    make test_[COMMAND] - Run automation test on specific Hangar command."
 	@echo "    make test_all       - Run automation test on all Hangar commands."
