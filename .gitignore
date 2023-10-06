@@ -1,6 +1,7 @@
 # binary files
 hangar
-/build/
+/bin/
+/dist/
 
 *.txt
 *.out
