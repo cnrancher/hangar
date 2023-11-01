@@ -11,6 +11,7 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+// Inspector provides similar functions of 'skopeo inspect' command.
 type Inspector struct {
 	name          string
 	systemContext *types.SystemContext
@@ -19,21 +20,28 @@ type Inspector struct {
 }
 
 type InspectorOption struct {
+	// Reference of the image to be inspected (Optional)
+	Reference types.ImageReference
+	// ReferenceName of the image (Optional)
 	ReferenceName string
-	OS            string
-	Arch          string
-	Variant       string
+	// SystemContext pointer, can be nil.
+	SystemContext *types.SystemContext
 }
 
 func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
-	ref, err := alltransports.ParseImageName(o.ReferenceName)
-	if err != nil {
-		return nil, err
+	var (
+		ref           types.ImageReference = o.Reference
+		systemContext *types.SystemContext = o.SystemContext
+		err           error
+	)
+	if ref == nil {
+		ref, err = alltransports.ParseImageName(o.ReferenceName)
+		if err != nil {
+			return nil, err
+		}
 	}
-	systemContext := &types.SystemContext{
-		ArchitectureChoice: o.Arch,
-		OSChoice:           o.OS,
-		VariantChoice:      o.Variant,
+	if systemContext == nil {
+		systemContext = &types.SystemContext{}
 	}
 	source, err := ref.NewImageSource(ctx, systemContext)
 	if err != nil {

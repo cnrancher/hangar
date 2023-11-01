@@ -2,15 +2,21 @@ package source
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/copy"
 	"github.com/cnrancher/hangar/pkg/destination"
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/containers/common/pkg/retry"
 	imagecopy "github.com/containers/image/v5/copy"
+	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func (s *Source) copyDockerV2ListMediaType(
@@ -26,6 +32,7 @@ func (s *Source) copyDockerV2ListMediaType(
 		osVersion := m.Platform.OSVersion
 		variant := m.Platform.Variant
 		dig := m.Digest
+		mime := m.MediaType
 
 		// skip image
 		if len(sets["os"]) != 0 && osInfo != "" && !sets["os"][osInfo] {
@@ -50,7 +57,47 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
+
 		err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			Reference:     destRef,
+			SystemContext: dest.SystemContext(),
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
+			continue
+		}
+		b, _, err := inspector.Raw(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
+			continue
+		}
+		manifestDigest, err := imagemanifest.Digest(b)
+		schema2, err := imagemanifest.Schema2FromManifest(b)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		spec := archive.ImageSpec{
+			Arch:      arch,
+			OS:        osInfo,
+			OsVersion: osVersion,
+			Variant:   variant,
+			Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
+			MediaType: mime,
+			Layers:    nil,
+			Config:    schema2.ConfigDescriptor.Digest,
+			Digest:    manifestDigest,
+		}
+		for _, layer := range schema2.LayersDescriptors {
+			spec.Layers = append(spec.Layers, layer.Digest)
+		}
+		err = s.recordCopiedImage(spec)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -76,6 +123,7 @@ func (s *Source) copyMediaTypeImageIndex(
 	var copiedNum int = 0
 	var errs []error
 	for _, m := range s.ociIndex.Manifests {
+		mime := m.MediaType
 		arch := m.Platform.Architecture
 		osInfo := m.Platform.OS
 		osVersion := m.Platform.OSVersion
@@ -112,6 +160,45 @@ func (s *Source) copyMediaTypeImageIndex(
 			continue
 		}
 
+		inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			Reference:     destRef,
+			SystemContext: dest.SystemContext(),
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
+			continue
+		}
+		b, _, err := inspector.Raw(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
+			continue
+		}
+		manifestDigest, err := imagemanifest.Digest(b)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("imagemanifest.Digest failed: %w", err))
+			continue
+		}
+		ociManifest := &imgspecv1.Manifest{}
+		err = json.Unmarshal(b, ociManifest)
+		spec := archive.ImageSpec{
+			Arch:      arch,
+			OS:        osInfo,
+			OsVersion: osVersion,
+			Variant:   variant,
+			Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
+			MediaType: mime,
+			Layers:    nil,
+			Config:    ociManifest.Config.Digest,
+			Digest:    manifestDigest,
+		}
+		for _, layer := range ociManifest.Layers {
+			spec.Layers = append(spec.Layers, layer.Digest)
+		}
+		err = s.recordCopiedImage(spec)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
 		copiedNum++
 	}
 	if len(errs) > 0 {
@@ -130,6 +217,7 @@ func (s *Source) copyDockerV2Schema2MediaType(
 ) error {
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
+	osVersion := s.ociConfig.OSVersion
 	variant := s.ociConfig.Variant
 
 	// skip image
@@ -147,11 +235,30 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if err != nil {
 		return err
 	}
-	destRef, err := dest.Reference()
+	destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
 	if err != nil {
 		return err
 	}
-	return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	// return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	if err != nil {
+		return err
+	}
+	spec := archive.ImageSpec{
+		Arch:      arch,
+		OS:        osInfo,
+		OsVersion: osVersion,
+		Variant:   variant,
+		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
+		MediaType: s.mime,
+		Layers:    nil,
+		Config:    s.schema2.ConfigDescriptor.Digest,
+		Digest:    s.manifestDigest,
+	}
+	for _, layer := range s.schema2.LayersDescriptors {
+		spec.Layers = append(spec.Layers, layer.Digest)
+	}
+	return s.recordCopiedImage(spec)
 }
 
 func (s *Source) copyDockerV2Schema1MediaType(
@@ -161,6 +268,7 @@ func (s *Source) copyDockerV2Schema1MediaType(
 ) error {
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
+	osVersion := s.ociConfig.OSVersion
 	variant := s.ociConfig.Variant
 
 	// skip image
@@ -178,11 +286,34 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	if err != nil {
 		return err
 	}
-	destRef, err := dest.Reference()
+	destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
 	if err != nil {
 		return err
 	}
-	return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	// return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	if err != nil {
+		return err
+	}
+	spec := archive.ImageSpec{
+		Arch:      arch,
+		OS:        osInfo,
+		OsVersion: osVersion,
+		Variant:   variant,
+		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
+		MediaType: s.mime,
+		Layers:    nil,
+		Config:    "", // Schema1 does not config
+		Digest:    s.manifestDigest,
+	}
+	layerDigestSet := map[digest.Digest]bool{}
+	for _, layer := range s.schema1.FSLayers {
+		layerDigestSet[layer.BlobSum] = true
+	}
+	for d := range layerDigestSet {
+		spec.Layers = append(spec.Layers, d)
+	}
+	return s.recordCopiedImage(spec)
 }
 
 func (s *Source) copyMediaTypeImageManifest(
@@ -214,7 +345,53 @@ func (s *Source) copyMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	if err != nil {
+		return err
+	}
+	spec := archive.ImageSpec{
+		Arch:      arch,
+		OS:        osInfo,
+		OsVersion: osVersion,
+		Variant:   variant,
+		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
+		MediaType: s.mime,
+		Layers:    nil,
+		Config:    s.ociManifest.Config.Digest,
+		Digest:    s.manifestDigest,
+	}
+	for _, layer := range s.ociManifest.Layers {
+		spec.Layers = append(spec.Layers, layer.Digest)
+	}
+	return s.recordCopiedImage(spec)
+}
+
+func (s *Source) recordCopiedImage(image archive.ImageSpec) error {
+	s.copiedList = append(s.copiedList, image)
+	s.copiedArch[image.Arch] = true
+	s.copiedOS[image.OS] = true
+	return nil
+}
+
+func (s *Source) GetCopiedImage() *archive.Image {
+	var (
+		archies = make([]string, 0, len(s.copiedArch))
+		oses    = make([]string, 0, len(s.copiedOS))
+	)
+	for a := range s.copiedArch {
+		archies = append(archies, a)
+	}
+	for o := range s.copiedOS {
+		oses = append(oses, o)
+	}
+	list := &archive.Image{
+		Source:   fmt.Sprintf("%s/%s/%s", s.registry, s.project, s.name),
+		Tag:      s.tag,
+		ArchList: archies,
+		OsList:   oses,
+		Images:   s.copiedList,
+	}
+	return list
 }
 
 func copyImage(

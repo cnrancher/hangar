@@ -34,6 +34,8 @@ type Destination struct {
 	name string
 	// tag
 	tag string
+	// multi-arch hash tag
+	multiArchHashTag string
 
 	// referenceName is the image reference with transport
 	referenceName string
@@ -133,6 +135,25 @@ func (d *Destination) ReferenceName() string {
 	return d.referenceName
 }
 
+func (d *Destination) MultiArchHashTag(os, osVersion, arch, variant string) string {
+	if osVersion != "" {
+		return utils.Sha256Sum(utils.Sha256Sum(fmt.Sprintf("%s-%s-%s-%s%s",
+			d.tag, os, osVersion, arch, variant)))
+	} else {
+		return utils.Sha256Sum(fmt.Sprintf("%s-%s-%s%s",
+			d.tag, os, arch, variant))
+	}
+}
+
+func (d *Destination) MultiArchTag(os, osVersion, arch, variant string) string {
+	if osVersion != "" {
+		return fmt.Sprintf("%s-%s-%s-%s%s",
+			d.referenceName, os, osVersion, arch, variant)
+	} else {
+		return fmt.Sprintf("%s-%s-%s%s", d.referenceName, os, arch, variant)
+	}
+}
+
 // ReferenceName returns the multi-arch (os, variant) reference name
 // with transport of the source image.
 //
@@ -148,22 +169,11 @@ func (d *Destination) ReferenceNameMultiArch(
 	switch d.imageType {
 	case types.TypeDir,
 		types.TypeOci:
-		var s string
-		if osVersion != "" {
-			s = utils.Sha256Sum(fmt.Sprintf("%s-%s-%s-%s%s",
-				d.tag, os, osVersion, arch, variant))
-		} else {
-			s = utils.Sha256Sum(fmt.Sprintf("%s-%s-%s%s",
-				d.tag, os, arch, variant))
-		}
-		return path.Join(d.referenceName, s)
+		return path.Join(
+			d.referenceName,
+			d.MultiArchHashTag(os, osVersion, arch, variant))
 	default:
-		if osVersion != "" {
-			return fmt.Sprintf("%s-%s-%s-%s%s",
-				d.referenceName, os, osVersion, arch, variant)
-		} else {
-			return fmt.Sprintf("%s-%s-%s%s", d.referenceName, os, arch, variant)
-		}
+		return d.MultiArchTag(os, osVersion, arch, variant)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/destination"
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/types"
 	imagemanifest "github.com/containers/image/v5/manifest"
@@ -40,9 +41,6 @@ type Source struct {
 	// referenceName is the image reference with transport
 	referenceName string
 
-	// arch string
-	// os   string
-
 	// mime is the MIME type of image
 	mime string
 
@@ -66,7 +64,19 @@ type Source struct {
 	// if mime is MediaTypeImageManifest
 	ociManifest *imgspecv1.Manifest
 
+	// manifest digest
+	manifestDigest digest.Digest
+
 	systemCtx *imagetypes.SystemContext
+
+	// copied image list
+	copiedList []archive.ImageSpec
+
+	// copied arch list
+	copiedArch map[string]bool
+
+	// copied OS list
+	copiedOS map[string]bool
 }
 
 // Option is used for create the Source object.
@@ -127,6 +137,8 @@ func NewSource(o *Option) (*Source, error) {
 	default:
 		return nil, types.ErrInvalidType
 	}
+	s.copiedArch = make(map[string]bool)
+	s.copiedOS = make(map[string]bool)
 
 	return s, nil
 }
@@ -144,6 +156,22 @@ func (s *Source) Type() types.ImageType {
 	return s.imageType
 }
 
+func (s *Source) Registry() string {
+	return s.registry
+}
+
+func (s *Source) Project() string {
+	return s.project
+}
+
+func (s *Source) Name() string {
+	return s.name
+}
+
+func (s *Source) Tag() string {
+	return s.tag
+}
+
 // ReferenceName returns the reference with transport of the source image.
 //
 //	Example:
@@ -159,6 +187,15 @@ func (s *Source) Reference() (imagetypes.ImageReference, error) {
 }
 
 func (s *Source) ReferenceNameWithoutTransport() string {
+	prefix := s.imageType.Transport()
+	if prefix == "" {
+		return ""
+	}
+
+	return strings.TrimPrefix(s.referenceName, prefix)
+}
+
+func (s *Source) ReferenceNameWithoutTransportAndTag() string {
 	prefix := s.imageType.Transport()
 	if prefix == "" {
 		return ""
@@ -200,7 +237,7 @@ func (s *Source) Copy(
 ) error {
 	if dest.MIME() == imgspecv1.MediaTypeImageIndex ||
 		dest.MIME() == imagemanifest.DockerV2ListMediaType {
-		// TODO: destination image exists
+		// TODO: destination image may exists
 		_ = ""
 	}
 
@@ -406,6 +443,10 @@ func (s *Source) initManifest(ctx context.Context) error {
 	defer inspector.Close()
 
 	b, mime, err := inspector.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	s.manifestDigest, err = imagemanifest.Digest(b)
 	if err != nil {
 		return err
 	}

@@ -16,22 +16,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	DefaultSharedBlobDirPath = "share"
-)
-
 type Saver struct {
 	*common
 
 	aw      *archive.Writer
 	awMutex *sync.RWMutex
+	index   *archive.Index
 
 	// Override the registry of source image to be copied
 	SourceRegistry string
 	// Override the project of source image to be copied
 	SourceProject string
-	// Directory is the destination directory
-	Directory string
 	// SharedBlobDirPath is the directory to save the shared blobs
 	SharedBlobDirPath string
 	// AchiveFormat is the saved archive format
@@ -57,7 +52,9 @@ type SaverOpts struct {
 
 func NewSaver(o *SaverOpts) *Saver {
 	s := &Saver{
-		awMutex:           &sync.RWMutex{},
+		awMutex: &sync.RWMutex{},
+		index:   archive.NewIndex(),
+
 		SourceRegistry:    o.SourceRegistry,
 		SourceProject:     o.SourceProject,
 		SharedBlobDirPath: o.SharedBlobDirPath,
@@ -65,7 +62,7 @@ func NewSaver(o *SaverOpts) *Saver {
 		ArchiveName:       o.ArchiveName,
 	}
 	if s.SharedBlobDirPath == "" {
-		s.SharedBlobDirPath = DefaultSharedBlobDirPath
+		s.SharedBlobDirPath = archive.SharedBlobDir
 	}
 	s.common = newCommon(&o.CommonOpts)
 
@@ -134,20 +131,20 @@ func (s *Saver) copy(ctx context.Context) {
 	close(s.common.errorCh)
 	// Waiting for all error messages were handled properly
 	s.common.errorWaitGroup.Wait()
+
+	if err := s.writeIndex(); err != nil {
+		logrus.Errorf("failed to write index file: %v", err)
+	}
+	s.aw.Close()
 }
 
 func (s *Saver) newSaveCacheDir() (string, error) {
 	cd, err := os.MkdirTemp(archive.CacheDir(), "*")
 	if err != nil {
-		return "", fmt.Errorf("mkdir: %w", err)
+		return "", fmt.Errorf("os.MkdirTemp: %w", err)
 	}
 	logrus.Debugf("create save cache dir: %v", cd)
-
 	return cd, nil
-}
-
-func (s *Saver) writeSaveCacheToArchive(cacheDir string) error {
-	return s.aw.Write(cacheDir)
 }
 
 func (s *Saver) recordFailedImage(name string) {
@@ -156,9 +153,13 @@ func (s *Saver) recordFailedImage(name string) {
 	s.common.failedImageListMutex.Unlock()
 }
 
+func (s *Saver) writeIndex() error {
+	return s.aw.WriteIndex(s.index)
+}
+
 // Run save images from registry server into local directory / tarball archive.
 func (s *Saver) Run(ctx context.Context) error {
-	aw, err := archive.NewWriter(s.ArchiveName, s.ArchiveFormat)
+	aw, err := archive.NewWriter(s.ArchiveName, s.ArchiveFormat, archive.CreateTrunc)
 	if err != nil {
 		return fmt.Errorf("failed to create archive %q: %w", s.ArchiveName, err)
 	}
@@ -166,7 +167,7 @@ func (s *Saver) Run(ctx context.Context) error {
 
 	s.copy(ctx)
 	if len(s.failedImageList) != 0 {
-		return fmt.Errorf("some images failed to copy")
+		return fmt.Errorf("some images failed to save")
 	}
 	return nil
 }
@@ -228,7 +229,7 @@ func (s *Saver) worker(ctx context.Context, id int) {
 			s.awMutex.Lock()
 			logrus.WithFields(logrus.Fields{"w": id}).
 				Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
-			err = s.writeSaveCacheToArchive(obj.destination.ReferenceNameWithoutTransport())
+			err = s.aw.Write(obj.destination.ReferenceNameWithoutTransport())
 			if err != nil {
 				s.common.errorCh <- fmt.Errorf("failed to write cache dir to archive: %w", err)
 				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
@@ -236,6 +237,7 @@ func (s *Saver) worker(ctx context.Context, id int) {
 				s.awMutex.Unlock()
 				continue
 			}
+			s.index.Append(obj.source.GetCopiedImage())
 			s.awMutex.Unlock()
 			// delete cache dir
 			err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
