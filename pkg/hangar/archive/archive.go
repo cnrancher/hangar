@@ -6,15 +6,25 @@ import (
 	"runtime"
 )
 
+const (
+	IndexFileName = "index.json"
+	SharedBlobDir = "share"
+
+	DeprecatedArchiveDir   = "saved-image-cache"
+	DeprecatedArchiveIndex = "saved-images-list.json"
+)
+
 type Format int
 
 const (
 	// UNDEFINED is the undefined format
 	UNDEFINED Format = iota
-	// TAR is the default uncompressed tar archive
+	// TAR is the default uncompressed tar archive (tarball)
 	TAR
 	// GZIP is the gzip format compressed tar archive (tar.gz)
 	GZIP
+	// ZSTD is the zstd format compressed tar archive (tar.zstd)
+	ZSTD
 )
 
 func (f Format) String() string {
@@ -23,6 +33,8 @@ func (f Format) String() string {
 		return "tar"
 	case GZIP:
 		return "gzip"
+	case ZSTD:
+		return "zstd"
 	}
 	return ""
 }
@@ -33,6 +45,8 @@ func (f Format) Suffix() string {
 		return ".tar"
 	case GZIP:
 		return "tar.gz"
+	case ZSTD:
+		return ".tar.zstd"
 	}
 	return ""
 }

@@ -9,6 +9,7 @@
 *.tar.gz
 *.zstd
 *.part*
+*.tar
 tmp*
 data.json
 /rancher/

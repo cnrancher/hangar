@@ -19,11 +19,8 @@ var (
 	ErrInvalidType = errors.New("invalid image type")
 )
 
-func (t *ImageType) String() string {
-	if t == nil {
-		return "<nil>"
-	}
-	switch *t {
+func (t ImageType) String() string {
+	switch t {
 	case TypeDocker:
 		return "docker"
 	case TypeDockerDaemon:
