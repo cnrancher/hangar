@@ -1,6 +1,8 @@
 package archive
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/opencontainers/go-digest"
@@ -10,6 +12,7 @@ const (
 	IndexVersion = "v1.2.0"
 )
 
+// Index defines the data structure stores in the end of hangar archive.
 type Index struct {
 	List    []*Image  `json:"list,omitempty" yaml:"list,omitempty"`
 	Version string    `json:"version,omitempty" yaml:"version.omitempty"`
@@ -45,6 +48,23 @@ func NewIndex() *Index {
 		Time:      time.Now(),
 		digestSet: make(map[digest.Digest]bool),
 	}
+}
+
+func UnmarshalIndex(b []byte) (*Index, error) {
+	i := &Index{}
+	err := json.Unmarshal(b, i)
+	if err != nil {
+		return nil, fmt.Errorf("UnmarshalIndex: %w", err)
+	}
+	return i, nil
+}
+
+func (i *Index) Unmarshal(b []byte) error {
+	err := json.Unmarshal(b, i)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Index) Append(i *Image) {
