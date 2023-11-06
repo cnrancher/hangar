@@ -16,11 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Saver struct {
+type Syncer struct {
 	*common
 
-	aw      *archive.Writer
-	awMutex *sync.RWMutex
+	au      *archive.Updater
+	auMutex *sync.RWMutex
 	index   *archive.Index
 
 	// Override the registry of source image to be copied
@@ -33,7 +33,7 @@ type Saver struct {
 	ArchiveName string
 }
 
-type SaverOpts struct {
+type SyncerOpts struct {
 	CommonOpts
 
 	// Override the registry of source image to be copied
@@ -46,12 +46,12 @@ type SaverOpts struct {
 	ArchiveName string
 }
 
-func NewSaver(o *SaverOpts) *Saver {
-	s := &Saver{
-		awMutex: &sync.RWMutex{},
+func NewSyncer(o *SyncerOpts) *Syncer {
+	s := &Syncer{
+		auMutex: &sync.RWMutex{},
 		index:   archive.NewIndex(),
 
-		SourceRegistry:    o.SourceRegistry,
+		SourceRegistry:    o.SourceProject,
 		SourceProject:     o.SourceProject,
 		SharedBlobDirPath: o.SharedBlobDirPath,
 		ArchiveName:       o.ArchiveName,
@@ -63,7 +63,7 @@ func NewSaver(o *SaverOpts) *Saver {
 	return s
 }
 
-func (s *Saver) copy(ctx context.Context) {
+func (s *Syncer) copy(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.worker)
 	for i, img := range s.common.images {
@@ -126,13 +126,13 @@ func (s *Saver) copy(ctx context.Context) {
 	// Waiting for all error messages were handled properly
 	s.common.errorWaitGroup.Wait()
 
-	if err := s.writeIndex(); err != nil {
+	if err := s.updateIndex(); err != nil {
 		logrus.Errorf("failed to write index file: %v", err)
 	}
-	s.aw.Close()
+	s.au.Close()
 }
 
-func (s *Saver) newSaveCacheDir() (string, error) {
+func (s *Syncer) newSaveCacheDir() (string, error) {
 	cd, err := os.MkdirTemp(archive.CacheDir(), "*")
 	if err != nil {
 		return "", fmt.Errorf("os.MkdirTemp: %w", err)
@@ -141,32 +141,33 @@ func (s *Saver) newSaveCacheDir() (string, error) {
 	return cd, nil
 }
 
-func (s *Saver) recordFailedImage(name string) {
+func (s *Syncer) recordFailedImage(name string) {
 	s.common.failedImageListMutex.Lock()
 	s.common.failedImageList = append(s.common.failedImageList, name)
 	s.common.failedImageListMutex.Unlock()
 }
 
-func (s *Saver) writeIndex() error {
-	return s.aw.WriteIndex(s.index)
+func (s *Syncer) updateIndex() error {
+	s.au.SetIndex(s.index)
+	return s.au.UpdateIndex()
 }
 
-// Run save images from registry server into local directory / hangar archive.
-func (s *Saver) Run(ctx context.Context) error {
-	aw, err := archive.NewWriter(s.ArchiveName)
+// Run append images from registry server into local directory / hangar archive.
+func (s *Syncer) Run(ctx context.Context) error {
+	au, err := archive.NewUpdater(s.ArchiveName)
 	if err != nil {
-		return fmt.Errorf("failed to create archive %q: %w", s.ArchiveName, err)
+		return fmt.Errorf("failed to open archive %q: %w", s.ArchiveName, err)
 	}
-	s.aw = aw
+	s.au = au
 
 	s.copy(ctx)
 	if len(s.failedImageList) != 0 {
-		return fmt.Errorf("some images failed to save")
+		return fmt.Errorf("some images failed to sync to %q", s.ArchiveName)
 	}
 	return nil
 }
 
-func (s *Saver) worker(ctx context.Context, id int) {
+func (s *Syncer) worker(ctx context.Context, id int) {
 	defer s.common.waitGroup.Done()
 	for {
 		select {
@@ -203,7 +204,7 @@ func (s *Saver) worker(ctx context.Context, id int) {
 				continue
 			}
 			logrus.WithFields(logrus.Fields{"w": id}).
-				Infof("Saving [%v]", obj.source.ReferenceName())
+				Infof("Syncing [%v]", obj.source.ReferenceName())
 			err = obj.destination.Init(copyContext)
 			if err != nil {
 				s.common.errorCh <- err
@@ -220,19 +221,19 @@ func (s *Saver) worker(ctx context.Context, id int) {
 			}
 
 			// images copied to cache folder, write to archive file
-			s.awMutex.Lock()
+			s.auMutex.Lock()
 			logrus.WithFields(logrus.Fields{"w": id}).
 				Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
-			err = s.aw.Write(obj.destination.ReferenceNameWithoutTransport())
+			err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
 			if err != nil {
 				s.common.errorCh <- fmt.Errorf("failed to write cache dir to archive: %w", err)
 				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 				cancel()
-				s.awMutex.Unlock()
+				s.auMutex.Unlock()
 				continue
 			}
 			s.index.Append(obj.source.GetCopiedImage())
-			s.awMutex.Unlock()
+			s.auMutex.Unlock()
 			// delete cache dir
 			err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
 			if err != nil {

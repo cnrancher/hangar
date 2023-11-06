@@ -2,6 +2,7 @@ package hangar
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -13,9 +14,14 @@ import (
 type Loader struct {
 	*common
 
-	ar      *archive.Reader
+	// ar is the archive reader.
+	ar *archive.Reader
+	// arMutex is the mutex for archive reader.
 	arMutex *sync.RWMutex
-	index   *archive.Index
+	// index is the archive index.
+	index *archive.Index
+	// layersRefMap stroes the index map.
+	layersRefMap map[string]int
 
 	// Specify the destination image registry.
 	DestinationRegistry string
@@ -44,8 +50,13 @@ type LoaderOpts struct {
 	ArchiveName string
 }
 
-func NewLoader(o *LoaderOpts) *Loader {
+func NewLoader(o *LoaderOpts) (*Loader, error) {
 	l := &Loader{
+		ar:           nil,
+		arMutex:      &sync.RWMutex{},
+		index:        archive.NewIndex(),
+		layersRefMap: make(map[string]int),
+
 		DestinationRegistry: o.DestinationRegistry,
 		DestinationProject:  o.DestinationProject,
 		Directory:           o.Directory,
@@ -57,12 +68,39 @@ func NewLoader(o *LoaderOpts) *Loader {
 	}
 	l.common = newCommon(&o.CommonOpts)
 
-	return l
+	l.arMutex.Lock()
+	defer l.arMutex.Unlock()
+	var err error
+	l.ar, err = archive.NewReader(l.ArchiveName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create archive reader: %w", err)
+	}
+	b, err := l.ar.Index()
+	if err != nil {
+		return nil, fmt.Errorf("ar.Index: %w", err)
+	}
+	err = json.Unmarshal(b, l.index)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	return l, nil
+}
+
+func (l *Loader) initLayersMap() {
+	for _, img := range l.index.List {
+		for _, spec := range img.Images {
+			for _, layer := range spec.Layers {
+				l.layersRefMap[layer.Encoded()]++
+			}
+		}
+	}
 }
 
 func (l *Loader) copy(ctx context.Context) {
 	l.common.initErrorHandler(ctx)
 	l.common.initWorker(ctx, l.worker)
+	l.initLayersMap()
 }
 
 func (l *Loader) newLoadCacheDir() (string, error) {
@@ -80,15 +118,9 @@ func (l *Loader) loadIndex() error {
 }
 
 // Run loads images from tarball archive to destination image registry
-func (s *Loader) Run(ctx context.Context) error {
-	ar, err := archive.NewReader(s.ArchiveName)
-	if err != nil {
-		return fmt.Errorf("failed to create archive %q: %w", s.ArchiveName, err)
-	}
-	s.ar = ar
-
-	s.copy(ctx)
-	if len(s.failedImageList) != 0 {
+func (l *Loader) Run(ctx context.Context) error {
+	l.copy(ctx)
+	if len(l.failedImageList) != 0 {
 		return fmt.Errorf("some images failed to load")
 	}
 	return nil

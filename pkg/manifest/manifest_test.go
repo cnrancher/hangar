@@ -3,11 +3,9 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/credential"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,37 +81,37 @@ func Test_BuildManifestExists(t *testing.T) {
 }
 
 func Test_PushManifest(t *testing.T) {
-	if os.Getenv("DRONE_COMMIT_SHA") != "" {
-		t.Logf("SKIP THIS TEST RUNNING IN CI")
-		return
-	}
+	// if os.Getenv("DRONE_COMMIT_SHA") != "" {
+	// 	t.Logf("SKIP THIS TEST RUNNING IN CI")
+	// 	return
+	// }
 
-	// EDIT REGISTRY SERVER & DIGEST IN PARAM MANUALLY
-	// THIS TEST NEED TO RUN MANUALLY
-	if true {
-		return
-	}
+	// // EDIT REGISTRY SERVER & DIGEST IN PARAM MANUALLY
+	// // THIS TEST NEED TO RUN MANUALLY
+	// if true {
+	// 	return
+	// }
 
-	u, p, err := credential.GetRegistryCredential("h2.hxstarrys.me:30003")
-	if err != nil {
-		return
-	}
-	f, err := os.Open("test/manifest.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			return
-		}
-		t.Error(err)
-		return
-	}
-	b, _ := io.ReadAll(f)
-	err = PushManifest(
-		"docker://h2.hxstarrys.me:30003/library/nginx:1.22",
-		u, p, b)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	// // u, p, err := credential.GetRegistryCredential("h2.hxstarrys.me:30003")
+	// // if err != nil {
+	// // 	return
+	// // }
+	// f, err := os.Open("test/manifest.json")
+	// if err != nil {
+	// 	if os.IsNotExist(err) {
+	// 		return
+	// 	}
+	// 	t.Error(err)
+	// 	return
+	// }
+	// b, _ := io.ReadAll(f)
+	// err = PushManifest(
+	// 	"docker://h2.hxstarrys.me:30003/library/nginx:1.22",
+	// 	u, p, b)
+	// if err != nil {
+	// 	t.Error(err)
+	// 	return
+	// }
 }
 
 func Test_BuildManifestList(t *testing.T) {

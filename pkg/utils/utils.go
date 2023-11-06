@@ -14,43 +14,21 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-// environment variables of source and destination
-// registry url, username and password
 var (
-	EnvDestUsername   = os.Getenv("DEST_USERNAME")
-	EnvDestPassword   = os.Getenv("DEST_PASSWORD")
-	EnvDestRegistry   = os.Getenv("DEST_REGISTRY")
-	EnvSourceUsername = os.Getenv("SOURCE_USERNAME")
-	EnvSourcePassword = os.Getenv("SOURCE_PASSWORD")
-	EnvSourceRegistry = os.Getenv("SOURCE_REGISTRY")
-)
-
-var (
-	ErrReadJsonFailed       = errors.New("failed to read value from json")
-	ErrSkopeoNotFound       = errors.New("skopeo not found")
-	ErrDockerNotFound       = errors.New("docker not found")
-	ErrLoginFailed          = errors.New("login failed")
-	ErrNoAvailableImage     = errors.New("no image available for specified arch & OS list")
-	ErrInvalidParameter     = errors.New("invalid parameter")
-	ErrInvalidMediaType     = errors.New("invalid media type")
-	ErrInvalidSchemaVersion = errors.New("invalid schema version")
-	ErrNilPointer           = errors.New("nil pointer")
-	ErrDockerBuildxNotFound = errors.New("docker buildx not found")
-	ErrDirNotEmpty          = errors.New("directory is not empty")
-	ErrVersionIsEmpty       = errors.New("version is empty string")
+	ErrVersionIsEmpty = errors.New("version is empty string")
 )
 
 const (
 	HangarGitHubURL         = "https://github.com/cnrancher/hangar"
-	DockerLoginURL          = "https://hub.docker.com/v2/users/login/"
 	DockerHubRegistry       = "docker.io"
-	DockerConfigFile        = ".docker/config.json"
-	SavedImageListFile      = "saved-images-list.json"
-	CacheImageDirectory     = "saved-image-cache"
 	CacheCloneRepoDirectory = "charts-repo-cache"
-	ETC_SSL_FILE            = "/etc/ssl/certs/ca-certificates.crt"
 	MAX_WORKER_NUM          = 20
 	MIN_WORKER_NUM          = 1
+
+	// Deprecated
+	SavedImageListFile = "saved-images-list.json"
+	// Deprecated
+	CacheImageDirectory = "saved-image-cache"
 )
 
 func Sha256Sum(s string) string {

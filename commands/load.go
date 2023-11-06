@@ -1,7 +1,11 @@
 package commands
 
 import (
+	"context"
+	"time"
+
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
+	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -10,6 +14,8 @@ import (
 type loadCmd struct {
 	*baseCmd
 
+	arch           []string
+	os             []string
 	source         string
 	destination    string
 	failed         string
@@ -17,6 +23,7 @@ type loadCmd struct {
 	defaultProject string
 	jobs           int
 	harborHttps    bool
+	timeout        time.Duration
 }
 
 func newLoadCmd() *loadCmd {
@@ -34,17 +41,23 @@ func newLoadCmd() *loadCmd {
 				logrus.Debugf("debug output enabled")
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
+
+			cc.run()
+
 			return nil
 		},
 	})
 
 	flags := cc.baseCmd.cmd.Flags()
+	flags.StringArrayVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
+	flags.StringArrayVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "saved tarball filename")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "repository type, can be 'harbor'")
 	flags.StringVarP(&cc.defaultProject, "default-project", "", "library", "default project name")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 
 	addCommands(cc.cmd, newLoadValidateCmd())
 
@@ -52,4 +65,33 @@ func newLoadCmd() *loadCmd {
 }
 
 func (cc *loadCmd) run() {
+	if cc.source == "" {
+		logrus.Fatalf("source file not provided, use '--source' to provide the tarball")
+	}
+	if cc.destination == "" {
+		logrus.Fatalf("destination registry URL not provided, use '--destination' to provide the registry")
+	}
+
+	l, err := hangar.NewLoader(&hangar.LoaderOpts{
+		CommonOpts: hangar.CommonOpts{
+			Images:  nil,
+			Arch:    cc.arch,
+			OS:      cc.os,
+			Variant: nil,
+			Timeout: cc.timeout,
+			Workers: cc.jobs,
+		},
+
+		DestinationRegistry: cc.destination,
+		SharedBlobDirPath:   "", // Use the default shared blob dir path.
+		ArchiveName:         cc.source,
+	})
+	if err != nil {
+		logrus.Fatalf("failed to create loader: %v", err)
+	}
+
+	err = l.Run(context.Background())
+	if err != nil {
+		logrus.Error(err)
+	}
 }

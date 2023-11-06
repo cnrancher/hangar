@@ -9,7 +9,6 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
-	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -105,7 +104,6 @@ func (cc *saveCmd) run() {
 
 		SourceRegistry:    cc.source,
 		SharedBlobDirPath: "", // Use the default shared blob dir path.
-		ArchiveFormat:     archive.GZIP,
 		ArchiveName:       cc.destination,
 	})
 
