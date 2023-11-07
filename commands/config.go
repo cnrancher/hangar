@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 )
 
-func initializeFlagsConfig(cmd *cobra.Command, cfg config.Provider) {
+func initializeFlagsConfig(cmd *cobra.Command, cfg cmdconfig.Provider) {
 	if cmd.Parent() != nil {
 		initializeFlagsConfig(cmd.Parent(), cfg)
 	}
@@ -20,7 +20,7 @@ func initializeFlagsConfig(cmd *cobra.Command, cfg config.Provider) {
 	})
 }
 
-func setValueFromFlag(flags *flag.FlagSet, key string, cfg config.Provider, targetKey string) {
+func setValueFromFlag(flags *flag.FlagSet, key string, cfg cmdconfig.Provider, targetKey string) {
 	key = strings.TrimSpace(key)
 	if flags.Lookup(key) != nil || flags.Changed(key) {
 		f := flags.Lookup(key)
@@ -41,6 +41,12 @@ func setValueFromFlag(flags *flag.FlagSet, key string, cfg config.Provider, targ
 		case "int":
 			iv, _ := flags.GetInt(key)
 			cfg.Set(configKey, iv)
+		case "stringArray":
+			sav, _ := flags.GetStringArray(key)
+			cfg.Set(configKey, sav)
+		case "duration":
+			d, _ := flags.GetDuration(key)
+			cfg.Set(configKey, d)
 		default:
 			panic(fmt.Sprintf("update switch with %s", f.Value.Type()))
 		}

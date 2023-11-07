@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -12,10 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"golang.org/x/mod/semver"
-	"golang.org/x/term"
 )
 
 // environment variables of source and destination
@@ -197,19 +193,12 @@ func SaveJson(data interface{}, fileName string) error {
 }
 
 func SaveSlice(fileName string, data []string) error {
-	var buffer bytes.Buffer
-	for i := range data {
-		_, err := buffer.WriteString(fmt.Sprintf("%v\n", data[i]))
-		if err != nil {
-			return fmt.Errorf("SaveSlice: %w", err)
-		}
-	}
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("SaveSlice: %w", err)
 	}
 	defer f.Close()
-	_, err = f.WriteString(buffer.String())
+	_, err = f.WriteString(strings.Join(data, "\n"))
 	if err != nil {
 		return fmt.Errorf("SaveSlice: %w", err)
 	}
@@ -305,10 +294,10 @@ func ReplaceProjectName(image, project string) string {
 
 // GetProjectName gets the project name of the image, example:
 //
-//	nginx -> ""
-//	docker.io/nginx -> ""
-//	library/nginx -> library
-//	docker.io/library/nginx -> library
+//	nginx -> "library"
+//	docker.io/nginx -> "library"
+//	library/nginx -> "library"
+//	docker.io/library/nginx -> "library"
 func GetProjectName(image string) string {
 	spec := strings.Split(image, "/")
 	var s = make([]string, 0)
@@ -320,17 +309,17 @@ func GetProjectName(image string) string {
 
 	switch len(s) {
 	case 1:
-		return ""
+		return "library"
 	case 2:
 		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
-			return ""
+			return "library"
 		} else {
 			return s[0]
 		}
 	case 3:
 		return s[1]
 	}
-	return ""
+	return "library"
 }
 
 // GetRegistryName gets the registry name of the image, example:
@@ -360,10 +349,10 @@ func GetRegistryName(image string) string {
 	case 3:
 		return s[0]
 	}
-	return ""
+	return DockerHubRegistry
 }
 
-// GetRegistryName gets the image name, example:
+// GetImageName gets the image name, example:
 //
 //	nginx:latest -> nginx
 //	reg.io/nginx:latest -> nginx
@@ -397,24 +386,27 @@ func GetImageName(image string) string {
 	return ""
 }
 
-func ReadUsernamePasswd() (username, passwd string, err error) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("Username: ")
-	username, err = reader.ReadString('\n')
-	if err != nil {
-		return "", "", err
+// GetImageTag gets the image tag, example:
+//
+//	nginx:latest -> latest
+//	reg.io/nginx:1.22 -> 1.22
+//	library/nginx -> latest
+//	reg.io/library/nginx -> latest
+func GetImageTag(image string) string {
+	spec := strings.Split(image, ":")
+	var s = make([]string, 0)
+	for _, v := range spec {
+		if len(v) > 0 {
+			s = append(s, v)
+		}
 	}
-
-	fmt.Print("Password: ")
-	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		return "", "", err
+	switch len(s) {
+	case 1:
+		return "latest"
+	case 2:
+		return s[1]
 	}
-	fmt.Println()
-
-	password := string(bytePassword)
-	return strings.TrimSpace(username), strings.TrimSpace(password), nil
+	return "latest"
 }
 
 // AddSourceToImage adds image into map[image][source]bool
@@ -501,4 +493,9 @@ func ToObj(data interface{}, into interface{}) error {
 		return err
 	}
 	return json.Unmarshal(bytes, into)
+}
+
+func PrintObject(a any) string {
+	b, _ := json.MarshalIndent(a, "", "  ")
+	return string(b)
 }

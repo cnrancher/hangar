@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/listgenerator"
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -44,10 +44,11 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
         --kdm="./kdm-data.json"`,
 		// Example: `  hangar generate-list --rancher="v2.7.0-ent"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, config.DefaultProvider)
-
-			if config.GetBool("debug") {
+			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
+			if cc.baseCmd.debug {
 				logrus.SetLevel(logrus.DebugLevel)
+				logrus.Debugf("debug output enabled")
+				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 
 			if err := cc.setupFlags(); err != nil {
@@ -82,15 +83,15 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 }
 
 func (cc *generateListCmd) setupFlags() error {
-	configData := config.DefaultProvider.Get("")
+	configData := cmdconfig.DefaultProvider.Get("")
 	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("config: %v", string(b))
+	logrus.Debugf("cmdconfig: %v", string(b))
 
-	if config.GetString("rancher") == "" {
+	if cmdconfig.GetString("rancher") == "" {
 		return fmt.Errorf("rancher version not specified, use '--rancher' to specify the rancher version")
 	}
 
-	cc.rancherVersion = config.GetString("rancher")
+	cc.rancherVersion = cmdconfig.GetString("rancher")
 	if !strings.HasPrefix(cc.rancherVersion, "v") {
 		cc.rancherVersion = "v" + cc.rancherVersion
 	}
@@ -99,15 +100,15 @@ func (cc *generateListCmd) setupFlags() error {
 		cc.isRPMGC = true
 		v := strings.Split(cc.rancherVersion, "-ent")
 		cc.rancherVersion = v[0]
-		config.Set("rancher", cc.rancherVersion)
+		cmdconfig.Set("rancher", cc.rancherVersion)
 	}
 	if !semver.IsValid(cc.rancherVersion) {
 		return fmt.Errorf("%q is not valid semver", cc.rancherVersion)
 	}
 
-	if config.GetString("output") == "" {
+	if cmdconfig.GetString("output") == "" {
 		output := cc.rancherVersion + "-images.txt"
-		config.Set("output", output)
+		cmdconfig.Set("output", output)
 	}
 
 	return nil
@@ -131,7 +132,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
 		cc.generator.MinKubeVersion = "v1.21.0"
 	}
-	kdm := config.GetString("kdm")
+	kdm := cmdconfig.GetString("kdm")
 	if kdm != "" {
 		if _, err := url.ParseRequestURI(kdm); err != nil {
 			cc.generator.KDMPath = kdm
@@ -140,7 +141,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 		}
 	}
 
-	charts := config.GetStringSlice("chart")
+	charts := cmdconfig.GetStringSlice("chart")
 	if len(charts) != 0 {
 		for _, chart := range charts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
@@ -158,7 +159,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 			}
 		}
 	}
-	systemCharts := config.GetStringSlice("system-chart")
+	systemCharts := cmdconfig.GetStringSlice("system-chart")
 	if len(systemCharts) != 0 {
 		for _, chart := range systemCharts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
@@ -169,7 +170,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 			}
 		}
 	}
-	dev := config.GetBool("dev")
+	dev := cmdconfig.GetBool("dev")
 	if kdm == "" && len(charts) == 0 && len(systemCharts) == 0 {
 		if dev {
 			logrus.Info("using dev branch")
@@ -205,7 +206,7 @@ func (cc *generateListCmd) finish() error {
 		len(cc.generator.GeneratedLinuxImages)+
 			len(cc.generator.GeneratedWindowsImages))
 
-	registry := config.GetString("registry")
+	registry := cmdconfig.GetString("registry")
 	for image := range cc.generator.GeneratedLinuxImages {
 		imgWithRegistry := image
 		if registry != "" {
@@ -268,28 +269,28 @@ func (cc *generateListCmd) finish() error {
 	sort.Strings(imagesLinuxList)
 	sort.Strings(imagesWindowsList)
 	sort.Strings(imageSources)
-	output := config.GetString("output")
+	output := cmdconfig.GetString("output")
 	if output != "" {
 		err := utils.SaveSlice(output, imagesList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputLinux := config.GetString("output-linux")
+	outputLinux := cmdconfig.GetString("output-linux")
 	if outputLinux != "" {
 		err := utils.SaveSlice(outputLinux, imagesLinuxList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputWindows := config.GetString("output-windows")
+	outputWindows := cmdconfig.GetString("output-windows")
 	if outputWindows != "" {
 		err := utils.SaveSlice(outputWindows, imagesWindowsList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputSource := config.GetString("output-source")
+	outputSource := cmdconfig.GetString("output-source")
 	if outputSource != "" {
 		err := utils.SaveSlice(outputSource, imageSources)
 		if err != nil {

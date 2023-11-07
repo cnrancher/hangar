@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/credential"
 	"github.com/cnrancher/hangar/pkg/harbor"
 	"github.com/sirupsen/logrus"
@@ -12,7 +12,7 @@ import (
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
-	config.Set("tls-verify", false)
+	cmdconfig.Set("tls-verify", false)
 }
 
 func Test_ProjectExists(t *testing.T) {

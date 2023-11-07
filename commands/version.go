@@ -8,20 +8,20 @@ import (
 )
 
 type versionCmd struct {
-	baseCmd
+	*baseCmd
 }
 
 func newVersionCmd() *versionCmd {
 	cc := &versionCmd{}
 
-	cc.baseCmd.cmd = &cobra.Command{
+	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "version",
 		Short:   "Show version",
 		Example: "  hangar version",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("hangar version %s\n", getVersion())
 		},
-	}
+	})
 
 	return cc
 }

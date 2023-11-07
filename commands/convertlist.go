@@ -6,70 +6,81 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
+	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-const (
-	LINE_FORMAT_UNKNOW = iota
-	LINE_FORMAT_MIRROR // <SOURCE> <DEST> <TAG>
-	LINE_FORMAT_SINGLE // registry.io/${REPOSITORY}/${NAME}:${TAG}
-)
-
 type convertListCmd struct {
-	baseCmd
+	*baseCmd
+
+	input       string
+	output      string
+	source      string
+	destination string
 }
 
 func newConvertListCmd() *convertListCmd {
 	cc := &convertListCmd{}
 
-	cc.baseCmd.cmd = &cobra.Command{
-		Use:     "convert-list",
-		Short:   "Convert image list from 'rancher-images.txt' to image list used by mirror command.",
-		Long:    `Convert image list from 'rancher-images.txt' to image list used by mirror command.`,
-		Example: `  hangar convert-list -i rancher-images.txt -o CONVERTED_MIRROR_LIST.txt`,
+	cc.baseCmd = newBaseCmd(&cobra.Command{
+		Use:   "convert-list -i IMAGE_LIST.txt -o OUTPUT_IMAGE_LIST.txt",
+		Short: "Convert the image list format to mirror format (see example of this command).",
+		Example: `
+# Prepare an image list file (default format):
+docker.io/library/mysql:8
+docker.io/library/nginx:latest
+
+# Use following command to convert the image list format to 'mirror' format.
+
+hangar convert-list \
+  	-i rancher-images.txt \
+	-o CONVERTED_MIRROR_LIST.txt \
+	-s docker.io \
+	-d registry.example.io
+
+# The converted image list is:
+docker.io/library/mysql registry.example.io/library/mysql 8
+docker.io/library/nginx registry.example.io/library/nginx latest`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, config.DefaultProvider)
-
-			if config.GetBool("debug") {
-				logrus.SetLevel(logrus.DebugLevel)
-			}
-
+			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if err := cc.setupFlags(); err != nil {
 				return err
 			}
 			if err := cc.run(); err != nil {
 				return err
 			}
-
 			return nil
 		},
-	}
+	})
 
-	cc.cmd.Flags().StringP("input", "i", "", "input image list (required)")
-	cc.cmd.Flags().StringP("output", "o", "", "output image list (default \"[INPUT_FILE].converted\")")
-	cc.cmd.Flags().StringP("source", "s", "", "specify the source registry")
-	cc.cmd.Flags().StringP("destination", "d", "", "specify the destination registry")
+	cc.cmd.Flags().StringVarP(&cc.input, "input", "i", "", "input image list (required)")
+	cc.cmd.Flags().StringVarP(&cc.output, "output", "o", "", "output image list (default \"[INPUT_FILE].converted\")")
+	cc.cmd.Flags().StringVarP(&cc.source, "source", "s", "", "specify the source registry")
+	cc.cmd.Flags().StringVarP(&cc.destination, "destination", "d", "", "specify the destination registry")
 
 	return cc
 }
 
 func (cc *convertListCmd) setupFlags() error {
-	if config.GetString("input") == "" {
+	if cc.baseCmd.debug {
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.Debugf("debug output enabled")
+		logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+	}
+	if cc.input == "" {
 		return fmt.Errorf("input file not specified")
 	}
-
-	if config.GetString("output") == "" {
-		config.Set("output", config.GetString("input")+".converted")
+	if cc.output == "" {
+		cmdconfig.Set("output", cmdconfig.GetString("input")+".converted")
 	}
 	return nil
 }
 
 func (cc *convertListCmd) run() error {
-	input := config.GetString("input")
-	f, err := os.Open(input)
+	f, err := os.Open(cc.input)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -84,11 +95,11 @@ func (cc *convertListCmd) run() error {
 			continue
 		}
 
-		switch checkLineFormat(l) {
-		case LINE_FORMAT_MIRROR:
+		switch imagelist.Detect(l) {
+		case imagelist.TypeMirror:
 			logrus.Infof("skip line: %v", l)
 			continue
-		case LINE_FORMAT_SINGLE:
+		case imagelist.TypeDefault:
 		default:
 			// unknow format, continue
 			logrus.Warnf("ignore line: %q: format unknow", l)
@@ -111,54 +122,29 @@ func (cc *convertListCmd) run() error {
 		}
 
 		var srcImage string
-		source := config.GetString("source")
-		if source == "" {
+		if cc.source == "" {
 			srcImage = spec[0]
 		} else {
-			srcImage = utils.ConstructRegistry(spec[0], source)
+			srcImage = utils.ConstructRegistry(spec[0], cc.source)
 		}
-		dst := config.GetString("destination")
+		dst := cmdconfig.GetString("destination")
 		destImage := utils.ConstructRegistry(spec[0], dst)
 		outputLine := fmt.Sprintf("%s %s %s", srcImage, destImage, spec[1])
-		// utils.AppendFileLine(cmdOutput, outputLine)
+		logrus.Debugf("converted %q => %q", l, outputLine)
 		convertedLines = append(convertedLines, outputLine)
 	}
-	output := config.GetString("output")
-	utils.DeleteIfExist(output)
-	utils.SaveSlice(output, convertedLines)
-	logrus.Infof("converted %q to %q", input, output)
+	// utils.DeleteIfExist(cc.output)
+	// utils.SaveSlice(cc.output, convertedLines)
+	file, err := os.OpenFile(cc.output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to save %q: %v", cc.output, err)
+	}
+	defer file.Close()
+	_, err = file.WriteString(strings.Join(convertedLines, "\n"))
+	if err != nil {
+		return fmt.Errorf("failed to save %q: %v", cc.output, err)
+	}
+	logrus.Infof("converted %q to %q", cc.input, cc.output)
 
 	return nil
-}
-
-func checkLineFormat(line string) int {
-	if isMirrorFormat(line) {
-		return LINE_FORMAT_MIRROR
-	} else if isSingleFormat(line) {
-		return LINE_FORMAT_SINGLE
-	}
-	return 0
-}
-
-func isMirrorFormat(line string) bool {
-	spec := make([]string, 0, 3)
-	for _, v := range strings.Split(line, " ") {
-		if len(v) > 0 {
-			spec = append(spec, v)
-		}
-	}
-	return len(spec) == 3
-}
-
-func isSingleFormat(line string) bool {
-	if strings.Contains(line, " ") {
-		return false
-	}
-	spec := make([]string, 0, 2)
-	for _, v := range strings.Split(line, ":") {
-		if len(v) > 0 {
-			spec = append(spec, v)
-		}
-	}
-	return len(spec) == 2 || len(spec) == 1
 }

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -19,7 +19,7 @@ func ProjectExists(name, u, uname, passwd string) (bool, error) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	if !config.GetBool("tls-verify") {
+	if !cmdconfig.GetBool("tls-verify") {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
@@ -75,7 +75,7 @@ func CreateProject(name, u, uname, passwd string) error {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	if !config.GetBool("tls-verify") {
+	if !cmdconfig.GetBool("tls-verify") {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}

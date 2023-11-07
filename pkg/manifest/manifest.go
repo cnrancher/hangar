@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 )
@@ -18,7 +18,7 @@ func PushManifest(
 		return fmt.Errorf("PushManifest: %w", err)
 	}
 
-	skipTls := !config.GetBool("tls-verify")
+	skipTls := !cmdconfig.GetBool("tls-verify")
 	sysCtx := &types.SystemContext{
 		DockerAuthConfig: &types.DockerAuthConfig{
 			Username: uname,

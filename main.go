@@ -11,8 +11,8 @@ import (
 func init() {
 	logrus.SetFormatter(&nested.Formatter{
 		HideKeys:        false,
-		TimestampFormat: "15:04:05", // hour, time, sec only
-		FieldsOrder:     []string{"M_ID", "IMG_ID"},
+		TimestampFormat: "[15:04:05]", // hour, time, sec only
+		FieldsOrder:     []string{"M_ID", "IMG_ID", "w"},
 	})
 }
 

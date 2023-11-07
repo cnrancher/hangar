@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	u "github.com/cnrancher/hangar/pkg/utils"
@@ -303,7 +303,7 @@ func getHttpData(link string, timeout time.Duration) ([]byte, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
-	if !config.GetBool("tls-verify") {
+	if !cmdconfig.GetBool("tls-verify") {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
