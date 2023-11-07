@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
@@ -95,7 +94,7 @@ func (cc *loadCmd) run() {
 		logrus.Fatalf("failed to create loader: %v", err)
 	}
 
-	err = l.Run(context.Background())
+	err = l.Run(signalContext)
 	if err != nil {
 		logrus.Error(err)
 	}

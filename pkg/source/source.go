@@ -156,6 +156,10 @@ func (s *Source) Type() types.ImageType {
 	return s.imageType
 }
 
+func (s *Source) Directory() string {
+	return s.directory
+}
+
 func (s *Source) Registry() string {
 	return s.registry
 }

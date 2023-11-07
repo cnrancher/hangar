@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"context"
 	"os"
 	"strings"
 	"time"
@@ -127,7 +126,7 @@ func (cc *mirrorCmd) run() {
 		DestinationProject:  cc.destinationProject,
 	})
 
-	err = m.Run(context.Background())
+	err = m.Run(signalContext)
 	if err != nil {
 		logrus.Error(err)
 	}

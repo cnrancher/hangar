@@ -2,7 +2,6 @@ package commands
 
 import (
 	"bufio"
-	"context"
 	"os"
 	"strings"
 	"time"
@@ -109,7 +108,7 @@ func (cc *saveCmd) run() {
 		ArchiveName:       cc.destination,
 	})
 
-	err = s.Run(context.Background())
+	err = s.Run(signalContext)
 	if err != nil {
 		logrus.Error(err)
 	}

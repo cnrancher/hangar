@@ -127,6 +127,10 @@ func (d *Destination) Type() types.ImageType {
 	return d.imageType
 }
 
+func (d *Destination) Directory() string {
+	return d.directory
+}
+
 // ReferenceName returns the reference name with transport of the source image.
 //
 //	Example:

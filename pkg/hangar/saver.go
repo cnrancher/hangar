@@ -106,6 +106,7 @@ func (s *Saver) copy(ctx context.Context) {
 		cd, err := s.newSaveCacheDir()
 		if err != nil {
 			s.errorCh <- fmt.Errorf("failed to create cache dir: %w", err)
+			os.RemoveAll(cd)
 			s.recordFailedImage(img)
 			continue
 		}
@@ -121,24 +122,33 @@ func (s *Saver) copy(ctx context.Context) {
 		})
 		if err != nil {
 			s.errorCh <- fmt.Errorf("failed to init dest image: %w", err)
+			os.RemoveAll(cd)
 			s.recordFailedImage(img)
 			continue
 		}
 		object.destination = dest
+		if ctx.Err() != nil {
+			os.RemoveAll(cd)
+			break
+		}
 		s.common.objectCh <- object
 	}
 
 	close(s.common.objectCh)
 	// Waiting for all images were copied
 	s.common.waitGroup.Wait()
-	close(s.common.errorCh)
-	// Waiting for all error messages were handled properly
-	s.common.errorWaitGroup.Wait()
+	if ctx.Err() != nil {
+		close(s.common.errorCh)
+		// Waiting for all error messages were handled properly
+		s.common.errorWaitGroup.Wait()
+	}
 
 	if err := s.writeIndex(); err != nil {
 		logrus.Errorf("failed to write index file: %v", err)
 	}
-	s.aw.Close()
+	if err := s.aw.Close(); err != nil {
+		logrus.Errorf("failed to close archive writer: %v", err)
+	}
 }
 
 func (s *Saver) newSaveCacheDir() (string, error) {
@@ -170,6 +180,7 @@ func (s *Saver) Run(ctx context.Context) error {
 
 	s.copy(ctx)
 	if len(s.failedImageSet) != 0 {
+		logrus.Errorf("Failed image list:")
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
@@ -204,6 +215,12 @@ func (s *Saver) worker(ctx context.Context, o any) {
 			s.common.errorCh <- err
 			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
+
+		// Delete cache dir.
+		if err = os.RemoveAll(obj.destination.Directory()); err != nil {
+			logrus.Errorf("failed to delete cache dir %q: %v",
+				obj.destination.ReferenceNameWithoutTransport(), err)
+		}
 	}()
 
 	err = obj.source.Init(copyContext)
@@ -231,13 +248,6 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		return
 	}
 	s.index.Append(obj.source.GetCopiedImage())
-	// delete cache dir
-	err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
-	if err != nil {
-		err = fmt.Errorf(
-			"failed to delete cache dir %q: %w",
-			obj.destination.ReferenceNameWithoutTransport(), err)
-	}
 
 	logrus.WithFields(logrus.Fields{
 		"IMG": obj.id,
