@@ -75,11 +75,11 @@ func (cc *archiveLsCmd) run() {
 		fmt.Print(string(b))
 		return
 	}
-	logrus.Infof("Archive created time: %v", index.Time)
-	logrus.Infof("Archive version: %v", index.Version)
+	logrus.Infof("Created time: %v", index.Time)
+	logrus.Infof("Index version: %v", index.Version)
 	logrus.Infof("Images:")
 	for i, image := range index.List {
-		fmt.Printf("id %d | image %s:%s | arch [%s] | os [%s]\n",
+		fmt.Printf("%4d | %s:%s | %s | %s\n",
 			i+1, image.Source, image.Tag,
 			strings.Join(image.ArchList, ","),
 			strings.Join(image.OsList, ","))

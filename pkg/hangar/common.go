@@ -88,7 +88,7 @@ func (c *common) workerFunc(ctx context.Context, f func(context.Context, any)) {
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Debugf("worker stopped: %v", ctx.Err())
+			logrus.Warnf("worker routine killed gracefully: %v", ctx.Err())
 			return
 		case obj, ok := <-c.objectCh:
 			if !ok {
@@ -111,13 +111,12 @@ func (c *common) initErrorHandler(ctx context.Context) {
 			select {
 			case err, ok := <-c.errorCh:
 				if !ok {
-					logrus.Debugf("channel closed, release error routine")
+					logrus.Debugf("error channel closed, release error routine")
 					return
 				}
-				logrus.Errorf("%v", err)
-			case <-ctx.Done():
-				logrus.Debugf("error routine stopped: %v", ctx.Err())
-				return
+				if ctx.Err() == nil {
+					logrus.Errorf("%v", err)
+				}
 			}
 		}
 	}()

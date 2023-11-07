@@ -4,13 +4,18 @@ import (
 	"context"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/signal"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/types"
 	"github.com/spf13/cobra"
 )
 
-var defaultUserAgent = "hangar/" + utils.Version
+var (
+	signalContext context.Context = signal.SetupSignalContext()
+
+	defaultUserAgent string = "hangar/" + utils.Version
+)
 
 type baseCmd struct {
 	*baseOpts
@@ -61,8 +66,10 @@ func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
 }
 
 func (cc *baseCmd) ctxWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
-	ctx := context.Background()
-	var cancel context.CancelFunc = func() {}
+	var (
+		ctx    context.Context    = signalContext
+		cancel context.CancelFunc = func() {}
+	)
 	if timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 	}
