@@ -24,6 +24,8 @@ type loadCmd struct {
 	jobs           int
 	harborHttps    bool
 	timeout        time.Duration
+	project        string
+	tlsVerify      bool
 }
 
 func newLoadCmd() *loadCmd {
@@ -58,6 +60,8 @@ func newLoadCmd() *loadCmd {
 	flags.StringVarP(&cc.defaultProject, "default-project", "", "library", "default project name")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
+	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	addCommands(cc.cmd, newLoadValidateCmd())
 
@@ -83,6 +87,7 @@ func (cc *loadCmd) run() {
 		},
 
 		DestinationRegistry: cc.destination,
+		DestinationProject:  cc.project,
 		SharedBlobDirPath:   "", // Use the default shared blob dir path.
 		ArchiveName:         cc.source,
 	})

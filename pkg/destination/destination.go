@@ -112,10 +112,12 @@ func (d *Destination) Init(ctx context.Context) error {
 		return err
 	}
 	err = d.initManifest(ctx)
-	if strings.Contains(err.Error(), "manifest unknown") {
-		return nil
-	} else if strings.Contains(err.Error(), "no such file or directory") {
-		return nil
+	if err != nil {
+		if strings.Contains(err.Error(), "manifest unknown") {
+			return nil
+		} else if strings.Contains(err.Error(), "no such file or directory") {
+			return nil
+		}
 	}
 	return err
 }
@@ -262,6 +264,7 @@ func (d *Destination) initManifest(ctx context.Context) error {
 	var err error
 	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
 		ReferenceName: d.referenceName,
+		SystemContext: d.systemCtx,
 	})
 	if err != nil {
 		return err

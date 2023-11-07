@@ -16,7 +16,9 @@ var (
 )
 
 func init() {
-	if runtime.GOOS == "darwin" {
+	if os.Getenv("HOME") == "" {
+		cacheDir = path.Join("/tmp", "hangar_cache")
+	} else if runtime.GOOS == "darwin" {
 		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")
 	} else {
 		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")

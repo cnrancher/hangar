@@ -22,11 +22,11 @@ type common struct {
 	// errorWaitGroup is a WaitGroup to wait for all error routine finished
 	errorWaitGroup *sync.WaitGroup
 	// objectCh is a channel for sending object to worker
-	objectCh chan *copyObject
+	objectCh chan any
 	// errorCh is a channel to receive error message
 	errorCh chan error
 	// failedImageList stores the images failed to copy (thread-unsafe)
-	failedImageList []string
+	failedImageSet map[string]bool
 	// failedImageListMutex is a mutex for read/write of failedImageList
 	failedImageListMutex *sync.RWMutex
 }
@@ -55,10 +55,10 @@ func newCommon(o *CommonOpts) *common {
 		waitGroup:      &sync.WaitGroup{},
 		errorWaitGroup: &sync.WaitGroup{},
 
-		objectCh: make(chan *copyObject),
+		objectCh: make(chan any),
 		errorCh:  make(chan error),
 
-		failedImageList:      make([]string, 0),
+		failedImageSet:       make(map[string]bool),
 		failedImageListMutex: &sync.RWMutex{},
 	}
 
@@ -76,12 +76,30 @@ func newCommon(o *CommonOpts) *common {
 	return c
 }
 
-func (c *common) initWorker(
-	ctx context.Context,
-	workerFunc func(context.Context, int)) {
-	for i := 0; i < c.workers; i++ {
+func (c *common) initWorker(ctx context.Context, f func(context.Context, any)) {
+	for i := 0; i < c.workers && i < len(c.images); i++ {
 		c.waitGroup.Add(1)
-		go workerFunc(ctx, i)
+		go c.workerFunc(ctx, f)
+	}
+}
+
+func (c *common) workerFunc(ctx context.Context, f func(context.Context, any)) {
+	defer c.waitGroup.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			logrus.Debugf("worker stopped: %v", ctx.Err())
+			return
+		case obj, ok := <-c.objectCh:
+			if !ok {
+				logrus.Debugf("channel closed, release worker")
+				return
+			}
+			if obj == nil {
+				continue
+			}
+			f(ctx, obj)
+		}
 	}
 }
 
@@ -107,6 +125,6 @@ func (c *common) initErrorHandler(ctx context.Context) {
 
 func (c *common) recordFailedImage(name string) {
 	c.failedImageListMutex.Lock()
-	c.failedImageList = append(c.failedImageList, name)
+	c.failedImageSet[name] = true
 	c.failedImageListMutex.Unlock()
 }

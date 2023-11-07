@@ -39,6 +39,7 @@ hangar load validate \
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "repository type, can be 'harbor'")
 	flags.StringVarP(&cc.defaultProject, "default-project", "", "library", "default project name")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	return cc
 }

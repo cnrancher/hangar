@@ -32,6 +32,8 @@ func newArchiveCmd() *archiveCmd {
 
 	// flags := cc.baseCmd.cmd.Flags()
 
-	addCommands(cc.cmd)
+	addCommands(cc.cmd,
+		newArchiveLsCmd(),
+	)
 	return cc
 }

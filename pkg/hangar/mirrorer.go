@@ -3,15 +3,25 @@ package hangar
 import (
 	"context"
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
+	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
+
+// mirrorObject is the object sending to worker pool when copying image
+type mirrorObject struct {
+	image       string
+	source      *source.Source
+	destination *destination.Destination
+	timeout     time.Duration
+	id          int
+}
 
 // Mirrorer mirrors multipule images between image registries.
 type Mirrorer struct {
@@ -50,15 +60,26 @@ func NewMirrorer(o *MirrorerOpts) *Mirrorer {
 func (m *Mirrorer) copy(ctx context.Context) {
 	m.common.initErrorHandler(ctx)
 	m.common.initWorker(ctx, m.worker)
-	for _, line := range m.common.images {
+	for i, line := range m.common.images {
+		var (
+			object *mirrorObject
+			err    error
+		)
 		switch imagelist.Detect(line) {
 		case imagelist.TypeDefault:
-			m.copyImageListTypeDefault(line)
+			object, err = m.mirrorObjectImageListTypeDefault(line)
 		case imagelist.TypeMirror:
-			m.copyImageListTypeMirror(line)
+			object, err = m.mirrorObjectImageListTypeMirror(line)
 		default:
 			logrus.Warnf("Ignore image list line %q: invalid format", line)
 		}
+		if err != nil {
+			m.common.recordFailedImage(line)
+			m.common.errorCh <- err
+			continue
+		}
+		object.id = i + 1
+		m.common.objectCh <- object
 	}
 
 	close(m.common.objectCh)
@@ -72,19 +93,18 @@ func (m *Mirrorer) copy(ctx context.Context) {
 // Run mirror images from source to destination registry.
 func (m *Mirrorer) Run(ctx context.Context) error {
 	m.copy(ctx)
-	if len(m.failedImageList) != 0 {
-		return fmt.Errorf("some images failed to copy: \n%s",
-			strings.Join(m.failedImageList, "\n"))
-
+	if len(m.failedImageSet) != 0 {
+		for i := range m.failedImageSet {
+			fmt.Printf("%v\n", i)
+		}
+		return fmt.Errorf("some images failed to mirror")
 	}
 	return nil
 }
 
-func (m *Mirrorer) copyImageListTypeDefault(line string) {
-	object := &copyObject{
+func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject, error) {
+	object := &mirrorObject{
 		image: line,
-		// id:     i,
-		copier: nil,
 	}
 	sourceRegistry := utils.GetRegistryName(line)
 	if m.SourceRegistry != "" {
@@ -102,9 +122,7 @@ func (m *Mirrorer) copyImageListTypeDefault(line string) {
 		Tag:      utils.GetImageTag(line),
 	})
 	if err != nil {
-		m.errorCh <- fmt.Errorf("failed to init source image: %v", err)
-		m.recordFailedImage(line)
-		return
+		return nil, fmt.Errorf("failed to init source image: %v", err)
 	}
 	object.source = src
 	destProject := utils.GetProjectName(line)
@@ -119,26 +137,20 @@ func (m *Mirrorer) copyImageListTypeDefault(line string) {
 		Tag:      utils.GetImageTag(line),
 	})
 	if err != nil {
-		m.errorCh <- fmt.Errorf("failed to init dest image: %v", err)
-		m.recordFailedImage(line)
-		return
+		return nil, fmt.Errorf("failed to init dest image: %v", err)
 	}
 	object.destination = dest
-	m.common.objectCh <- object
+	return object, nil
 }
 
-func (m *Mirrorer) copyImageListTypeMirror(line string) {
-	object := &copyObject{
+func (m *Mirrorer) mirrorObjectImageListTypeMirror(line string) (*mirrorObject, error) {
+	object := &mirrorObject{
 		image: line,
-		// id:     i,
-		copier: nil,
 	}
 
 	spec, _ := imagelist.GetMirrorSpec(line)
 	if len(spec) != 3 {
-		m.errorCh <- fmt.Errorf("ignore line %q in image list: invalid format", line)
-		m.recordFailedImage(line)
-		return
+		return nil, fmt.Errorf("ignore line %q in image list: invalid format", line)
 	}
 	sourceRegistry := utils.GetRegistryName(spec[0])
 	if m.SourceRegistry != "" {
@@ -156,9 +168,7 @@ func (m *Mirrorer) copyImageListTypeMirror(line string) {
 		Tag:      spec[2],
 	})
 	if err != nil {
-		m.errorCh <- fmt.Errorf("failed to init source image: %v", err)
-		m.recordFailedImage(line)
-		return
+		return nil, fmt.Errorf("failed to init source image: %v", err)
 	}
 	object.source = src
 	destProject := utils.GetProjectName(spec[1])
@@ -173,68 +183,84 @@ func (m *Mirrorer) copyImageListTypeMirror(line string) {
 		Tag:      spec[2],
 	})
 	if err != nil {
-		m.errorCh <- fmt.Errorf("failed to init dest image: %v", err)
-		m.recordFailedImage(line)
-		return
+		return nil, fmt.Errorf("failed to init dest image: %v", err)
 	}
 	object.destination = dest
-	m.common.objectCh <- object
+	return object, nil
 }
 
-func (m *Mirrorer) worker(ctx context.Context, id int) {
-	defer m.common.waitGroup.Done()
-	for {
-		select {
-		case <-ctx.Done():
-			logrus.Debugf("worker stopped: %v", ctx.Err())
-			return
-		case obj, ok := <-m.common.objectCh:
-			if !ok {
-				logrus.Debugf("channel closed, release worker")
-				return
-			}
-			if obj == nil {
-				continue
-			}
-
-			var (
-				copyContext context.Context
-				cancel      context.CancelFunc
-				err         error
-			)
-			if obj.timeout > 0 {
-				copyContext, cancel = context.WithTimeout(ctx, obj.timeout)
-			} else {
-				copyContext, cancel = context.WithCancel(ctx)
-			}
-
-			err = obj.source.Init(copyContext)
-			if err != nil {
-				m.common.errorCh <- err
-				m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-			err = obj.destination.Init(copyContext)
-			if err != nil {
-				m.common.errorCh <- err
-				m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-			err = obj.source.Copy(copyContext, obj.destination, m.common.imageSpecSet)
-			if err != nil {
-				m.common.errorCh <- err
-				m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-
-			logrus.Infof("[%v] => [%v]",
-				obj.source.ReferenceNameWithoutTransport(),
-				obj.destination.ReferenceNameWithoutTransport())
-			// Cancel the context after copy image
-			cancel()
-		}
+func (m *Mirrorer) worker(ctx context.Context, o any) {
+	if o == nil {
+		return
 	}
+	obj, ok := o.(*mirrorObject)
+	if !ok {
+		logrus.Errorf("skip object type(%T), data %v", o, o)
+		return
+	}
+
+	var (
+		copyContext context.Context
+		cancel      context.CancelFunc
+		err         error
+	)
+	if obj.timeout > 0 {
+		copyContext, cancel = context.WithTimeout(ctx, obj.timeout)
+	} else {
+		copyContext, cancel = context.WithCancel(ctx)
+	}
+	defer func() {
+		cancel()
+		if err != nil {
+			m.common.errorCh <- err
+			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+		}
+	}()
+
+	err = obj.source.Init(copyContext)
+	if err != nil {
+		return
+	}
+	err = obj.destination.Init(copyContext)
+	if err != nil {
+		return
+	}
+	logrus.WithFields(logrus.Fields{
+		"IMG": obj.id,
+	}).Infof("Copying  [%v] => [%v]",
+		obj.source.ReferenceNameWithoutTransport(),
+		obj.destination.ReferenceNameWithoutTransport())
+	err = obj.source.Copy(copyContext, obj.destination, m.common.imageSpecSet)
+	if err != nil {
+		return
+	}
+
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: obj.destination.ReferenceName(),
+	})
+	if err != nil {
+		return
+	}
+	copiedImage := obj.source.GetCopiedImage()
+	if len(copiedImage.Images) == 0 {
+		return
+	}
+	for _, image := range copiedImage.Images {
+		var mi *manifest.ManifestImage
+		mi, err = manifest.NewManifestImage(ctx,
+			fmt.Sprintf("docker://%s@%s", copiedImage.Source, image.Digest), nil)
+		if err != nil {
+			err = fmt.Errorf("failed to create manifest image: %w", err)
+		}
+		builder.Add(mi)
+	}
+	if err = builder.Push(ctx); err != nil {
+		err = fmt.Errorf("failed to push manifest: %w", err)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"IMG": obj.id,
+	}).Infof("Mirrored [%v] => [%v]",
+		obj.source.ReferenceNameWithoutTransport(),
+		obj.destination.ReferenceNameWithoutTransport())
 }
