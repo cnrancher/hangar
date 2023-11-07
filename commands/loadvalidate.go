@@ -1,79 +1,47 @@
 package commands
 
 import (
-	"github.com/cnrancher/hangar/pkg/archive"
-	"github.com/cnrancher/hangar/pkg/config"
-	"github.com/cnrancher/hangar/pkg/mirror"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 type loadValidateCmd struct {
-	loadCmd
+	*loadCmd
 }
 
 func newLoadValidateCmd() *loadValidateCmd {
-	cc := &loadValidateCmd{}
-
-	cc.cmd = &cobra.Command{
-		Use:     "load-validate",
-		Short:   "Validate the loaded images",
-		Long:    `Validate the loaded images`,
-		Example: "  hangar load-validate -s SAVED_FILE.tar.gz -d REGISTRY_URL",
+	cc := &loadValidateCmd{loadCmd: &loadCmd{}}
+	cc.loadCmd.baseCmd = newBaseCmd(&cobra.Command{
+		Use:   "validate -s SAVED_ARCHIVE.tar.gz -d REGISTRY_SERVER",
+		Short: "Validate the loaded images, ensure images were loaded to registry server",
+		Long:  "",
+		Example: `
+hangar load validate \
+	-s SAVED_ARCHIVE.tar.gz \
+	-d REGISTRY_URL`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, config.DefaultProvider)
-
-			if config.GetBool("debug") {
+			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
+			if cc.baseCmd.debug {
 				logrus.SetLevel(logrus.DebugLevel)
+				logrus.Debugf("debug output enabled")
+				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
-
-			if err := cc.loadCmd.baseCmd.selfCheckDependencies(); err != nil {
-				return err
-			}
-			if err := cc.loadCmd.setupFlags(); err != nil {
-				return err
-			}
-			if cc.compressFormat != archive.CompressFormatDirectory {
-				err := cc.loadCmd.baseCmd.prepareImageCacheDirectory()
-				if err != nil {
-					return err
-				}
-			}
-			if err := cc.loadCmd.decompressTarball(); err != nil {
-				return err
-			}
-			if err := cc.loadCmd.baseCmd.processSkopeoLogin(); err != nil {
-				return err
-			}
-			if err := cc.loadCmd.prepareMirrorers(); err != nil {
-				return err
-			}
-			cc.loadCmd.baseCmd.prepareWorker()
-			cc.run()
-			cc.loadCmd.baseCmd.finish()
-
 			return nil
 		},
-	}
+	})
 
-	cc.cmd.Flags().StringP("source", "s", "", "saved file to load validate "+
-		"(need to use '--compress' to specify the file format if not gzip)")
-	cc.cmd.Flags().StringP("destination", "d", "", "destination regitry")
-	cc.cmd.Flags().StringP("failed", "o", "load-validate-failed.txt",
-		"file name of the validate failed image list")
-	cc.cmd.Flags().StringP("compress", "", "gzip",
-		"compress format, can be 'gzip', 'zstd', or 'dir'")
-	cc.cmd.Flags().IntP("jobs", "j", 1,
-		"worker number, concurrent mode if larger than 1, max 20")
-	cc.cmd.Flags().StringP("default-project", "", "library",
-		"project name (also called 'namespace') when destination image project is empty")
+	flags := cc.loadCmd.baseCmd.cmd.Flags()
+	flags.StringVarP(&cc.source, "source", "s", "", "saved tarball filename")
+	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
+	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
+	flags.StringVarP(&cc.repoType, "repo-type", "", "", "repository type, can be 'harbor'")
+	flags.StringVarP(&cc.defaultProject, "default-project", "", "library", "default project name")
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
 
 	return cc
 }
 
 func (cc *loadValidateCmd) run() {
-	for _, m := range cc.loadCmd.mirrorers {
-		m.Mode = mirror.MODE_LOAD_VALIDATE
-		cc.loadCmd.baseCmd.workerChan <- m
-	}
 }

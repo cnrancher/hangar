@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"strings"
@@ -13,32 +12,6 @@ import (
 
 func init() {
 	logrus.SetOutput(io.Discard)
-}
-
-func Test_DefaultRunCommandFunc(t *testing.T) {
-	args := []string{"HELLO_WORLD"}
-	if err := DefaultRunCommandFunc("echo", nil, nil, args...); err != nil {
-		t.Error("DefaultRunCommandFunc 1 failed")
-	}
-	var out bytes.Buffer
-	if err := DefaultRunCommandFunc("echo", nil, &out, args...); err != nil {
-		t.Error("DefaultRunCommandFunc 2 failed: ", err)
-	}
-	if out.String() != "HELLO_WORLD\n" {
-		t.Error("DefaultRunCommandFunc 2 failed", out.String())
-	}
-	out.Reset()
-	in := strings.NewReader("123")
-	if err := DefaultRunCommandFunc("cat", in, &out); err != nil {
-		t.Error("DefaultRunCommandFunc 3 failed", err)
-	}
-	if out.String() != "123" {
-		t.Error("DefaultRunCommandFunc 3 failed", out.String())
-	}
-
-	if err := DefaultRunCommandFunc("UNKNOW_CMD", nil, nil); err == nil {
-		t.Error("DefaultRunCommandFunc 3 failed")
-	}
 }
 
 func Test_Sha256Sum(t *testing.T) {

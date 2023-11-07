@@ -1,5 +1,5 @@
 # binary files
-hangar
+/hangar
 /bin/
 /dist/
 
@@ -9,12 +9,13 @@ hangar
 *.tar.gz
 *.zstd
 *.part*
+tmp*
 data.json
 /rancher/
 /cnrancher/
 
 # default save image directory
-/saved-image-cache/
+saved-image-cache
 
 # vscode config
 /.vscode/

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cnrancher/hangar/pkg/config"
+	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -77,7 +77,7 @@ func BuildManifestList(
 	destImage, uname, passwd string,
 	params []BuildManifestListParam,
 ) (*manifest.Schema2List, error) {
-	skipTls := !config.GetBool("tls-verify")
+	skipTls := !cmdconfig.GetBool("tls-verify")
 	sysCtx := &types.SystemContext{
 		DockerAuthConfig: &types.DockerAuthConfig{
 			Username: uname,

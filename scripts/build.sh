@@ -21,7 +21,20 @@ if [[ ! -z "${COMMIT}" ]]; then
 fi
 BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"
 
-CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags "${BUILD_FLAG}" -o hangar ..
+if [[ ! -z ${DISABLE_CGO:-} ]]; then
+    CGO_ENABLED=0 \
+        GOOS=$OS \
+        GOARCH=$ARCH \
+        go build \
+        -tags containers_image_openpgp \
+        -ldflags "${BUILD_FLAG}" -o hangar ..
+else
+    GOOS=$OS \
+        GOARCH=$ARCH \
+        go build -ldflags "${BUILD_FLAG}" -o hangar ..
+fi
+
+
 
 echo "--------------------------"
 ls -alh hangar*
