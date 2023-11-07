@@ -65,8 +65,8 @@ func (r *Reader) Index() ([]byte, error) {
 	return b, nil
 }
 
-// DecompressFile decompresses the file/directory in archive.
-func (r *Reader) DecompressFile(name string, destination string) error {
+// Decompress decompresses the file/directory in archive.
+func (r *Reader) Decompress(name string, destination string) error {
 	var file *zip.File
 	for _, f := range r.zr.File {
 		if f.Name != name {
@@ -80,12 +80,21 @@ func (r *Reader) DecompressFile(name string, destination string) error {
 	}
 
 	var err error
-	baseDir := path.Dir(name)
+	baseDir := path.Dir(name) + string(os.PathSeparator)
 	target := filepath.Join(destination, strings.TrimPrefix(file.Name, baseDir))
 	switch {
 	case file.Mode().IsDir():
 		if err = os.MkdirAll(target, fs.FileMode(file.Mode())); err != nil {
 			return err
+		}
+		// Decompress all files inside the directory.
+		for _, f := range r.zr.File {
+			if f.Name == baseDir || !strings.HasPrefix(f.Name, baseDir) {
+				continue
+			}
+			if err = r.Decompress(f.Name, destination); err != nil {
+				return err
+			}
 		}
 	case file.Mode().IsRegular():
 		if err = os.MkdirAll(path.Dir(target), 0755); err != nil {
@@ -111,20 +120,41 @@ func (r *Reader) DecompressFile(name string, destination string) error {
 	return nil
 }
 
-func (r *Reader) DecompressFileTmp(name string) (string, error) {
-	err := os.MkdirAll(cacheDir, 0755)
-	if err != nil {
-		return "", fmt.Errorf("mkdir: %v", err)
-	}
+func (r *Reader) DecompressTmp(name string) (string, error) {
 	tmpDir, err := os.MkdirTemp(cacheDir, "*")
 	if err != nil {
-		return "", fmt.Errorf("failed to create tmp dir: %v", err)
+		return "", fmt.Errorf("failed to create tmp dir: %w", err)
 	}
-	err = r.DecompressFile(name, tmpDir)
+	err = r.Decompress(name, tmpDir)
 	if err != nil {
 		return "", err
 	}
 	return tmpDir, err
+}
+
+func (r *Reader) DecompressImageTmp(
+	img *ImageSpec,
+	imageSpecSet map[string]map[string]bool,
+	blobDir string,
+) (string, error) {
+	if len(imageSpecSet["os"]) != 0 && !imageSpecSet["os"][img.OS] {
+		return "", nil
+	}
+	if len(imageSpecSet["arch"]) != 0 && !imageSpecSet["arch"][img.Arch] {
+		return "", nil
+	}
+
+	tmpDir, err := os.MkdirTemp(cacheDir, "*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create tmp dir: %w", err)
+	}
+	// Decompress the OCI image folder.
+	err = r.Decompress(img.Folder+string(os.PathSeparator), tmpDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to decompress dir [%v]: %w",
+			img.Folder, err)
+	}
+	return tmpDir, nil
 }
 
 func (r *Reader) Close() error {

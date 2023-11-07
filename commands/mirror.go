@@ -28,6 +28,7 @@ type mirrorCmd struct {
 	defaultProject string
 	harborHttps    bool
 	timeout        time.Duration
+	tlsVerify      bool
 
 	sourceProject      string
 	destinationProject string
@@ -71,6 +72,7 @@ hangar mirror \
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "destination registry type, can be 'harbor'")
 	flags.BoolVarP(&cc.harborHttps, "harbor-https", "", true, "use https when create harbor project")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	flags.StringVarP(&cc.sourceProject, "source-project", "", "",
 		"override all source image projects")

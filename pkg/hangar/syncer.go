@@ -67,9 +67,8 @@ func (s *Syncer) copy(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.worker)
 	for i, img := range s.common.images {
-		object := &copyObject{
-			id:     i,
-			copier: nil,
+		object := &saveObject{
+			id: i + 1,
 		}
 		sourceRegistry := utils.GetRegistryName(img)
 		if s.SourceRegistry != "" {
@@ -143,7 +142,7 @@ func (s *Syncer) newSaveCacheDir() (string, error) {
 
 func (s *Syncer) recordFailedImage(name string) {
 	s.common.failedImageListMutex.Lock()
-	s.common.failedImageList = append(s.common.failedImageList, name)
+	s.common.failedImageSet[name] = true
 	s.common.failedImageListMutex.Unlock()
 }
 
@@ -161,93 +160,79 @@ func (s *Syncer) Run(ctx context.Context) error {
 	s.au = au
 
 	s.copy(ctx)
-	if len(s.failedImageList) != 0 {
+	if len(s.failedImageSet) != 0 {
+		for i := range s.failedImageSet {
+			fmt.Printf("%v\n", i)
+		}
 		return fmt.Errorf("some images failed to sync to %q", s.ArchiveName)
 	}
 	return nil
 }
 
-func (s *Syncer) worker(ctx context.Context, id int) {
-	defer s.common.waitGroup.Done()
-	for {
-		select {
-		case <-ctx.Done():
-			logrus.WithFields(logrus.Fields{"w": id}).
-				Debugf("worker stopped: %v", ctx.Err())
-			return
-		case obj, ok := <-s.common.objectCh:
-			if !ok {
-				logrus.WithFields(logrus.Fields{"w": id}).
-					Debugf("channel closed, release worker")
-				return
-			}
-			if obj == nil {
-				continue
-			}
-
-			var (
-				copyContext context.Context
-				cancel      context.CancelFunc
-				err         error
-			)
-			if obj.timeout > 0 {
-				copyContext, cancel = context.WithTimeout(ctx, obj.timeout)
-			} else {
-				copyContext, cancel = context.WithCancel(ctx)
-			}
-
-			err = obj.source.Init(copyContext)
-			if err != nil {
-				s.common.errorCh <- err
-				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-			logrus.WithFields(logrus.Fields{"w": id}).
-				Infof("Syncing [%v]", obj.source.ReferenceName())
-			err = obj.destination.Init(copyContext)
-			if err != nil {
-				s.common.errorCh <- err
-				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-			err = obj.source.Copy(copyContext, obj.destination, s.common.imageSpecSet)
-			if err != nil {
-				s.common.errorCh <- err
-				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				continue
-			}
-
-			// images copied to cache folder, write to archive file
-			s.auMutex.Lock()
-			logrus.WithFields(logrus.Fields{"w": id}).
-				Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
-			err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
-			if err != nil {
-				s.common.errorCh <- fmt.Errorf("failed to write cache dir to archive: %w", err)
-				s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
-				cancel()
-				s.auMutex.Unlock()
-				continue
-			}
-			s.index.Append(obj.source.GetCopiedImage())
-			s.auMutex.Unlock()
-			// delete cache dir
-			err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
-			if err != nil {
-				s.common.errorCh <- fmt.Errorf(
-					"failed to delete cache dir %q: %w",
-					obj.destination.ReferenceNameWithoutTransport(), err)
-			}
-
-			logrus.WithFields(logrus.Fields{"w": id}).
-				Infof("Saved [%v] => [%v]",
-					obj.source.ReferenceNameWithoutTransport(),
-					s.ArchiveName)
-			// Cancel the context after copy image
-			cancel()
-		}
+func (s *Syncer) worker(ctx context.Context, o any) {
+	if o == nil {
+		return
 	}
+	obj, ok := o.(*saveObject)
+	if !ok {
+		logrus.Errorf("skip object type(%T), data %v", o, o)
+		return
+	}
+
+	var (
+		copyContext context.Context
+		cancel      context.CancelFunc
+		err         error
+	)
+	if obj.timeout > 0 {
+		copyContext, cancel = context.WithTimeout(ctx, obj.timeout)
+	} else {
+		copyContext, cancel = context.WithCancel(ctx)
+	}
+	defer func() {
+		cancel()
+		if err != nil {
+			s.common.errorCh <- err
+			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+		}
+	}()
+
+	err = obj.source.Init(copyContext)
+	if err != nil {
+		return
+	}
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("Syncing [%v]", obj.source.ReferenceNameWithoutTransport())
+	err = obj.destination.Init(copyContext)
+	if err != nil {
+		return
+	}
+	err = obj.source.Copy(copyContext, obj.destination, s.common.imageSpecSet)
+	if err != nil {
+		return
+	}
+
+	// images copied to cache folder, write to archive file
+	s.auMutex.Lock()
+	defer s.auMutex.Unlock()
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
+	err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
+	if err != nil {
+		return
+	}
+	s.index.Append(obj.source.GetCopiedImage())
+	s.auMutex.Unlock()
+	// delete cache dir
+	err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
+	if err != nil {
+		err = fmt.Errorf(
+			"failed to delete cache dir %q: %w",
+			obj.destination.ReferenceNameWithoutTransport(), err)
+	}
+
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("Synced [%v] => [%v]",
+			obj.source.ReferenceNameWithoutTransport(),
+			s.ArchiveName)
 }

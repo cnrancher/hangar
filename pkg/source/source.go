@@ -309,9 +309,6 @@ func newSourceFromOci(o *Option) (*Source, error) {
 		tag:       o.Tag,
 		systemCtx: o.SystemContext,
 	}
-	if s.tag == "" {
-		s.tag = "latest"
-	}
 
 	return s, nil
 }
@@ -424,8 +421,8 @@ func (s *Source) initReferenceName() error {
 	case types.TypeOci:
 		// oci:path:tag
 		// example: oci:path/to/image:tag
-		s.referenceName = fmt.Sprintf("%s%s:%s",
-			s.imageType.Transport(), s.directory, s.tag)
+		s.referenceName = fmt.Sprintf("%s%s",
+			s.imageType.Transport(), s.directory)
 	default:
 		return types.ErrInvalidType
 	}
@@ -436,6 +433,7 @@ func (s *Source) initManifest(ctx context.Context) error {
 	var err error
 	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
 		ReferenceName: s.referenceName,
+		SystemContext: s.systemCtx,
 	})
 	if err != nil {
 		return err

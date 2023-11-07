@@ -26,6 +26,7 @@ type saveCmd struct {
 	compress    string
 	jobs        int
 	timeout     time.Duration
+	tlsVerify   bool
 }
 
 func newSaveCmd() *saveCmd {
@@ -65,6 +66,7 @@ hangar save \
 	flags.StringVarP(&cc.compress, "compress", "c", "gzip", "compress format, can be 'gzip' or 'tar'")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	return cc
 }

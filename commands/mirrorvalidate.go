@@ -43,6 +43,7 @@ hangar mirror validate \
 	flags.IntP("jobs", "j", 1, "worker number, copy images parallelly")
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "destination registry type, can be 'harbor'")
 	flags.BoolVarP(&cc.harborHttps, "harbor-https", "", true, "use https when create harbor project")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	return cc
 }

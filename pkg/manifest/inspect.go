@@ -13,6 +13,7 @@ import (
 
 // Inspector provides similar functions of 'skopeo inspect' command.
 type Inspector struct {
+	// reference name
 	name          string
 	systemContext *types.SystemContext
 	source        types.ImageSource
