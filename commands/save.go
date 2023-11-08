@@ -110,6 +110,6 @@ func (cc *saveCmd) run() {
 
 	err = s.Run(signalContext)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Fatal(err)
 	}
 }

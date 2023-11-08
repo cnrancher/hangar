@@ -8,6 +8,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// Use 2 routine to handle error messages.
+	errorHandlerWorkerNum = 2
+)
+
 type common struct {
 	// images is the image list.
 	images []string
@@ -23,8 +28,12 @@ type common struct {
 	errorWaitGroup *sync.WaitGroup
 	// objectCh is a channel for sending object to worker
 	objectCh chan any
+	// objectCtx is the context for handle object
+	objectCtx context.Context
 	// errorCh is a channel to receive error message
 	errorCh chan error
+	// errorCtx is the context for handle error message
+	errorCtx context.Context
 	// failedImageList stores the images failed to copy (thread-unsafe)
 	failedImageSet map[string]bool
 	// failedImageListMutex is a mutex for read/write of failedImageList
@@ -77,53 +86,92 @@ func newCommon(o *CommonOpts) *common {
 }
 
 func (c *common) initWorker(ctx context.Context, f func(context.Context, any)) {
+	c.objectCtx = ctx
 	for i := 0; i < c.workers && i < len(c.images); i++ {
 		c.waitGroup.Add(1)
-		go c.workerFunc(ctx, f)
+		go c.workerFunc(i, f)
 	}
 }
 
-func (c *common) workerFunc(ctx context.Context, f func(context.Context, any)) {
+func (c *common) workerFunc(id int, f func(context.Context, any)) {
 	defer c.waitGroup.Done()
 	for {
 		select {
-		case <-ctx.Done():
-			logrus.Warnf("worker routine killed gracefully: %v", ctx.Err())
+		case <-c.objectCtx.Done():
+			logrus.Infof("Worker [%d] stopped gracefully: %v",
+				id, c.objectCtx.Err())
 			return
 		case obj, ok := <-c.objectCh:
 			if !ok {
-				logrus.Debugf("channel closed, release worker")
+				logrus.Debugf("Worker channel closed")
 				return
 			}
 			if obj == nil {
 				continue
 			}
-			f(ctx, obj)
+			f(c.objectCtx, obj)
 		}
 	}
 }
 
 func (c *common) initErrorHandler(ctx context.Context) {
-	c.errorWaitGroup.Add(1)
-	go func() {
-		defer c.errorWaitGroup.Done()
-		for {
-			select {
-			case err, ok := <-c.errorCh:
-				if !ok {
-					logrus.Debugf("error channel closed, release error routine")
+	c.errorCtx = ctx
+	c.errorWaitGroup.Add(errorHandlerWorkerNum)
+	for i := 0; i < errorHandlerWorkerNum; i++ {
+		go func() {
+			defer c.errorWaitGroup.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					logrus.Debugf("Error handler stopped gracefully: %v", ctx.Err())
 					return
-				}
-				if ctx.Err() == nil {
-					logrus.Errorf("%v", err)
+				case err, ok := <-c.errorCh:
+					if !ok {
+						logrus.Debugf("Error handler channel closed")
+						return
+					}
+					logrus.Error(err)
 				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 func (c *common) recordFailedImage(name string) {
 	c.failedImageListMutex.Lock()
 	c.failedImageSet[name] = true
 	c.failedImageListMutex.Unlock()
+}
+
+func (c *common) handleError(err error) error {
+	if err == nil {
+		return nil
+	}
+	select {
+	case c.errorCh <- err:
+	case <-c.errorCtx.Done():
+		// If context canceled, skip recording error messages.
+	}
+	return c.errorCtx.Err()
+}
+
+func (c *common) handleObject(obj any) error {
+	if obj == nil {
+		return nil
+	}
+	select {
+	case c.objectCh <- obj:
+	case <-c.objectCtx.Done():
+		// If context canceled, skip sending object to worker.
+	}
+	return c.errorCtx.Err()
+}
+
+func (c *common) waitWorkers() {
+	close(c.objectCh)
+	// Waiting for all images were copied
+	c.waitGroup.Wait()
+	close(c.errorCh)
+	// Waiting for all error messages were handled properly
+	c.errorWaitGroup.Wait()
 }

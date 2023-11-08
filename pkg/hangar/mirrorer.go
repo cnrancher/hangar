@@ -75,11 +75,11 @@ func (m *Mirrorer) copy(ctx context.Context) {
 		}
 		if err != nil {
 			m.common.recordFailedImage(line)
-			m.common.errorCh <- err
+			m.handleError(err)
 			continue
 		}
 		object.id = i + 1
-		m.common.objectCh <- object
+		m.handleObject(object)
 	}
 
 	close(m.common.objectCh)
@@ -212,7 +212,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			m.common.errorCh <- err
+			m.handleError(err)
 			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
 	}()

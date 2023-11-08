@@ -87,7 +87,7 @@ func (s *Syncer) copy(ctx context.Context) {
 			SystemContext: &imagetypes.SystemContext{},
 		})
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to init source image: %w", err)
+			s.handleError(fmt.Errorf("failed to init source image: %w", err))
 			s.recordFailedImage(img)
 			continue
 		}
@@ -95,7 +95,7 @@ func (s *Syncer) copy(ctx context.Context) {
 
 		cd, err := s.newSaveCacheDir()
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to create cache dir: %w", err)
+			s.handleError(fmt.Errorf("failed to create cache dir: %w", err))
 			s.recordFailedImage(img)
 			continue
 		}
@@ -110,25 +110,23 @@ func (s *Syncer) copy(ctx context.Context) {
 			},
 		})
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to init dest image: %w", err)
+			s.handleError(fmt.Errorf("failed to init dest image: %w", err))
+			os.RemoveAll(cd)
 			s.recordFailedImage(img)
 			continue
 		}
 		object.destination = dest
-		s.common.objectCh <- object
+		if err = s.handleObject(object); err != nil {
+			os.RemoveAll(cd)
+		}
 	}
-
-	close(s.common.objectCh)
-	// Waiting for all images were copied
-	s.common.waitGroup.Wait()
-	close(s.common.errorCh)
-	// Waiting for all error messages were handled properly
-	s.common.errorWaitGroup.Wait()
-
+	s.waitWorkers()
 	if err := s.updateIndex(); err != nil {
 		logrus.Errorf("failed to write index file: %v", err)
 	}
-	s.au.Close()
+	if err := s.au.Close(); err != nil {
+		logrus.Errorf("failed to close archive updater: %v", err)
+	}
 }
 
 func (s *Syncer) newSaveCacheDir() (string, error) {
@@ -138,12 +136,6 @@ func (s *Syncer) newSaveCacheDir() (string, error) {
 	}
 	logrus.Debugf("create save cache dir: %v", cd)
 	return cd, nil
-}
-
-func (s *Syncer) recordFailedImage(name string) {
-	s.common.failedImageListMutex.Lock()
-	s.common.failedImageSet[name] = true
-	s.common.failedImageListMutex.Unlock()
 }
 
 func (s *Syncer) updateIndex() error {
@@ -192,7 +184,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			s.common.errorCh <- err
+			s.handleError(err)
 			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
 	}()

@@ -26,10 +26,11 @@ type loadObject struct {
 	id      int
 }
 
+// layerManager is for managing image layer cache.
 type layerManager struct {
+	mutex        *sync.RWMutex
 	layersRefMap map[string]int
 	cacheDir     string
-	index        *archive.Index
 }
 
 func newLayerManager(index *archive.Index) (*layerManager, error) {
@@ -38,9 +39,9 @@ func newLayerManager(index *archive.Index) (*layerManager, error) {
 		return nil, fmt.Errorf("mkdir temp: %w", err)
 	}
 	m := &layerManager{
+		mutex:        &sync.RWMutex{},
 		layersRefMap: make(map[string]int),
 		cacheDir:     tmpDir,
-		index:        index,
 	}
 	for _, img := range index.List {
 		for _, spec := range img.Images {
@@ -82,6 +83,9 @@ func (m *layerManager) decompressLayer(
 }
 
 func (m *layerManager) clean(img *archive.ImageSpec) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	layers := m.getImageLayers(img)
 	for i := 0; i < len(layers); i++ {
 		if m.layersRefMap[layers[i]] > 0 {
@@ -106,6 +110,7 @@ func (m *layerManager) blobDir() string {
 	return path.Join(m.cacheDir, archive.SharedBlobDir, "sha256")
 }
 
+// Loader loads images from hangar archive file to registry server.
 type Loader struct {
 	*common
 
@@ -178,6 +183,9 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal: %w", err)
 	}
+	if len(l.index.List) == 0 {
+		logrus.Warnf("No images in %q", o.ArchiveName)
+	}
 	lm, err := newLayerManager(l.index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init layer manager: %w", err)
@@ -196,16 +204,12 @@ func (l *Loader) copy(ctx context.Context) {
 			id:    i + 1,
 			image: image,
 		}
-		l.common.objectCh <- object
+		l.handleObject(object)
 	}
-
-	close(l.common.objectCh)
-	// Waiting for all images were copied
-	l.common.waitGroup.Wait()
-	close(l.common.errorCh)
-	// Waiting for all error messages were handled properly
-	l.common.errorWaitGroup.Wait()
-	l.ar.Close()
+	l.waitWorkers()
+	if err := l.ar.Close(); err != nil {
+		logrus.Errorf("failed to close archive reader: %v", err)
+	}
 }
 
 func (l *Loader) newLoadCacheDir() (string, error) {
@@ -213,7 +217,6 @@ func (l *Loader) newLoadCacheDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("os.MkdirTemp: %w", err)
 	}
-	logrus.Debugf("create save cache dir: %v", cd)
 	return cd, nil
 }
 
@@ -254,7 +257,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	// Use defer to handle error message.
 	defer func() {
 		if err != nil {
-			l.errorCh <- err
+			l.handleError(err)
 			l.recordFailedImage(imageName)
 		}
 	}()
@@ -357,6 +360,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	}
 	if err = builder.Push(ctx); err != nil {
 		err = fmt.Errorf("failed to push manifest: %w", err)
+		return
 	}
 
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
