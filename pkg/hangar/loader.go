@@ -2,7 +2,6 @@ package hangar
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -16,6 +15,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	imagetypes "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -181,9 +181,9 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ar.Index: %w", err)
 	}
-	err = json.Unmarshal(b, l.index)
+	err = l.index.Unmarshal(b)
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal index data: %w", err)
 	}
 	if len(l.index.List) == 0 {
 		logrus.Warnf("No images in %q", o.ArchiveName)
@@ -214,14 +214,6 @@ func (l *Loader) copy(ctx context.Context) {
 	}
 }
 
-func (l *Loader) newLoadCacheDir() (string, error) {
-	cd, err := os.MkdirTemp(archive.CacheDir(), "*")
-	if err != nil {
-		return "", fmt.Errorf("os.MkdirTemp: %w", err)
-	}
-	return cd, nil
-}
-
 // Run loads images from hangar archive to destination image registry
 func (l *Loader) Run(ctx context.Context) error {
 	l.copy(ctx)
@@ -244,7 +236,6 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		return
 	}
 
-	imageName := obj.image.Source + ":" + obj.image.Tag
 	var (
 		copyContext context.Context
 		cancel      context.CancelFunc
@@ -255,9 +246,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	} else {
 		copyContext, cancel = context.WithCancel(ctx)
 	}
-	defer cancel()
+	imageName := obj.image.Source + ":" + obj.image.Tag
 	// Use defer to handle error message.
 	defer func() {
+		cancel()
 		if err != nil {
 			l.handleError(err)
 			l.recordFailedImage(imageName)
@@ -373,4 +365,116 @@ func (l *Loader) worker(ctx context.Context, o any) {
 
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Loaded [%v]", imageName)
+}
+
+func (l *Loader) Validate(ctx context.Context) error {
+	l.validate(ctx)
+	if len(l.failedImageSet) != 0 {
+		logrus.Errorf("Validate failed image list:")
+		for i := range l.failedImageSet {
+			fmt.Printf("%v\n", i)
+		}
+		return fmt.Errorf("some images failed to validate")
+	}
+	return nil
+}
+
+func (l *Loader) validate(ctx context.Context) {
+	l.common.initErrorHandler(ctx)
+	l.common.images = make([]string, len(l.index.List))
+	l.common.initWorker(ctx, l.validateWorker)
+	for i, image := range l.index.List {
+		object := &loadObject{
+			id:    i + 1,
+			image: image,
+		}
+		l.handleObject(object)
+	}
+	l.waitWorkers()
+	if err := l.ar.Close(); err != nil {
+		logrus.Errorf("failed to close archive reader: %v", err)
+	}
+}
+
+func (l *Loader) validateWorker(ctx context.Context, o any) {
+	if o == nil {
+		return
+	}
+	obj, ok := o.(*loadObject)
+	if !ok {
+		logrus.Errorf("skip object type(%T), data %v", o, o)
+		return
+	}
+
+	var (
+		validateContext context.Context
+		cancel          context.CancelFunc
+		err             error
+	)
+	if obj.timeout > 0 {
+		validateContext, cancel = context.WithTimeout(ctx, obj.timeout)
+	} else {
+		validateContext, cancel = context.WithCancel(ctx)
+	}
+	imageName := obj.image.Source + ":" + obj.image.Tag
+	// Use defer to handle error message.
+	defer func() {
+		cancel()
+		if err != nil {
+			l.handleError(err)
+			l.recordFailedImage(imageName)
+		}
+	}()
+	logrus.Debugf("Validating [%v]", imageName)
+
+	// Init destination image spec.
+	destinationRegistry := utils.GetRegistryName(imageName)
+	if l.DestinationRegistry != "" {
+		destinationRegistry = l.DestinationRegistry
+	}
+	destinationProject := utils.GetProjectName(imageName)
+	if l.DestinationProject != "" {
+		destinationProject = l.DestinationProject
+	}
+	dest, err := destination.NewDestination(&destination.Option{
+		Type:     types.TypeDocker,
+		Registry: destinationRegistry,
+		Project:  destinationProject,
+		Name:     utils.GetImageName(imageName),
+		Tag:      obj.image.Tag,
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
+		},
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to init destination image: %w", err)
+		return
+	}
+	if err = dest.Init(validateContext); err != nil {
+		return
+	}
+	if !dest.Exists() {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Errorf("Image [%v] does not exists in destination registry server",
+				dest.ReferenceNameWithoutTransport())
+		err = fmt.Errorf("FAILED: [%v]", imageName)
+		return
+	}
+	image := dest.ImageBySet(l.imageSpecSet)
+	destDigestSet := map[digest.Digest]bool{}
+	for _, img := range image.Images {
+		destDigestSet[img.Digest] = true
+	}
+	for _, img := range obj.image.Images {
+		if !destDigestSet[img.Digest] {
+			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+				Errorf("Image digest [%v] does not exists in destination registry",
+					img.Digest)
+			err = fmt.Errorf("FAILED: [%v]", imageName)
+			return
+		}
+	}
+
+	logrus.Infof("PASS: [%v]", imageName)
 }

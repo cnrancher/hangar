@@ -2,10 +2,17 @@ package manifest
 
 import (
 	"context"
+	"time"
 
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+)
+
+const (
+	defaultRetryTimes = 2
+	defaultRetryDelay = time.Millisecond * 100
 )
 
 // Inspector provides similar functions of 'skopeo inspect' command.
@@ -15,6 +22,8 @@ type Inspector struct {
 	systemContext *types.SystemContext
 	source        types.ImageSource
 	mime          string
+	maxRetry      int
+	delay         time.Duration
 }
 
 type InspectorOption struct {
@@ -24,6 +33,10 @@ type InspectorOption struct {
 	ReferenceName string
 	// SystemContext pointer, can be nil.
 	SystemContext *types.SystemContext
+	// The number of times to possibly retry.
+	MaxRetry int
+	// The delay to use between retries, if set.
+	Delay time.Duration
 }
 
 func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
@@ -50,12 +63,21 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 		return nil, err
 	}
 
-	return &Inspector{
+	ins := &Inspector{
 		name:          o.ReferenceName,
 		systemContext: systemContext,
 		source:        source,
 		mime:          mime,
-	}, nil
+		maxRetry:      o.MaxRetry,
+		delay:         o.Delay,
+	}
+	if o.MaxRetry == 0 {
+		ins.maxRetry = defaultRetryTimes
+	}
+	if o.Delay == 0 {
+		ins.delay = defaultRetryDelay
+	}
+	return ins, nil
 }
 
 func (ins *Inspector) Close() error {
@@ -63,22 +85,54 @@ func (ins *Inspector) Close() error {
 }
 
 func (ins *Inspector) Raw(ctx context.Context) ([]byte, string, error) {
-	return ins.source.GetManifest(ctx, nil)
+	var (
+		b    []byte
+		mime string
+		err  error
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		b, mime, err = ins.source.GetManifest(ctx, nil)
+		return err
+	}, &retry.Options{
+		MaxRetry: ins.maxRetry,
+		Delay:    ins.delay,
+	}); err != nil {
+		return nil, "", err
+	}
+	return b, mime, nil
 }
 
 func (ins *Inspector) Config(ctx context.Context) ([]byte, error) {
-	image, err := image.FromUnparsedImage(
-		ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
-	if err != nil {
+	var (
+		img types.Image
+		err error
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		img, err = image.FromUnparsedImage(
+			ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
+		return err
+	}, &retry.Options{
+		MaxRetry: ins.maxRetry,
+		Delay:    ins.delay,
+	}); err != nil {
 		return nil, err
 	}
-	return image.ConfigBlob(ctx)
+	return img.ConfigBlob(ctx)
 }
 
 func (ins *Inspector) ConfigInfo(ctx context.Context) (*types.BlobInfo, error) {
-	img, err := image.FromUnparsedImage(
-		ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
-	if err != nil {
+	var (
+		img types.Image
+		err error
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		img, err = image.FromUnparsedImage(
+			ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
+		return err
+	}, &retry.Options{
+		MaxRetry: ins.maxRetry,
+		Delay:    ins.delay,
+	}); err != nil {
 		return nil, err
 	}
 	blobInfo := img.ConfigInfo()
@@ -91,5 +145,18 @@ func (ins *Inspector) Inspect(ctx context.Context) (*types.ImageInspectInfo, err
 	if err != nil {
 		return nil, err
 	}
-	return image.Inspect(ctx)
+	var (
+		info *types.ImageInspectInfo
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		var err error
+		info, err = image.Inspect(ctx)
+		return err
+	}, &retry.Options{
+		MaxRetry: ins.maxRetry,
+		Delay:    ins.delay,
+	}); err != nil {
+		return nil, err
+	}
+	return info, nil
 }

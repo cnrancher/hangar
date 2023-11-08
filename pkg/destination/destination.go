@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -383,4 +384,52 @@ func newDestinationFromDockerDaemon(o *Option) (*Destination, error) {
 	}
 
 	return d, nil
+}
+
+func (d *Destination) ImageBySet(set map[string]map[string]bool) *archive.Image {
+	image := &archive.Image{}
+	if !d.Exists() {
+		return image
+	}
+	archSet := map[string]bool{}
+	osSet := map[string]bool{}
+	switch d.mime {
+	case imagemanifest.DockerV2ListMediaType:
+		for _, m := range d.schema2List.Manifests {
+			p := &m.Platform
+			if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+				continue
+			}
+			if len(set["os"]) != 0 && !set["os"][p.OS] {
+				continue
+			}
+			archSet[p.Architecture] = true
+			osSet[p.OS] = true
+			image.Images = append(image.Images, archive.ImageSpec{
+				Digest: m.Digest,
+			})
+		}
+	case imgspecv1.MediaTypeImageIndex:
+		for _, m := range d.ociIndex.Manifests {
+			p := m.Platform
+			if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+				continue
+			}
+			if len(set["os"]) != 0 && !set["os"][p.OS] {
+				continue
+			}
+			archSet[p.Architecture] = true
+			osSet[p.OS] = true
+			image.Images = append(image.Images, archive.ImageSpec{
+				Digest: m.Digest,
+			})
+		}
+	}
+	for arch := range archSet {
+		image.ArchList = append(image.ArchList, arch)
+	}
+	for os := range osSet {
+		image.OsList = append(image.OsList, os)
+	}
+	return image
 }

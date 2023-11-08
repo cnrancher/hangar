@@ -38,7 +38,7 @@ type ImageSpec struct {
 	MediaType string          `json:"mediaType,omitempty" yaml:"mime,omitempty"`
 	Layers    []digest.Digest `json:"layers,omitempty" yaml:"layers,omitempty"`
 	Config    digest.Digest   `json:"config,omitempty" yaml:"config,omitempty"`
-	Digest    digest.Digest   `json:"manifest,omitempty" yaml:"manifest,omitempty"`
+	Digest    digest.Digest   `json:"digest,omitempty" yaml:"digest,omitempty"`
 }
 
 func NewIndex() *Index {
@@ -56,6 +56,12 @@ func UnmarshalIndex(b []byte) (*Index, error) {
 	if err != nil {
 		return nil, fmt.Errorf("UnmarshalIndex: %w", err)
 	}
+	i.digestSet = make(map[digest.Digest]bool)
+	for _, images := range i.List {
+		for _, image := range images.Images {
+			i.digestSet[image.Digest] = true
+		}
+	}
 	return i, nil
 }
 
@@ -63,6 +69,12 @@ func (i *Index) Unmarshal(b []byte) error {
 	err := json.Unmarshal(b, i)
 	if err != nil {
 		return err
+	}
+	i.digestSet = make(map[digest.Digest]bool)
+	for _, images := range i.List {
+		for _, image := range images.Images {
+			i.digestSet[image.Digest] = true
+		}
 	}
 	return nil
 }

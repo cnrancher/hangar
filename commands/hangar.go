@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 
+	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/spf13/cobra"
 )
 
@@ -63,4 +64,28 @@ func (cc *hangarCmd) addCommands() {
 		newConvertListCmd(),
 		newGenerateListCmd(),
 	)
+}
+
+// run executes hangar.Run()
+func run(h hangar.Hangar) error {
+	if err := h.Run(signalContext); err != nil {
+		// Error occured while run, save copy failed image to file.
+		if err := h.SaveFailedImages(); err != nil {
+			return err
+		}
+		return err
+	}
+	return nil
+}
+
+// validate executes hangar.Validate()
+func validate(h hangar.Hangar) error {
+	if err := h.Validate(signalContext); err != nil {
+		// Error occured while validate, save validate failed image to file.
+		if err := h.SaveFailedImages(); err != nil {
+			return err
+		}
+		return err
+	}
+	return nil
 }

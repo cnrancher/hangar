@@ -271,10 +271,10 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
 ) error {
-	arch := s.ociConfig.Architecture
-	osInfo := s.ociConfig.OS
-	osVersion := s.ociConfig.OSVersion
-	variant := s.ociConfig.Variant
+	arch := s.imageInspectInfo.Architecture
+	osInfo := s.imageInspectInfo.Os
+	osVersion := ""
+	variant := s.imageInspectInfo.Variant
 
 	// skip image
 	if len(sets["os"]) != 0 && osInfo != "" && !sets["os"][osInfo] {
