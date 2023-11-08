@@ -30,8 +30,8 @@ func newInspectCmd() *inspectCmd {
 		Use:   "inspect IMAGR_REFERENCE",
 		Short: "Inspect provides basic functions of 'skopeo inspect' to inspect image manifest",
 		Long:  "",
-		Example: `# Inspect docker image maniefest:
-
+		Example: `
+# Inspect RAW docker image maniefest:
   hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)

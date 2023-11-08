@@ -148,6 +148,8 @@ type LoaderOpts struct {
 	SharedBlobDirPath string
 	// ArchiveName is the archive file name to be load
 	ArchiveName string
+	// Use HTTPS and verify certificate
+	TlsVerify bool
 }
 
 func NewLoader(o *LoaderOpts) (*Loader, error) {
@@ -220,7 +222,7 @@ func (l *Loader) newLoadCacheDir() (string, error) {
 	return cd, nil
 }
 
-// Run loads images from tarball archive to destination image registry
+// Run loads images from hangar archive to destination image registry
 func (l *Loader) Run(ctx context.Context) error {
 	l.copy(ctx)
 	if len(l.failedImageSet) != 0 {
@@ -272,12 +274,15 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		destinationProject = l.DestinationProject
 	}
 	dest, err := destination.NewDestination(&destination.Option{
-		Type:          types.TypeDocker,
-		Registry:      destinationRegistry,
-		Project:       destinationProject,
-		Name:          utils.GetImageName(imageName),
-		Tag:           obj.image.Tag,
-		SystemContext: &imagetypes.SystemContext{},
+		Type:     types.TypeDocker,
+		Registry: destinationRegistry,
+		Project:  destinationProject,
+		Name:     utils.GetImageName(imageName),
+		Tag:      obj.image.Tag,
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
+		},
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to init destination image: %w", err)
@@ -290,7 +295,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	var builder *manifest.Builder
 	builder, err = manifest.NewBuilder(&manifest.BuilderOpts{
 		ReferenceName: dest.ReferenceName(),
-		SystemContext: &imagetypes.SystemContext{},
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
+		},
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create manifest builder: %w", err)

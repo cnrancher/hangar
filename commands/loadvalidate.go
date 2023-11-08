@@ -14,12 +14,12 @@ type loadValidateCmd struct {
 func newLoadValidateCmd() *loadValidateCmd {
 	cc := &loadValidateCmd{loadCmd: &loadCmd{}}
 	cc.loadCmd.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "validate -s SAVED_ARCHIVE.tar.gz -d REGISTRY_SERVER",
+		Use:   "validate -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
 		Short: "Validate the loaded images, ensure images were loaded to registry server",
 		Long:  "",
 		Example: `
 hangar load validate \
-	-s SAVED_ARCHIVE.tar.gz \
+	-s SAVED_ARCHIVE.zip \
 	-d REGISTRY_URL`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
@@ -33,7 +33,7 @@ hangar load validate \
 	})
 
 	flags := cc.loadCmd.baseCmd.cmd.Flags()
-	flags.StringVarP(&cc.source, "source", "s", "", "saved tarball filename")
+	flags.StringVarP(&cc.source, "source", "s", "", "saved archive filename")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "repository type, can be 'harbor'")

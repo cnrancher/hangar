@@ -89,12 +89,15 @@ func (s *Saver) copy(ctx context.Context) {
 			sourceProject = s.SourceProject
 		}
 		src, err := source.NewSource(&source.Option{
-			Type:          types.TypeDocker,
-			Registry:      sourceRegistry,
-			Project:       sourceProject,
-			Name:          utils.GetImageName(img),
-			Tag:           utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{},
+			Type:     types.TypeDocker,
+			Registry: sourceRegistry,
+			Project:  sourceProject,
+			Name:     utils.GetImageName(img),
+			Tag:      utils.GetImageTag(img),
+			SystemContext: &imagetypes.SystemContext{
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.tlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.tlsVerify,
+			},
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init source image: %w", err))

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -54,7 +55,9 @@ hangar mirror \
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 
-			cc.run()
+			if err := cc.run(); err != nil {
+				return err
+			}
 
 			return nil
 		},
@@ -83,17 +86,17 @@ hangar mirror \
 	return cc
 }
 
-func (cc *mirrorCmd) run() {
+func (cc *mirrorCmd) run() error {
 	if cc.file == "" {
-		logrus.Fatalf("file not provided")
+		return fmt.Errorf("file not provided")
 	}
 	// if cc.destination == "" {
-	// 	logrus.Fatalf("destination registry URL not provided")
+	// 	return fmt.Errorf("destination registry URL not provided")
 	// }
 
 	file, err := os.Open(cc.file)
 	if err != nil {
-		logrus.Fatalf("failed to open %q: %v", cc.file, err)
+		return fmt.Errorf("failed to open %q: %v", cc.file, err)
 	}
 
 	images := []string{}
@@ -107,17 +110,18 @@ func (cc *mirrorCmd) run() {
 		images = append(images, l)
 	}
 	if err := file.Close(); err != nil {
-		logrus.Fatalf("failed to close %q: %v", cc.file, err)
+		return fmt.Errorf("failed to close %q: %v", cc.file, err)
 	}
 
 	m := hangar.NewMirrorer(&hangar.MirrorerOpts{
 		CommonOpts: hangar.CommonOpts{
-			Images:  images,
-			Arch:    cc.arch,
-			OS:      cc.os,
-			Variant: nil, // TODO: support variants
-			Timeout: cc.timeout,
-			Workers: cc.jobs,
+			Images:    images,
+			Arch:      cc.arch,
+			OS:        cc.os,
+			Variant:   nil, // TODO: support variants
+			Timeout:   cc.timeout,
+			Workers:   cc.jobs,
+			TlsVerify: cc.tlsVerify,
 		},
 
 		SourceRegistry:      cc.source,
@@ -128,6 +132,7 @@ func (cc *mirrorCmd) run() {
 
 	err = m.Run(signalContext)
 	if err != nil {
-		logrus.Fatal(err)
+		return err
 	}
+	return nil
 }

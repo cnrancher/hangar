@@ -38,15 +38,18 @@ type common struct {
 	failedImageSet map[string]bool
 	// failedImageListMutex is a mutex for read/write of failedImageList
 	failedImageListMutex *sync.RWMutex
+	// tlsVerify
+	tlsVerify bool
 }
 
 type CommonOpts struct {
-	Images  []string
-	Arch    []string
-	OS      []string
-	Variant []string
-	Timeout time.Duration
-	Workers int
+	Images    []string
+	Arch      []string
+	OS        []string
+	Variant   []string
+	Timeout   time.Duration
+	Workers   int
+	TlsVerify bool
 }
 
 func newCommon(o *CommonOpts) *common {
@@ -69,6 +72,8 @@ func newCommon(o *CommonOpts) *common {
 
 		failedImageSet:       make(map[string]bool),
 		failedImageListMutex: &sync.RWMutex{},
+
+		tlsVerify: o.TlsVerify,
 	}
 
 	copy(c.images, o.Images)
