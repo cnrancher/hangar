@@ -11,6 +11,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	imagetypes "github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -120,6 +121,10 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		Project:  sourceProject,
 		Name:     utils.GetImageName(line),
 		Tag:      utils.GetImageTag(line),
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init source image: %v", err)
@@ -135,6 +140,10 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		Project:  destProject,
 		Name:     utils.GetImageName(line),
 		Tag:      utils.GetImageTag(line),
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init dest image: %v", err)
@@ -237,6 +246,10 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 
 	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
 		ReferenceName: obj.destination.ReferenceName(),
+		SystemContext: &imagetypes.SystemContext{
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
+			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+		},
 	})
 	if err != nil {
 		return
