@@ -78,7 +78,8 @@ func (s *Saver) copy(ctx context.Context) {
 	s.common.initWorker(ctx, s.worker)
 	for i, img := range s.common.images {
 		object := &saveObject{
-			id: i + 1,
+			id:    i + 1,
+			image: img,
 		}
 		sourceRegistry := utils.GetRegistryName(img)
 		if s.SourceRegistry != "" {
@@ -199,7 +200,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		cancel()
 		if err != nil {
 			s.handleError(err)
-			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+			s.common.recordFailedImage(obj.image)
 		}
 
 		// Delete cache dir.
@@ -214,7 +215,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		return
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-		Infof("Saving [%v]", obj.source.ReferenceNameWithoutTransport())
+		Infof("Saving [%v]", obj.image)
 	err = obj.destination.Init(copyContext)
 	if err != nil {
 		return
@@ -240,4 +241,113 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	}).Infof("Saved [%v] => [%v]",
 		obj.source.ReferenceNameWithoutTransport(),
 		s.ArchiveName)
+}
+
+func (s *Saver) Validate(ctx context.Context) error {
+	ar, err := archive.NewReader(s.ArchiveName)
+	if err != nil {
+		return fmt.Errorf("failed to create archive reader: %w", err)
+	}
+	b, err := ar.Index()
+	if err != nil {
+		return fmt.Errorf("failed to read archive index: %w", err)
+	}
+	if err := ar.Close(); err != nil {
+		logrus.Errorf("failed to close archive reader: %v", err)
+	}
+	if err := s.index.Unmarshal(b); err != nil {
+		return fmt.Errorf("failed to read archive index: %w", err)
+	}
+	s.validate(ctx)
+
+	if len(s.failedImageSet) != 0 {
+		logrus.Errorf("Validate failed image list:")
+		for i := range s.failedImageSet {
+			fmt.Printf("%v\n", i)
+		}
+		return fmt.Errorf("some images failed to validate")
+	}
+	return nil
+}
+
+func (s *Saver) validate(ctx context.Context) {
+	s.common.initErrorHandler(ctx)
+	s.common.initWorker(ctx, s.validateWorker)
+	for i, img := range s.common.images {
+		object := &saveObject{
+			id:    i + 1,
+			image: img,
+		}
+		sourceRegistry := utils.GetRegistryName(img)
+		if s.SourceRegistry != "" {
+			sourceRegistry = s.SourceRegistry
+		}
+		sourceProject := utils.GetProjectName(img)
+		if s.SourceProject != "" {
+			sourceProject = s.SourceProject
+		}
+		src, err := source.NewSource(&source.Option{
+			Type:     types.TypeDocker,
+			Registry: sourceRegistry,
+			Project:  sourceProject,
+			Name:     utils.GetImageName(img),
+			Tag:      utils.GetImageTag(img),
+			SystemContext: &imagetypes.SystemContext{
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.tlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.tlsVerify,
+			},
+		})
+		if err != nil {
+			s.handleError(fmt.Errorf("failed to init source image: %w", err))
+			s.recordFailedImage(img)
+			continue
+		}
+		object.source = src
+		s.handleObject(object)
+	}
+	s.waitWorkers()
+}
+
+func (s *Saver) validateWorker(ctx context.Context, o any) {
+	if o == nil {
+		return
+	}
+	obj, ok := o.(*saveObject)
+	if !ok {
+		logrus.Errorf("skip object type(%T), data %v", o, o)
+		return
+	}
+
+	var (
+		validateContext context.Context
+		cancel          context.CancelFunc
+		err             error
+	)
+	if obj.timeout > 0 {
+		validateContext, cancel = context.WithTimeout(ctx, obj.timeout)
+	} else {
+		validateContext, cancel = context.WithCancel(ctx)
+	}
+
+	defer func() {
+		cancel()
+		if err != nil {
+			s.handleError(err)
+			s.common.recordFailedImage(obj.image)
+		}
+	}()
+
+	err = obj.source.Init(validateContext)
+	if err != nil {
+		return
+	}
+	image := obj.source.ImageBySet(s.imageSpecSet)
+	if !s.index.Has(image) {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Errorf("Image [%v] does not exists in archive index",
+				obj.source.ReferenceNameWithoutTransport())
+		err = fmt.Errorf("FAILED: [%v]", obj.source.ReferenceNameWithoutTransport())
+		return
+	}
+	logrus.Infof("PASS: [%v]", obj.source.ReferenceNameWithoutTransport())
 }

@@ -49,13 +49,14 @@ type Source struct {
 
 	// if mime is DockerV2Schema2MediaType
 	schema2 *imagemanifest.Schema2
-	// if mime is DockerV2Schema2MediaType
+
+	// if mime is DockerV2Schema1MediaType
 	imageInspectInfo *imagetypes.ImageInspectInfo
 
 	// if mime is DockerV2Schema1MediaType
 	schema1 *imagemanifest.Schema1
 
-	// if mime is DockerV2Schema2MediaType or DockerV2Schema1MediaType
+	// if mime is DockerV2Schema2MediaType
 	ociConfig *imgspecv1.Image
 
 	// if mime is MediaTypeImageIndex
@@ -519,4 +520,90 @@ func (s *Source) initManifest(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Source) ImageBySet(set map[string]map[string]bool) *archive.Image {
+	image := &archive.Image{}
+	archSet := map[string]bool{}
+	osSet := map[string]bool{}
+	switch s.mime {
+	case imagemanifest.DockerV2ListMediaType:
+		for _, m := range s.schema2List.Manifests {
+			arch := m.Platform.Architecture
+			osInfo := m.Platform.OS
+			if len(set["arch"]) != 0 && !set["arch"][arch] {
+				continue
+			}
+			if len(set["os"]) != 0 && !set["os"][osInfo] {
+				continue
+			}
+			archSet[arch] = true
+			osSet[osInfo] = true
+			image.Images = append(image.Images, archive.ImageSpec{
+				Digest: m.Digest,
+			})
+		}
+	case imagemanifest.DockerV2Schema2MediaType:
+		p := &s.ociConfig.Platform
+		if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+			return image
+		}
+		if len(set["os"]) != 0 && !set["os"][p.OS] {
+			return image
+		}
+		archSet[p.Architecture] = true
+		osSet[p.OS] = true
+		image.Images = append(image.Images, archive.ImageSpec{
+			Digest: s.manifestDigest,
+		})
+	case imagemanifest.DockerV2Schema1MediaType,
+		imagemanifest.DockerV2Schema1SignedMediaType:
+		p := s.imageInspectInfo
+		if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+			return image
+		}
+		if len(set["os"]) != 0 && !set["os"][p.Os] {
+			return image
+		}
+		archSet[p.Architecture] = true
+		osSet[p.Os] = true
+		image.Images = append(image.Images, archive.ImageSpec{
+			Digest: s.manifestDigest,
+		})
+	case imgspecv1.MediaTypeImageIndex:
+		for _, m := range s.ociIndex.Manifests {
+			p := m.Platform
+			if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+				continue
+			}
+			if len(set["os"]) != 0 && !set["os"][p.OS] {
+				continue
+			}
+			archSet[p.Architecture] = true
+			osSet[p.OS] = true
+			image.Images = append(image.Images, archive.ImageSpec{
+				Digest: m.Digest,
+			})
+		}
+	case imgspecv1.MediaTypeImageManifest:
+		p := s.ociManifest.Config.Platform
+		if len(set["arch"]) != 0 && !set["arch"][p.Architecture] {
+			return image
+		}
+		if len(set["os"]) != 0 && !set["os"][p.OS] {
+			return image
+		}
+		archSet[p.Architecture] = true
+		osSet[p.OS] = true
+		image.Images = append(image.Images, archive.ImageSpec{
+			Digest: s.manifestDigest,
+		})
+	}
+	for arch := range archSet {
+		image.ArchList = append(image.ArchList, arch)
+	}
+	for os := range osSet {
+		image.OsList = append(image.OsList, os)
+	}
+	return image
 }

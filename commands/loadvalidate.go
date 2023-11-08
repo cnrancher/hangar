@@ -11,8 +11,12 @@ type loadValidateCmd struct {
 	*loadCmd
 }
 
-func newLoadValidateCmd() *loadValidateCmd {
-	cc := &loadValidateCmd{loadCmd: &loadCmd{}}
+func newLoadValidateCmd(opts *loadOpts) *loadValidateCmd {
+	cc := &loadValidateCmd{
+		loadCmd: &loadCmd{
+			loadOpts: opts,
+		},
+	}
 	cc.loadCmd.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "validate -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
 		Short: "Validate the loaded images, ensure images were loaded to registry server",
@@ -28,6 +32,13 @@ hangar load validate \
 				logrus.Debugf("debug output enabled")
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
+			h, err := cc.prepareHangar()
+			if err != nil {
+				return err
+			}
+			if err := validate(h); err != nil {
+				return err
+			}
 			return nil
 		},
 	})
@@ -38,11 +49,7 @@ hangar load validate \
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
 	flags.StringVarP(&cc.repoType, "repo-type", "", "", "repository type, can be 'harbor'")
 	flags.StringVarP(&cc.defaultProject, "default-project", "", "library", "default project name")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, validate images parallelly")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
-
 	return cc
-}
-
-func (cc *loadValidateCmd) run() {
 }

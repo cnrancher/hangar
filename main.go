@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"syscall"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
@@ -13,7 +14,6 @@ import (
 func init() {
 	formatter := &nested.Formatter{
 		HideKeys:        false,
-		NoFieldsSpace:   true,
 		TimestampFormat: "[15:04:05]", // hour, time, sec only
 		FieldsOrder:     []string{"IMG"},
 	}
@@ -21,6 +21,10 @@ func init() {
 		formatter.NoColors = true
 	}
 	logrus.SetFormatter(formatter)
+
+	if runtime.GOOS == "windows" {
+		logrus.Panicf("unsupported OS: %v", runtime.GOOS)
+	}
 }
 
 func main() {

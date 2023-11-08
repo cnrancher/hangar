@@ -11,9 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type loadCmd struct {
-	*baseCmd
-
+type loadOpts struct {
 	arch           []string
 	os             []string
 	source         string
@@ -22,15 +20,20 @@ type loadCmd struct {
 	repoType       string
 	defaultProject string
 	jobs           int
-	harborHttps    bool
 	timeout        time.Duration
 	project        string
 	tlsVerify      bool
 }
 
-func newLoadCmd() *loadCmd {
-	cc := &loadCmd{}
+type loadCmd struct {
+	*baseCmd
+	*loadOpts
+}
 
+func newLoadCmd() *loadCmd {
+	cc := &loadCmd{
+		loadOpts: new(loadOpts),
+	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "load -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
 		Short: "Load images from zip archive created by 'save' command onto registry server",
@@ -49,10 +52,13 @@ hangar load \
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 
-			if err := cc.run(); err != nil {
+			h, err := cc.prepareHangar()
+			if err != nil {
 				return err
 			}
-
+			if err := run(h); err != nil {
+				return err
+			}
 			return nil
 		},
 	})
@@ -70,27 +76,31 @@ hangar load \
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
-	addCommands(cc.cmd, newLoadValidateCmd())
-
+	addCommands(
+		cc.cmd,
+		newLoadValidateCmd(cc.loadOpts),
+	)
 	return cc
 }
 
-func (cc *loadCmd) run() error {
+func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 	if cc.source == "" {
-		return fmt.Errorf("source file not provided, use '--source' to provide the archive file")
+		return nil, fmt.Errorf("source file not provided, use '--source' to provide the archive file")
 	}
 	if cc.destination == "" {
-		return fmt.Errorf("destination registry URL not provided, use '--destination' to provide the registry")
+		return nil, fmt.Errorf("destination registry URL not provided, use '--destination' to provide the registry")
 	}
 
 	l, err := hangar.NewLoader(&hangar.LoaderOpts{
 		CommonOpts: hangar.CommonOpts{
-			Images:    nil,
-			Arch:      cc.arch,
-			OS:        cc.os,
-			Variant:   nil,
-			Timeout:   cc.timeout,
-			TlsVerify: cc.tlsVerify,
+			Images:              nil,
+			Arch:                cc.arch,
+			OS:                  cc.os,
+			Variant:             nil,
+			Timeout:             cc.timeout,
+			Workers:             cc.jobs,
+			TlsVerify:           cc.tlsVerify,
+			FailedImageListName: cc.failed,
 		},
 
 		DestinationRegistry: cc.destination,
@@ -99,12 +109,7 @@ func (cc *loadCmd) run() error {
 		ArchiveName:         cc.source,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create loader: %v", err)
+		return nil, fmt.Errorf("failed to create loader: %v", err)
 	}
-
-	err = l.Run(signalContext)
-	if err != nil {
-		return err
-	}
-	return err
+	return l, nil
 }

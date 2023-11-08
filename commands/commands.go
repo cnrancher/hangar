@@ -19,7 +19,6 @@ var (
 
 type baseCmd struct {
 	*baseOpts
-
 	cmd *cobra.Command
 }
 

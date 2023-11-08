@@ -2,6 +2,7 @@ package signal
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,8 +29,9 @@ func SetupSignalContext() context.Context {
 	go func() {
 		s := <-shutdownHandler
 		cancel()
-		logrus.Warnf("Signal [%s] Received, Abort Processes!", s.String())
-		logrus.Warnf("Use 'Ctrl-C' to force exit.")
+		fmt.Println()
+		logrus.Warnf("Abort: [%s] received", s.String())
+		logrus.Warnf("Use 'Ctrl-C' again to force exit")
 		<-shutdownHandler
 		os.Exit(130) // second signal. Exit directly.
 	}()

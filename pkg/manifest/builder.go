@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -20,11 +22,18 @@ type Builder struct {
 	images ManifestImages
 	// systemContext
 	systemContext *types.SystemContext
+
+	maxRetry int
+	delay    time.Duration
 }
 
 type BuilderOpts struct {
 	ReferenceName string
 	SystemContext *types.SystemContext
+	// The number of times to possibly retry.
+	MaxRetry int
+	// The delay to use between retries, if set.
+	Delay time.Duration
 }
 
 func NewBuilder(o *BuilderOpts) (*Builder, error) {
@@ -38,9 +47,17 @@ func NewBuilder(o *BuilderOpts) (*Builder, error) {
 		reference:     ref,
 		images:        nil,
 		systemContext: o.SystemContext,
+		maxRetry:      o.MaxRetry,
+		delay:         o.Delay,
 	}
 	if b.systemContext == nil {
 		b.systemContext = &types.SystemContext{}
+	}
+	if o.MaxRetry == 0 {
+		b.maxRetry = defaultRetryTimes
+	}
+	if o.Delay == 0 {
+		b.delay = defaultRetryDelay
 	}
 	return b, nil
 }
@@ -88,10 +105,26 @@ func (b *Builder) Push(ctx context.Context) error {
 		return fmt.Errorf("manifest builder: %w", err)
 	}
 
-	dest, err := b.reference.NewImageDestination(ctx, b.systemContext)
-	if err != nil {
+	var (
+		dest types.ImageDestination
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		dest, err = b.reference.NewImageDestination(ctx, b.systemContext)
+		return err
+	}, &retry.Options{
+		MaxRetry: b.maxRetry,
+		Delay:    b.delay,
+	}); err != nil {
 		return fmt.Errorf("manifest builder: %w", err)
 	}
-	err = dest.PutManifest(ctx, d, nil)
+	defer dest.Close()
+	if err = retry.IfNecessary(ctx, func() error {
+		return dest.PutManifest(ctx, d, nil)
+	}, &retry.Options{
+		MaxRetry: b.maxRetry,
+		Delay:    b.delay,
+	}); err != nil {
+		return fmt.Errorf("manifest builder: %w", err)
+	}
 	return nil
 }

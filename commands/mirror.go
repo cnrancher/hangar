@@ -14,28 +14,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type mirrorCmd struct {
-	*baseCmd
-
-	file           string
-	arch           []string
-	os             []string
-	source         string
-	destination    string
-	failed         string
-	jobs           int
-	repoType       string
-	defaultProject string
-	harborHttps    bool
-	timeout        time.Duration
-	tlsVerify      bool
+type mirrorOpts struct {
+	file        string
+	arch        []string
+	os          []string
+	source      string
+	destination string
+	failed      string
+	jobs        int
+	repoType    string
+	harborHttps bool
+	timeout     time.Duration
+	tlsVerify   bool
 
 	sourceProject      string
 	destinationProject string
 }
 
+type mirrorCmd struct {
+	*baseCmd
+	*mirrorOpts
+}
+
 func newMirrorCmd() *mirrorCmd {
-	cc := &mirrorCmd{}
+	cc := &mirrorCmd{
+		mirrorOpts: new(mirrorOpts),
+	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "mirror -f IMAGE_LIST.txt -d DESTINATION_REGISTRY",
 		Short: "Mirror images between registry servers",
@@ -54,11 +58,13 @@ hangar mirror \
 				logrus.Debugf("debug output enabled")
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
-
-			if err := cc.run(); err != nil {
+			h, err := cc.prepareHangar()
+			if err != nil {
 				return err
 			}
-
+			if err := run(h); err != nil {
+				return err
+			}
 			return nil
 		},
 	})
@@ -81,14 +87,17 @@ hangar mirror \
 	flags.StringVarP(&cc.destinationProject, "destination-project", "", "",
 		"override all destination image projects")
 
-	addCommands(cc.cmd, newMirrorValidateCmd())
+	addCommands(
+		cc.cmd,
+		newMirrorValidateCmd(cc.mirrorOpts),
+	)
 
 	return cc
 }
 
-func (cc *mirrorCmd) run() error {
+func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 	if cc.file == "" {
-		return fmt.Errorf("file not provided")
+		return nil, fmt.Errorf("file not provided")
 	}
 	// if cc.destination == "" {
 	// 	return fmt.Errorf("destination registry URL not provided")
@@ -96,7 +105,7 @@ func (cc *mirrorCmd) run() error {
 
 	file, err := os.Open(cc.file)
 	if err != nil {
-		return fmt.Errorf("failed to open %q: %v", cc.file, err)
+		return nil, fmt.Errorf("failed to open %q: %v", cc.file, err)
 	}
 
 	images := []string{}
@@ -110,18 +119,19 @@ func (cc *mirrorCmd) run() error {
 		images = append(images, l)
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("failed to close %q: %v", cc.file, err)
+		return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
 	}
 
 	m := hangar.NewMirrorer(&hangar.MirrorerOpts{
 		CommonOpts: hangar.CommonOpts{
-			Images:    images,
-			Arch:      cc.arch,
-			OS:        cc.os,
-			Variant:   nil, // TODO: support variants
-			Timeout:   cc.timeout,
-			Workers:   cc.jobs,
-			TlsVerify: cc.tlsVerify,
+			Images:              images,
+			Arch:                cc.arch,
+			OS:                  cc.os,
+			Variant:             nil, // TODO: support variants
+			Timeout:             cc.timeout,
+			Workers:             cc.jobs,
+			TlsVerify:           cc.tlsVerify,
+			FailedImageListName: cc.failed,
 		},
 
 		SourceRegistry:      cc.source,
@@ -130,9 +140,5 @@ func (cc *mirrorCmd) run() error {
 		DestinationProject:  cc.destinationProject,
 	})
 
-	err = m.Run(signalContext)
-	if err != nil {
-		return err
-	}
-	return nil
+	return m, nil
 }

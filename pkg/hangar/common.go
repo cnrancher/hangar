@@ -2,6 +2,8 @@ package hangar
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -38,18 +40,21 @@ type common struct {
 	failedImageSet map[string]bool
 	// failedImageListMutex is a mutex for read/write of failedImageList
 	failedImageListMutex *sync.RWMutex
+	// failedImageListName is the file name of the failed image list
+	failedImageListName string
 	// tlsVerify
 	tlsVerify bool
 }
 
 type CommonOpts struct {
-	Images    []string
-	Arch      []string
-	OS        []string
-	Variant   []string
-	Timeout   time.Duration
-	Workers   int
-	TlsVerify bool
+	Images              []string
+	Arch                []string
+	OS                  []string
+	Variant             []string
+	Timeout             time.Duration
+	Workers             int
+	TlsVerify           bool
+	FailedImageListName string
 }
 
 func newCommon(o *CommonOpts) *common {
@@ -72,6 +77,7 @@ func newCommon(o *CommonOpts) *common {
 
 		failedImageSet:       make(map[string]bool),
 		failedImageListMutex: &sync.RWMutex{},
+		failedImageListName:  o.FailedImageListName,
 
 		tlsVerify: o.TlsVerify,
 	}
@@ -90,11 +96,31 @@ func newCommon(o *CommonOpts) *common {
 	return c
 }
 
+func (c *common) SaveFailedImages() error {
+	if len(c.failedImageSet) == 0 {
+		return nil
+	}
+	file, err := os.Create(c.failedImageListName)
+	if err != nil {
+		return fmt.Errorf("failed to create file %q: %w",
+			c.failedImageListName, err)
+	}
+	defer file.Close()
+	for i := range c.failedImageSet {
+		_, err = file.WriteString(fmt.Sprintf("%s\n", i))
+		if err != nil {
+			return fmt.Errorf("failed to write file: %w", err)
+		}
+	}
+	return nil
+}
+
 func (c *common) initWorker(ctx context.Context, f func(context.Context, any)) {
 	c.objectCtx = ctx
 	for i := 0; i < c.workers && i < len(c.images); i++ {
 		c.waitGroup.Add(1)
 		go c.workerFunc(i, f)
+		logrus.Debugf("Created worker id %v", i)
 	}
 }
 
