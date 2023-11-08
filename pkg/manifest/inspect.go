@@ -2,13 +2,10 @@ package manifest
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/containers/image/v5/image"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Inspector provides similar functions of 'skopeo inspect' command.
@@ -70,10 +67,6 @@ func (ins *Inspector) Raw(ctx context.Context) ([]byte, string, error) {
 }
 
 func (ins *Inspector) Config(ctx context.Context) ([]byte, error) {
-	if ins.mime == manifest.DockerV2ListMediaType ||
-		ins.mime == imgspecv1.MediaTypeImageIndex {
-		return nil, fmt.Errorf("unable to get config from mime %q", ins.mime)
-	}
 	image, err := image.FromUnparsedImage(
 		ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
 	if err != nil {
@@ -83,11 +76,6 @@ func (ins *Inspector) Config(ctx context.Context) ([]byte, error) {
 }
 
 func (ins *Inspector) ConfigInfo(ctx context.Context) (*types.BlobInfo, error) {
-	if ins.mime == manifest.DockerV2ListMediaType ||
-		ins.mime == imgspecv1.MediaTypeImageIndex {
-		return nil, fmt.Errorf(
-			"unable to get ConfigInfo from mime %q", ins.mime)
-	}
 	img, err := image.FromUnparsedImage(
 		ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
 	if err != nil {
@@ -98,10 +86,6 @@ func (ins *Inspector) ConfigInfo(ctx context.Context) (*types.BlobInfo, error) {
 }
 
 func (ins *Inspector) Inspect(ctx context.Context) (*types.ImageInspectInfo, error) {
-	if ins.mime == manifest.DockerV2ListMediaType ||
-		ins.mime == imgspecv1.MediaTypeImageIndex {
-		return nil, fmt.Errorf("unable to inspect mime %q", ins.mime)
-	}
 	image, err := image.FromUnparsedImage(
 		ctx, ins.systemContext, image.UnparsedInstance(ins.source, nil))
 	if err != nil {
