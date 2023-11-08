@@ -59,6 +59,7 @@ func (cc *hangarCmd) addCommands() {
 		newSaveCmd(),
 		newLoadCmd(),
 		newArchiveCmd(),
+		newInspectCmd(),
 		newConvertListCmd(),
 		newGenerateListCmd(),
 	)
