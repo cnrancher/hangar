@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/copy"
@@ -108,7 +109,7 @@ func (s *Source) copyDockerV2ListMediaType(
 
 	if len(errs) > 0 {
 		return copiedNum, fmt.Errorf(
-			"error occured when copy image [%v] => [%v]: %v",
+			"error occurred when copy image [%v] => [%v]: %v",
 			s.referenceName, dest.ReferenceName(), errs,
 		)
 	}
@@ -202,9 +203,13 @@ func (s *Source) copyMediaTypeImageIndex(
 		copiedNum++
 	}
 	if len(errs) > 0 {
+		b := strings.Builder{}
+		for _, e := range errs {
+			b.WriteString(fmt.Sprintf("%v\n", e))
+		}
 		return copiedNum, fmt.Errorf(
-			"error occured when copy image [%v] => [%v]: %v",
-			s.referenceName, dest.ReferenceName(), errs,
+			"error occurred when copy image [%v] => [%v]: \n%s",
+			s.referenceName, dest.ReferenceName(), b.String(),
 		)
 	}
 	return copiedNum, nil

@@ -128,6 +128,6 @@ func (cc *mirrorCmd) run() {
 
 	err = m.Run(signalContext)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Fatal(err)
 	}
 }

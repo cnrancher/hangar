@@ -97,7 +97,7 @@ func (s *Saver) copy(ctx context.Context) {
 			SystemContext: &imagetypes.SystemContext{},
 		})
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to init source image: %w", err)
+			s.handleError(fmt.Errorf("failed to init source image: %w", err))
 			s.recordFailedImage(img)
 			continue
 		}
@@ -105,7 +105,7 @@ func (s *Saver) copy(ctx context.Context) {
 
 		cd, err := s.newSaveCacheDir()
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to create cache dir: %w", err)
+			s.handleError(fmt.Errorf("failed to create cache dir: %w", err))
 			os.RemoveAll(cd)
 			s.recordFailedImage(img)
 			continue
@@ -121,28 +121,17 @@ func (s *Saver) copy(ctx context.Context) {
 			},
 		})
 		if err != nil {
-			s.errorCh <- fmt.Errorf("failed to init dest image: %w", err)
+			s.handleError(fmt.Errorf("failed to init dest image: %w", err))
 			os.RemoveAll(cd)
 			s.recordFailedImage(img)
 			continue
 		}
 		object.destination = dest
-		if ctx.Err() != nil {
+		if err = s.handleObject(object); err != nil {
 			os.RemoveAll(cd)
-			break
 		}
-		s.common.objectCh <- object
 	}
-
-	close(s.common.objectCh)
-	// Waiting for all images were copied
-	s.common.waitGroup.Wait()
-	if ctx.Err() != nil {
-		close(s.common.errorCh)
-		// Waiting for all error messages were handled properly
-		s.common.errorWaitGroup.Wait()
-	}
-
+	s.waitWorkers()
 	if err := s.writeIndex(); err != nil {
 		logrus.Errorf("failed to write index file: %v", err)
 	}
@@ -158,12 +147,6 @@ func (s *Saver) newSaveCacheDir() (string, error) {
 	}
 	logrus.Debugf("create save cache dir: %v", cd)
 	return cd, nil
-}
-
-func (s *Saver) recordFailedImage(name string) {
-	s.common.failedImageListMutex.Lock()
-	s.common.failedImageSet[name] = true
-	s.common.failedImageListMutex.Unlock()
 }
 
 func (s *Saver) writeIndex() error {
@@ -212,7 +195,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			s.common.errorCh <- err
+			s.handleError(err)
 			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
 

@@ -96,6 +96,6 @@ func (cc *loadCmd) run() {
 
 	err = l.Run(signalContext)
 	if err != nil {
-		logrus.Error(err)
+		logrus.Fatal(err)
 	}
 }
