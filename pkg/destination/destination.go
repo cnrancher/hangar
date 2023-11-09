@@ -14,6 +14,7 @@ import (
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -202,6 +203,11 @@ func (d *Destination) ReferenceNameWithoutTransport() string {
 	}
 
 	return strings.TrimPrefix(d.referenceName, prefix)
+}
+
+func (d *Destination) ReferenceNameDigest(dig digest.Digest) string {
+	return fmt.Sprintf("%s@%s",
+		strings.TrimSuffix(d.referenceName, ":"+d.tag), dig.String())
 }
 
 func (d *Destination) MIME() string {
@@ -432,4 +438,41 @@ func (d *Destination) ImageBySet(set map[string]map[string]bool) *archive.Image 
 		image.OsList = append(image.OsList, os)
 	}
 	return image
+}
+
+func (d *Destination) ManifestBuilder(ctx context.Context) (*manifest.Builder, error) {
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: d.ReferenceName(),
+		SystemContext: d.systemCtx,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if d.mime == "" {
+		return builder, nil
+	}
+
+	// Add existing images into manifest builder
+	switch d.mime {
+	case imagemanifest.DockerV2ListMediaType:
+		for _, m := range d.schema2List.Manifests {
+			rn := d.ReferenceNameDigest(m.Digest)
+			mi, err := manifest.NewManifestImage(ctx, rn, d.systemCtx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create manifest image: %w", err)
+			}
+			builder.Add(mi)
+		}
+	case imgspecv1.MediaTypeImageIndex:
+		for _, m := range d.ociIndex.Manifests {
+			rn := d.ReferenceNameDigest(m.Digest)
+			mi, err := manifest.NewManifestImage(ctx, rn, d.systemCtx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create manifest image: %w", err)
+			}
+			builder.Add(mi)
+		}
+	}
+
+	return builder, nil
 }

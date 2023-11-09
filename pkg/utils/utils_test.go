@@ -199,10 +199,10 @@ func Test_SemverMajorMinorEqual(t *testing.T) {
 }
 
 func Test_GetProjectName(t *testing.T) {
-	assert.Equal(t, GetProjectName("nginx"), "")
-	assert.Equal(t, GetProjectName("docker.io/nginx"), "")
-	assert.Equal(t, GetProjectName("library/nginx"), "library")
-	assert.Equal(t, GetProjectName("docker.io/library/nginx"), "library")
+	assert.Equal(t, GetProjectName("nginx"), "library")
+	assert.Equal(t, GetProjectName("docker.io/nginx"), "library")
+	assert.Equal(t, GetProjectName("user/nginx"), "user")
+	assert.Equal(t, GetProjectName("docker.io/user/nginx"), "user")
 }
 
 func Test_GetRegistryName(t *testing.T) {

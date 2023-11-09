@@ -106,6 +106,9 @@ func (p *ManifestImage) Equal(d *ManifestImage) bool {
 }
 
 func (images ManifestImages) Contains(d *ManifestImage) bool {
+	if len(images) == 0 {
+		return false
+	}
 	for _, p := range images {
 		if p.Equal(d) {
 			return true
@@ -114,12 +117,48 @@ func (images ManifestImages) Contains(d *ManifestImage) bool {
 	return false
 }
 
+func (images ManifestImages) FindPlatformIndex(p *manifestPlatform) int {
+	if len(images) == 0 {
+		return -1
+	}
+	for i, img := range images {
+		if img.platform.equal(p) {
+			return i
+		}
+	}
+	return -1
+}
+
 func (p ManifestImages) Equal(d ManifestImages) bool {
 	if len(p) != len(d) {
 		return false
 	}
 	for i := 0; i < len(p); i++ {
 		if !p[i].Equal(d[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *manifestPlatform) equal(d *manifestPlatform) bool {
+	if p.arch != d.arch {
+		return false
+	}
+	if p.os != d.os {
+		return false
+	}
+	if p.variant != d.variant {
+		return false
+	}
+	if p.osVersion != d.osVersion {
+		return false
+	}
+	if len(p.osFeatures) != len(d.osFeatures) {
+		return false
+	}
+	for i := 0; i < len(p.osFeatures); i++ {
+		if p.osFeatures[i] != d.osFeatures[i] {
 			return false
 		}
 	}
