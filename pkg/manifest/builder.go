@@ -66,6 +66,9 @@ func (b *Builder) Add(p *ManifestImage) {
 	if b.images.Contains(p) {
 		return
 	}
+	if i := b.images.FindPlatformIndex(&p.platform); i >= 0 {
+		b.images = append(b.images[:i], b.images[i+1:]...)
+	}
 	b.images = append(b.images, p)
 }
 

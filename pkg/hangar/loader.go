@@ -285,13 +285,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	}
 	// Init manifest Builder.
 	var builder *manifest.Builder
-	builder, err = manifest.NewBuilder(&manifest.BuilderOpts{
-		ReferenceName: dest.ReferenceName(),
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
-		},
-	})
+	builder, err = dest.ManifestBuilder(ctx)
 	if err != nil {
 		err = fmt.Errorf("failed to create manifest builder: %w", err)
 		return
@@ -304,7 +298,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			continue
 		}
 
-		imgRef := "docker://" + obj.image.Source + "@" + img.Digest.String()
+		imgRef := dest.ReferenceNameDigest(img.Digest)
 		var tmpDir string
 		tmpDir, err = l.ar.DecompressImageTmp(
 			&img, l.common.imageSpecSet, l.layerManager.blobDir())
@@ -318,8 +312,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}(tmpDir, img)
 
 		if err != nil {
-			err = fmt.Errorf(
-				"failed to decompress image [%v]: %w", imgRef, err)
+			err = fmt.Errorf("failed to decompress image [%v]: %w", imgRef, err)
 			return
 		}
 		if err = l.layerManager.decompressLayer(&img, l.ar); err != nil {
