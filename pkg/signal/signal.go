@@ -30,8 +30,8 @@ func SetupSignalContext() context.Context {
 		s := <-shutdownHandler
 		cancel()
 		fmt.Println()
-		logrus.Warnf("Abort: [%s] received", s.String())
-		logrus.Warnf("Use 'Ctrl-C' again to force exit")
+		logrus.Warnf("Abort: [%s] received, cleaning up resources", s.String())
+		logrus.Warnf("Use 'Ctrl-C' again to force exit (not recommended)")
 		<-shutdownHandler
 		os.Exit(130) // second signal. Exit directly.
 	}()

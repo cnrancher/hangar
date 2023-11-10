@@ -15,7 +15,7 @@ import (
 )
 
 type logoutCmd struct {
-	baseCmd
+	*baseCmd
 
 	logoutOpts   auth.LogoutOptions
 	tlsVerify    commonFlag.OptionalBool // Require HTTPS and verify certificates
@@ -25,7 +25,7 @@ type logoutCmd struct {
 
 func newLogoutCmd() *logoutCmd {
 	cc := &logoutCmd{}
-	cc.baseCmd.cmd = &cobra.Command{
+	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "logout registry-url",
 		Short:   "Logout from registry server",
 		Example: "  hangar logout docker.io",
@@ -47,7 +47,7 @@ func newLogoutCmd() *logoutCmd {
 				return auth.Logout(sys, &cc.logoutOpts, args)
 			}, &cc.retryOptions)
 		},
-	}
+	})
 
 	flags := cc.baseCmd.cmd.Flags()
 	flags.DurationVarP(&cc.timeout, "timeout", "", 0, "logout timeout")

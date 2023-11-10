@@ -15,7 +15,7 @@ import (
 )
 
 type loginCmd struct {
-	baseCmd
+	*baseCmd
 
 	loginOpts    auth.LoginOptions
 	tlsVerify    commonFlag.OptionalBool // Require HTTPS and verify certificates
@@ -25,7 +25,7 @@ type loginCmd struct {
 
 func newLoginCmd() *loginCmd {
 	cc := &loginCmd{}
-	cc.baseCmd.cmd = &cobra.Command{
+	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "login registry-url",
 		Short:   "Login to registry server",
 		Example: "  hangar login docker.io",
@@ -50,7 +50,7 @@ func newLoginCmd() *loginCmd {
 				return auth.Login(ctx, sys, &cc.loginOpts, args)
 			}, &cc.retryOptions)
 		},
-	}
+	})
 
 	flags := cc.baseCmd.cmd.Flags()
 	flags.DurationVarP(&cc.timeout, "timeout", "", 0, "login timeout")

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/STARRY-S/zip"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -138,10 +139,10 @@ func (r *Reader) DecompressImageTmp(
 	blobDir string,
 ) (string, error) {
 	if len(imageSpecSet["os"]) != 0 && !imageSpecSet["os"][img.OS] {
-		return "", nil
+		return "", utils.ErrNoAvailableImage
 	}
 	if len(imageSpecSet["arch"]) != 0 && !imageSpecSet["arch"][img.Arch] {
-		return "", nil
+		return "", utils.ErrNoAvailableImage
 	}
 
 	tmpDir, err := os.MkdirTemp(cacheDir, "*")
@@ -151,7 +152,7 @@ func (r *Reader) DecompressImageTmp(
 	// Decompress the OCI image folder.
 	err = r.Decompress(img.Folder+string(os.PathSeparator), tmpDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to decompress dir [%v]: %w",
+		return tmpDir, fmt.Errorf("failed to decompress dir [%v]: %w",
 			img.Folder, err)
 	}
 	return tmpDir, nil

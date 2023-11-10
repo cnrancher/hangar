@@ -96,6 +96,10 @@ func (s *Source) copyDockerV2ListMediaType(
 			Digest:    manifestDigest,
 		}
 		for _, layer := range schema2.LayersDescriptors {
+			if len(layer.URLs) != 0 {
+				// The layer is from internet, ignore here.
+				continue
+			}
 			spec.Layers = append(spec.Layers, layer.Digest)
 		}
 		err = s.recordCopiedImage(spec)
@@ -193,6 +197,10 @@ func (s *Source) copyMediaTypeImageIndex(
 			Digest:    manifestDigest,
 		}
 		for _, layer := range ociManifest.Layers {
+			if len(layer.URLs) != 0 {
+				// The layer is from internet, ignore here.
+				continue
+			}
 			spec.Layers = append(spec.Layers, layer.Digest)
 		}
 		err = s.recordCopiedImage(spec)
@@ -261,6 +269,10 @@ func (s *Source) copyDockerV2Schema2MediaType(
 		Digest:    s.manifestDigest,
 	}
 	for _, layer := range s.schema2.LayersDescriptors {
+		if len(layer.URLs) != 0 {
+			// The layer is from internet, ignore here.
+			continue
+		}
 		spec.Layers = append(spec.Layers, layer.Digest)
 	}
 	return s.recordCopiedImage(spec)
@@ -366,6 +378,10 @@ func (s *Source) copyMediaTypeImageManifest(
 		Digest:    s.manifestDigest,
 	}
 	for _, layer := range s.ociManifest.Layers {
+		if len(layer.URLs) != 0 {
+			// The layer is from internet, ignore here.
+			continue
+		}
 		spec.Layers = append(spec.Layers, layer.Digest)
 	}
 	return s.recordCopiedImage(spec)

@@ -44,6 +44,8 @@ hangar load validate \
 	})
 
 	flags := cc.loadCmd.baseCmd.cmd.Flags()
+	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "saved archive filename")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")

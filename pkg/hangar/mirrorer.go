@@ -118,8 +118,8 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		Name:     utils.GetImageName(line),
 		Tag:      utils.GetImageTag(line),
 		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.skipTlsVerify),
+			OCIInsecureSkipTLSVerify:    m.skipTlsVerify,
 		},
 	})
 	if err != nil {
@@ -137,8 +137,8 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		Name:     utils.GetImageName(line),
 		Tag:      utils.GetImageTag(line),
 		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.skipTlsVerify),
+			OCIInsecureSkipTLSVerify:    m.common.skipTlsVerify,
 		},
 	})
 	if err != nil {
@@ -217,17 +217,23 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			m.handleError(err)
+			m.handleError(fmt.Errorf("error occurred when copy [%v] to [%v]: %w",
+				obj.source.ReferenceNameWithoutTransport(),
+				obj.destination.ReferenceNameWithoutTransport(), err))
 			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
 	}()
 
 	err = obj.source.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init [%v]: %w",
+			obj.source.ReferenceName(), err)
 		return
 	}
 	err = obj.destination.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init [%v]: %w",
+			obj.destination.ReferenceName(), err)
 		return
 	}
 	logrus.WithFields(logrus.Fields{
@@ -243,11 +249,12 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
 		ReferenceName: obj.destination.ReferenceName(),
 		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    m.common.tlsVerify,
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.skipTlsVerify),
+			OCIInsecureSkipTLSVerify:    m.common.skipTlsVerify,
 		},
 	})
 	if err != nil {
+		err = fmt.Errorf("failed to create mafiest builder: %w", err)
 		return
 	}
 	copiedImage := obj.source.GetCopiedImage()
@@ -260,11 +267,13 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 			fmt.Sprintf("docker://%s@%s", copiedImage.Source, image.Digest), nil)
 		if err != nil {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
+			return
 		}
 		builder.Add(mi)
 	}
 	if err = builder.Push(ctx); err != nil {
 		err = fmt.Errorf("failed to push manifest: %w", err)
+		return
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -336,7 +345,7 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			m.handleError(err)
+			m.handleError(NewError(obj.id, err, obj.source, obj.destination))
 			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
 		}
 	}()

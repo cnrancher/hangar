@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -13,15 +14,26 @@ import (
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	imagetypes "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
+
+// syncObject is the object for sending to worker pool when syncing image
+type syncObject struct {
+	image       string
+	source      *source.Source
+	destination *destination.Destination
+	timeout     time.Duration
+	id          int
+}
 
 type Syncer struct {
 	*common
 
-	au      *archive.Updater
-	auMutex *sync.RWMutex
-	index   *archive.Index
+	au        *archive.Updater
+	auMutex   *sync.RWMutex
+	index     *archive.Index
+	layersSet map[digest.Digest]bool
 
 	// Override the registry of source image to be copied
 	SourceRegistry string
@@ -48,8 +60,9 @@ type SyncerOpts struct {
 
 func NewSyncer(o *SyncerOpts) *Syncer {
 	s := &Syncer{
-		auMutex: &sync.RWMutex{},
-		index:   archive.NewIndex(),
+		auMutex:   &sync.RWMutex{},
+		index:     archive.NewIndex(),
+		layersSet: make(map[digest.Digest]bool),
 
 		SourceRegistry:    o.SourceProject,
 		SourceProject:     o.SourceProject,
@@ -67,8 +80,9 @@ func (s *Syncer) copy(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.worker)
 	for i, img := range s.common.images {
-		object := &saveObject{
-			id: i + 1,
+		object := &syncObject{
+			id:    i + 1,
+			image: img,
 		}
 		sourceRegistry := utils.GetRegistryName(img)
 		if s.SourceRegistry != "" {
@@ -79,12 +93,15 @@ func (s *Syncer) copy(ctx context.Context) {
 			sourceProject = s.SourceProject
 		}
 		src, err := source.NewSource(&source.Option{
-			Type:          types.TypeDocker,
-			Registry:      sourceRegistry,
-			Project:       sourceProject,
-			Name:          utils.GetImageName(img),
-			Tag:           utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{},
+			Type:     types.TypeDocker,
+			Registry: sourceRegistry,
+			Project:  sourceProject,
+			Name:     utils.GetImageName(img),
+			Tag:      utils.GetImageTag(img),
+			SystemContext: &imagetypes.SystemContext{
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
+			},
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init source image: %w", err))
@@ -106,7 +123,9 @@ func (s *Syncer) copy(ctx context.Context) {
 			Name:      utils.GetImageName(img),
 			Tag:       utils.GetImageTag(img),
 			SystemContext: &imagetypes.SystemContext{
-				OCISharedBlobDirPath: sd,
+				OCISharedBlobDirPath:        sd,
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
 			},
 		})
 		if err != nil {
@@ -145,14 +164,29 @@ func (s *Syncer) updateIndex() error {
 
 // Run append images from registry server into local directory / hangar archive.
 func (s *Syncer) Run(ctx context.Context) error {
+	// Init Archive Updater.
 	au, err := archive.NewUpdater(s.ArchiveName)
 	if err != nil {
 		return fmt.Errorf("failed to open archive %q: %w", s.ArchiveName, err)
 	}
 	s.au = au
+	s.index = au.Index()
+	// Init layerSet.
+	for _, images := range s.index.List {
+		for _, spec := range images.Images {
+			for _, layer := range spec.Layers {
+				s.layersSet[layer] = true
+			}
+			s.layersSet[spec.Digest] = true
+			if spec.Config != "" {
+				s.layersSet[spec.Config] = true
+			}
+		}
+	}
 
 	s.copy(ctx)
 	if len(s.failedImageSet) != 0 {
+		logrus.Errorf("Failed image list:")
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
@@ -165,7 +199,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 	if o == nil {
 		return
 	}
-	obj, ok := o.(*saveObject)
+	obj, ok := o.(*syncObject)
 	if !ok {
 		logrus.Errorf("skip object type(%T), data %v", o, o)
 		return
@@ -182,49 +216,180 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 		copyContext, cancel = context.WithCancel(ctx)
 	}
 	defer func() {
-		cancel()
 		if err != nil {
-			s.handleError(err)
-			s.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+			s.handleError(NewError(obj.id, err, obj.source, obj.destination))
+			s.common.recordFailedImage(obj.image)
+		}
+		cancel()
+		// Delete cache dir.
+		if err = os.RemoveAll(obj.destination.Directory()); err != nil {
+			err = fmt.Errorf("failed to delete cache dir %q: %w",
+				obj.destination.Directory(), err)
 		}
 	}()
 
 	err = obj.source.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init source: %w", err)
 		return
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Syncing [%v]", obj.source.ReferenceNameWithoutTransport())
 	err = obj.destination.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init destination: %w", err)
 		return
 	}
 	err = obj.source.Copy(copyContext, obj.destination, s.common.imageSpecSet)
 	if err != nil {
+		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
 		return
 	}
 
 	// images copied to cache folder, write to archive file
 	s.auMutex.Lock()
 	defer s.auMutex.Unlock()
+
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
+
+	shareBlobsDir := obj.destination.ReferenceNameWithoutTransport()
+	copiedImage := obj.source.GetCopiedImage()
+	// Record image layers and remove duplicated layers from shared blob dir.
+	for _, image := range copiedImage.Images {
+		for _, layer := range image.Layers {
+			if s.layersSet[layer] {
+				os.RemoveAll(path.Join(shareBlobsDir, string(layer.Algorithm()), layer.Encoded()))
+			} else {
+				s.layersSet[layer] = true
+			}
+		}
+		if s.layersSet[image.Digest] {
+			os.RemoveAll(path.Join(shareBlobsDir, string(image.Digest.Algorithm()), image.Digest.Encoded()))
+		} else {
+			s.layersSet[image.Digest] = true
+		}
+		if image.Config != "" && s.layersSet[image.Config] {
+			os.RemoveAll(path.Join(shareBlobsDir, string(image.Config.Algorithm()), image.Config.Encoded()))
+		} else if image.Config != "" {
+			s.layersSet[image.Config] = true
+		}
+	}
+
 	err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
+	if err != nil {
+		err = fmt.Errorf("failed to append files into zip archive: %w", err)
+		return
+	}
+	s.index.Append(copiedImage)
+}
+
+func (s *Syncer) Validate(ctx context.Context) error {
+	ar, err := archive.NewReader(s.ArchiveName)
+	if err != nil {
+		return fmt.Errorf("failed to create archive reader: %w", err)
+	}
+	b, err := ar.Index()
+	if err != nil {
+		return fmt.Errorf("failed to read archive index: %w", err)
+	}
+	if err := ar.Close(); err != nil {
+		logrus.Errorf("failed to close archive reader: %v", err)
+	}
+	if err := s.index.Unmarshal(b); err != nil {
+		return fmt.Errorf("failed to read archive index: %w", err)
+	}
+
+	s.validate(ctx)
+	if len(s.failedImageSet) != 0 {
+		logrus.Errorf("Validate failed image list:")
+		for i := range s.failedImageSet {
+			fmt.Printf("%v\n", i)
+		}
+		return fmt.Errorf("some images failed to validate")
+	}
+	return nil
+}
+
+func (s *Syncer) validate(ctx context.Context) {
+	s.common.initErrorHandler(ctx)
+	s.common.initWorker(ctx, s.validateWorker)
+	for i, img := range s.common.images {
+		object := &syncObject{
+			id:    i + 1,
+			image: img,
+		}
+		sourceRegistry := utils.GetRegistryName(img)
+		if s.SourceRegistry != "" {
+			sourceRegistry = s.SourceRegistry
+		}
+		sourceProject := utils.GetProjectName(img)
+		if s.SourceProject != "" {
+			sourceProject = s.SourceProject
+		}
+		src, err := source.NewSource(&source.Option{
+			Type:     types.TypeDocker,
+			Registry: sourceRegistry,
+			Project:  sourceProject,
+			Name:     utils.GetImageName(img),
+			Tag:      utils.GetImageTag(img),
+			SystemContext: &imagetypes.SystemContext{
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
+			},
+		})
+		if err != nil {
+			s.handleError(fmt.Errorf("failed to init source image: %w", err))
+			s.recordFailedImage(img)
+			continue
+		}
+		object.source = src
+		s.handleObject(object)
+	}
+	s.waitWorkers()
+}
+
+func (s *Syncer) validateWorker(ctx context.Context, o any) {
+	if o == nil {
+		return
+	}
+	obj, ok := o.(*syncObject)
+	if !ok {
+		logrus.Errorf("skip object type(%T), data %v", o, o)
+		return
+	}
+
+	var (
+		validateContext context.Context
+		cancel          context.CancelFunc
+		err             error
+	)
+	if obj.timeout > 0 {
+		validateContext, cancel = context.WithTimeout(ctx, obj.timeout)
+	} else {
+		validateContext, cancel = context.WithCancel(ctx)
+	}
+
+	defer func() {
+		cancel()
+		if err != nil {
+			s.handleError(NewError(obj.id, err, nil, nil))
+			s.recordFailedImage(obj.image)
+		}
+	}()
+
+	err = obj.source.Init(validateContext)
 	if err != nil {
 		return
 	}
-	s.index.Append(obj.source.GetCopiedImage())
-	s.auMutex.Unlock()
-	// delete cache dir
-	err = os.RemoveAll(obj.destination.ReferenceNameWithoutTransport())
-	if err != nil {
-		err = fmt.Errorf(
-			"failed to delete cache dir %q: %w",
-			obj.destination.ReferenceNameWithoutTransport(), err)
+	image := obj.source.ImageBySet(s.imageSpecSet)
+	if !s.index.Has(image) {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Errorf("Image [%v] does not exists in archive index",
+				obj.source.ReferenceNameWithoutTransport())
+		err = fmt.Errorf("FAILED: [%v]", obj.source.ReferenceNameWithoutTransport())
+		return
 	}
-
-	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-		Infof("Synced [%v] => [%v]",
-			obj.source.ReferenceNameWithoutTransport(),
-			s.ArchiveName)
+	logrus.Infof("PASS: [%v]", obj.source.ReferenceNameWithoutTransport())
 }
