@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/cnrancher/hangar/pkg/hangar"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,11 @@ func Execute(args []string) {
 
 	_, err := hangarCmd.cmd.ExecuteC()
 	if err != nil {
+		if signalContext.Err() != nil {
+			logrus.Error(signalContext.Err())
+		} else {
+			logrus.Error(err)
+		}
 		os.Exit(1)
 	}
 }
@@ -40,6 +46,7 @@ Documents of this tool: https://github.com/cnrancher/hangar#docs
 	})
 	cc.cmd.Version = getVersion()
 	cc.cmd.SilenceUsage = true
+	cc.cmd.SilenceErrors = true
 
 	cc.cmd.PersistentFlags().BoolVarP(&cc.baseCmd.debug, "debug", "", false, "enable debug output")
 
@@ -59,6 +66,7 @@ func (cc *hangarCmd) addCommands() {
 		newMirrorCmd(),
 		newSaveCmd(),
 		newLoadCmd(),
+		newSyncCmd(),
 		newArchiveCmd(),
 		newInspectCmd(),
 		newConvertListCmd(),
@@ -69,7 +77,7 @@ func (cc *hangarCmd) addCommands() {
 // run executes hangar.Run()
 func run(h hangar.Hangar) error {
 	if err := h.Run(signalContext); err != nil {
-		// Error occured while run, save copy failed image to file.
+		// Error occurred while run, save copy failed image to file.
 		if err := h.SaveFailedImages(); err != nil {
 			return err
 		}
@@ -81,7 +89,7 @@ func run(h hangar.Hangar) error {
 // validate executes hangar.Validate()
 func validate(h hangar.Hangar) error {
 	if err := h.Validate(signalContext); err != nil {
-		// Error occured while validate, save validate failed image to file.
+		// Error occurred while validate, save validate failed image to file.
 		if err := h.SaveFailedImages(); err != nil {
 			return err
 		}

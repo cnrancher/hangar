@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"sync"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,8 +44,8 @@ type common struct {
 	failedImageListMutex *sync.RWMutex
 	// failedImageListName is the file name of the failed image list
 	failedImageListName string
-	// tlsVerify
-	tlsVerify bool
+	// skipTlsVerify
+	skipTlsVerify bool
 }
 
 type CommonOpts struct {
@@ -53,7 +55,7 @@ type CommonOpts struct {
 	Variant             []string
 	Timeout             time.Duration
 	Workers             int
-	TlsVerify           bool
+	SkipTlsVerify       bool
 	FailedImageListName string
 }
 
@@ -79,7 +81,7 @@ func newCommon(o *CommonOpts) *common {
 		failedImageListMutex: &sync.RWMutex{},
 		failedImageListName:  o.FailedImageListName,
 
-		tlsVerify: o.TlsVerify,
+		skipTlsVerify: o.SkipTlsVerify,
 	}
 
 	copy(c.images, o.Images)
@@ -205,4 +207,95 @@ func (c *common) waitWorkers() {
 	close(c.errorCh)
 	// Waiting for all error messages were handled properly
 	c.errorWaitGroup.Wait()
+}
+
+// layerManager is for managing image layer cache.
+type layerManager struct {
+	mutex        *sync.RWMutex
+	layersRefMap map[string]int
+	cacheDir     string
+}
+
+func newLayerManager(index *archive.Index) (*layerManager, error) {
+	tmpDir, err := os.MkdirTemp(archive.CacheDir(), "*")
+	if err != nil {
+		return nil, fmt.Errorf("mkdir temp: %w", err)
+	}
+	m := &layerManager{
+		mutex:        &sync.RWMutex{},
+		layersRefMap: make(map[string]int),
+		cacheDir:     tmpDir,
+	}
+	for _, img := range index.List {
+		for _, spec := range img.Images {
+			for _, layer := range spec.Layers {
+				m.layersRefMap[layer.Encoded()]++
+			}
+			if spec.Config != "" {
+				m.layersRefMap[spec.Config.Encoded()]++
+			}
+			m.layersRefMap[spec.Digest.Encoded()]++
+		}
+	}
+	return m, nil
+}
+
+func (m *layerManager) getImageLayers(img *archive.ImageSpec) []string {
+	var data []string = make([]string, 0, len(img.Layers)+2)
+	for _, l := range img.Layers {
+		data = append(data, l.Encoded())
+	}
+	data = append(data, img.Digest.Encoded())
+	if img.Config != "" {
+		data = append(data, img.Config.Encoded())
+	}
+	return data
+}
+
+func (m *layerManager) decompressLayer(
+	img *archive.ImageSpec, ar *archive.Reader,
+) error {
+	for _, layer := range m.getImageLayers(img) {
+		p := path.Join(archive.SharedBlobDir, "sha256", layer)
+		err := ar.Decompress(p, m.blobDir())
+		if err != nil {
+			return fmt.Errorf("failed to decompress [%v]: %w", p, err)
+		}
+	}
+	return nil
+}
+
+// clean deletes blobs in shared directory.
+func (m *layerManager) clean(img *archive.ImageSpec) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	layers := m.getImageLayers(img)
+	for i := 0; i < len(layers); i++ {
+		if m.layersRefMap[layers[i]] > 0 {
+			m.layersRefMap[layers[i]]--
+		}
+		if m.layersRefMap[layers[i]] <= 0 {
+			m.layersRefMap[layers[i]]--
+			p := path.Join(m.blobDir(), layers[i])
+			err := os.RemoveAll(p)
+			if err != nil {
+				logrus.Warnf("failed to cleanup [%v]: %v", p, err)
+			}
+		}
+	}
+}
+
+func (m *layerManager) cleanAll() {
+	if err := os.RemoveAll(m.cacheDir); err != nil {
+		logrus.Warnf("failed to cleanup [%v]: %v", m.cacheDir, err)
+	}
+}
+
+func (m *layerManager) sharedBlobDir() string {
+	return path.Join(m.cacheDir, archive.SharedBlobDir)
+}
+
+func (m *layerManager) blobDir() string {
+	return path.Join(m.cacheDir, archive.SharedBlobDir, "sha256")
 }

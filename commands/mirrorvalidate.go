@@ -46,8 +46,8 @@ hangar mirror validate \
 
 	flags := cc.mirrorCmd.baseCmd.cmd.Flags()
 	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
-	flags.StringArrayVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringArrayVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
+	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
 	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")

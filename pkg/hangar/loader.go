@@ -2,9 +2,9 @@ package hangar
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"path"
 	"sync"
 	"time"
 
@@ -24,90 +24,6 @@ type loadObject struct {
 	image   *archive.Image
 	timeout time.Duration
 	id      int
-}
-
-// layerManager is for managing image layer cache.
-type layerManager struct {
-	mutex        *sync.RWMutex
-	layersRefMap map[string]int
-	cacheDir     string
-}
-
-func newLayerManager(index *archive.Index) (*layerManager, error) {
-	tmpDir, err := os.MkdirTemp(archive.CacheDir(), "*")
-	if err != nil {
-		return nil, fmt.Errorf("mkdir temp: %w", err)
-	}
-	m := &layerManager{
-		mutex:        &sync.RWMutex{},
-		layersRefMap: make(map[string]int),
-		cacheDir:     tmpDir,
-	}
-	for _, img := range index.List {
-		for _, spec := range img.Images {
-			for _, layer := range spec.Layers {
-				m.layersRefMap[layer.Encoded()]++
-			}
-			if spec.Config != "" {
-				m.layersRefMap[spec.Config.Encoded()]++
-			}
-			m.layersRefMap[spec.Digest.Encoded()]++
-		}
-	}
-	return m, nil
-}
-
-func (m *layerManager) getImageLayers(img *archive.ImageSpec) []string {
-	var data []string = make([]string, 0, len(img.Layers)+2)
-	for _, l := range img.Layers {
-		data = append(data, l.Encoded())
-	}
-	data = append(data, img.Digest.Encoded())
-	if img.Config != "" {
-		data = append(data, img.Config.Encoded())
-	}
-	return data
-}
-
-func (m *layerManager) decompressLayer(
-	img *archive.ImageSpec, ar *archive.Reader,
-) error {
-	for _, layer := range m.getImageLayers(img) {
-		p := path.Join(archive.SharedBlobDir, "sha256", layer)
-		err := ar.Decompress(p, m.blobDir())
-		if err != nil {
-			return fmt.Errorf("failed to decompress [%v]: %w", p, err)
-		}
-	}
-	return nil
-}
-
-func (m *layerManager) clean(img *archive.ImageSpec) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	layers := m.getImageLayers(img)
-	for i := 0; i < len(layers); i++ {
-		if m.layersRefMap[layers[i]] > 0 {
-			m.layersRefMap[layers[i]]--
-		}
-		if m.layersRefMap[layers[i]] <= 0 {
-			m.layersRefMap[layers[i]]--
-			p := path.Join(m.blobDir(), layers[i])
-			err := os.RemoveAll(p)
-			if err != nil {
-				logrus.Warnf("failed to cleanup [%v]: %v", p, err)
-			}
-		}
-	}
-}
-
-func (m *layerManager) sharedBlobDir() string {
-	return path.Join(m.cacheDir, archive.SharedBlobDir)
-}
-
-func (m *layerManager) blobDir() string {
-	return path.Join(m.cacheDir, archive.SharedBlobDir, "sha256")
 }
 
 // Loader loads images from hangar archive file to registry server.
@@ -148,8 +64,8 @@ type LoaderOpts struct {
 	SharedBlobDirPath string
 	// ArchiveName is the archive file name to be load
 	ArchiveName string
-	// Use HTTPS and verify certificate
-	TlsVerify bool
+	// Use HTTP and skip verify certificate
+	SkipTlsVerify bool
 }
 
 func NewLoader(o *LoaderOpts) (*Loader, error) {
@@ -209,6 +125,7 @@ func (l *Loader) copy(ctx context.Context) {
 		l.handleObject(object)
 	}
 	l.waitWorkers()
+	l.layerManager.cleanAll()
 	if err := l.ar.Close(); err != nil {
 		logrus.Errorf("failed to close archive reader: %v", err)
 	}
@@ -218,6 +135,7 @@ func (l *Loader) copy(ctx context.Context) {
 func (l *Loader) Run(ctx context.Context) error {
 	l.copy(ctx)
 	if len(l.failedImageSet) != 0 {
+		logrus.Errorf("Failed image list:")
 		for i := range l.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
@@ -249,11 +167,11 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	imageName := obj.image.Source + ":" + obj.image.Tag
 	// Use defer to handle error message.
 	defer func() {
-		cancel()
 		if err != nil {
-			l.handleError(err)
+			l.handleError(NewError(obj.id, err, nil, nil))
 			l.recordFailedImage(imageName)
 		}
+		cancel()
 	}()
 
 	// Init destination image spec.
@@ -272,15 +190,16 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		Name:     utils.GetImageName(imageName),
 		Tag:      obj.image.Tag,
 		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
+			OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
 		},
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to init destination image: %w", err)
+		err = fmt.Errorf("failed to create destination image: %w", err)
 		return
 	}
 	if err = dest.Init(copyContext); err != nil {
+		err = fmt.Errorf("failed to init destination image: %w", err)
 		return
 	}
 	// Init manifest Builder.
@@ -298,48 +217,78 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			continue
 		}
 
-		imgRef := dest.ReferenceNameDigest(img.Digest)
-		var tmpDir string
+		var (
+			tmpDir string
+			imgRef string
+		)
+		l.arMutex.Lock()
+		imgRef = dest.ReferenceNameDigest(img.Digest)
 		tmpDir, err = l.ar.DecompressImageTmp(
 			&img, l.common.imageSpecSet, l.layerManager.blobDir())
-
-		// Register defer function to clean-up cache dir.
-		defer func(d string, img archive.ImageSpec) {
+		l.arMutex.Unlock()
+		// Register defer function to clean-up cache.
+		defer func(d string, img *archive.ImageSpec) {
 			if d != "" {
 				os.RemoveAll(d)
 			}
-			l.layerManager.clean(&img)
-		}(tmpDir, img)
+			l.layerManager.clean(img)
+		}(tmpDir, &img)
 
 		if err != nil {
-			err = fmt.Errorf("failed to decompress image [%v]: %w", imgRef, err)
+			if !errors.Is(err, utils.ErrNoAvailableImage) {
+				err = fmt.Errorf("failed to decompress image [%v]: %w", imgRef, err)
+				return
+			}
+			refName := fmt.Sprintf("%s@%s", obj.image.Source, img.Digest)
+			if img.OsVersion != "" {
+				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+					Infof("Skip [%s] [%s%s] [%s] [%s]",
+						refName, img.Arch, img.Variant, img.OS, img.OsVersion)
+			} else {
+				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+					Infof("Skip [%s] [%s%s] [%s]",
+						refName, img.Arch, img.Variant, img.OS)
+			}
+			err = nil
+			continue
+		}
+
+		l.arMutex.Lock()
+		err = l.layerManager.decompressLayer(&img, l.ar)
+		l.arMutex.Unlock()
+		if err != nil {
+			err = fmt.Errorf("arch [%v] os [%v]: %w", img.Arch, img.OS, err)
 			return
 		}
-		if err = l.layerManager.decompressLayer(&img, l.ar); err != nil {
-			return
-		}
+
 		var src *source.Source
 		src, err = source.NewSource(&source.Option{
 			Type:      types.TypeOci,
 			Directory: tmpDir,
 			SystemContext: &imagetypes.SystemContext{
-				OCISharedBlobDirPath: l.layerManager.sharedBlobDir(),
+				OCISharedBlobDirPath:        l.layerManager.sharedBlobDir(),
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
 			},
 		})
 		if err != nil {
-			err = fmt.Errorf("failed to init source image: %w", err)
-			continue
+			err = fmt.Errorf("failed to create source image: %w", err)
+			return
 		}
 		if err = src.Init(copyContext); err != nil {
+			err = fmt.Errorf("failed to init [%v]: %w",
+				src.ReferenceName(), err)
 			return
 		}
 		if err = src.Copy(copyContext, dest, l.common.imageSpecSet); err != nil {
+			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+				src.ReferenceName(), dest.ReferenceName(), err)
 			return
 		}
 
 		var mi *manifest.ManifestImage
 		mi, err = manifest.NewManifestImage(
-			ctx, imgRef, &imagetypes.SystemContext{})
+			ctx, imgRef, dest.SystemContext())
 		if err != nil {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
@@ -414,13 +363,31 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			l.handleError(err)
+			l.handleError(NewError(obj.id, err, nil, nil))
 			l.recordFailedImage(imageName)
 		}
 	}()
 	logrus.Debugf("Validating [%v]", imageName)
 
-	// Init destination image spec.
+	// Init source image.
+	if len(obj.image.Images) == 0 {
+		return
+	}
+	sourceDigestSet := map[digest.Digest]bool{}
+	for _, img := range obj.image.Images {
+		if len(l.imageSpecSet["arch"]) > 0 && !l.imageSpecSet["arch"][img.Arch] {
+			continue
+		}
+		if len(l.imageSpecSet["os"]) > 0 && !l.imageSpecSet["os"][img.OS] {
+			continue
+		}
+		sourceDigestSet[img.Digest] = true
+	}
+	if len(sourceDigestSet) == 0 {
+		return
+	}
+
+	// Init destination image.
 	destinationRegistry := utils.GetRegistryName(imageName)
 	if l.DestinationRegistry != "" {
 		destinationRegistry = l.DestinationRegistry
@@ -436,15 +403,16 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		Name:     utils.GetImageName(imageName),
 		Tag:      obj.image.Tag,
 		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.common.tlsVerify),
-			OCIInsecureSkipTLSVerify:    l.common.tlsVerify,
+			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
+			OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
 		},
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to init destination image: %w", err)
+		err = fmt.Errorf("failed to create destination image: %w", err)
 		return
 	}
 	if err = dest.Init(validateContext); err != nil {
+		err = fmt.Errorf("failed to init destination image: %w", err)
 		return
 	}
 	if !dest.Exists() {
@@ -454,16 +422,16 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		err = fmt.Errorf("FAILED: [%v]", imageName)
 		return
 	}
-	image := dest.ImageBySet(l.imageSpecSet)
+	destImage := dest.ImageBySet(l.imageSpecSet)
 	destDigestSet := map[digest.Digest]bool{}
-	for _, img := range image.Images {
+	for _, img := range destImage.Images {
 		destDigestSet[img.Digest] = true
 	}
-	for _, img := range obj.image.Images {
-		if !destDigestSet[img.Digest] {
+	for d := range sourceDigestSet {
+		if !destDigestSet[d] {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-				Errorf("Image digest [%v] does not exists in destination registry",
-					img.Digest)
+				Errorf("Image [%v] digest [%v] does not exists in destination registry",
+					dest.ReferenceNameWithoutTransport(), d)
 			err = fmt.Errorf("FAILED: [%v]", imageName)
 			return
 		}

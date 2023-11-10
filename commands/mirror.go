@@ -71,8 +71,8 @@ hangar mirror \
 
 	flags := cc.baseCmd.cmd.Flags()
 	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
-	flags.StringArrayVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringArrayVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
+	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
 	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
@@ -102,6 +102,15 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 	// if cc.destination == "" {
 	// 	return fmt.Errorf("destination registry URL not provided")
 	// }
+	if cc.debug {
+		logrus.Infof("debug mode enabled, force worker number to 1")
+		cc.jobs = 1
+	} else {
+		if cc.jobs > utils.MAX_WORKER_NUM || cc.jobs < utils.MIN_WORKER_NUM {
+			logrus.Warnf("invalid worker num: %v, set to 1", cc.jobs)
+			cc.jobs = 1
+		}
+	}
 
 	file, err := os.Open(cc.file)
 	if err != nil {
@@ -130,7 +139,7 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 			Variant:             nil, // TODO: support variants
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
-			TlsVerify:           cc.tlsVerify,
+			SkipTlsVerify:       !cc.tlsVerify,
 			FailedImageListName: cc.failed,
 		},
 
@@ -139,6 +148,8 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 		DestinationRegistry: cc.destination,
 		DestinationProject:  cc.destinationProject,
 	})
+	logrus.Infof("Arch List: [%v]", strings.Join(cc.arch, ","))
+	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))
 
 	return m, nil
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -15,7 +16,8 @@ import (
 )
 
 var (
-	ErrVersionIsEmpty = errors.New("version is empty string")
+	ErrVersionIsEmpty   = errors.New("version is empty string")
+	ErrNoAvailableImage = errors.New("no avaiable image for specified arch and os")
 )
 
 const (
@@ -476,4 +478,18 @@ func ToObj(data interface{}, into interface{}) error {
 func PrintObject(a any) string {
 	b, _ := json.MarshalIndent(a, "", "  ")
 	return string(b)
+}
+
+func Scanf(ctx context.Context, format string, a ...any) (int, error) {
+	nCh := make(chan int)
+	go func() {
+		n, _ := fmt.Scanf(format, a...)
+		nCh <- n
+	}()
+	select {
+	case n := <-nCh:
+		return n, nil
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	}
 }

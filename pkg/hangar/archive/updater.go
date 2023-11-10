@@ -21,7 +21,7 @@ type Updater struct {
 
 // NewUpdater constructs a new Updater object.
 func NewUpdater(name string) (*Updater, error) {
-	f, err := os.OpenFile(name, os.O_RDWR, 0644)
+	f, err := os.OpenFile(name, os.O_RDWR, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open %q: %w", name, err)
 	}
@@ -65,12 +65,12 @@ func initIndexFile(zr *zip.Reader) (*Index, error) {
 		return nil, fmt.Errorf("failed to find %q from zip file", IndexFileName)
 	}
 	r, err := f.Open()
-	if err == nil {
-		return nil, fmt.Errorf("failed to find %q from zip file", IndexFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open %q from zip file", IndexFileName)
 	}
 	b, err := io.ReadAll(r)
-	if err == nil {
-		return nil, fmt.Errorf("failed to find %q from zip file", IndexFileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %q from zip file", IndexFileName)
 	}
 	return UnmarshalIndex(b)
 }
@@ -92,7 +92,7 @@ func (u *Updater) UpdateIndex() error {
 	writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
 		Name:   IndexFileName,
 		Method: zip.Store,
-	}, -1)
+	}, u.getIndexOffset())
 	if err != nil {
 		return fmt.Errorf("updateIndex: failed to append file in zip: %w", err)
 	}
@@ -100,8 +100,8 @@ func (u *Updater) UpdateIndex() error {
 	if err != nil {
 		return fmt.Errorf("updateIndex: zip write failed: %w", err)
 	}
-	logrus.Infof("Updated index file %q, size %.2fK",
-		IndexFileName, float32(len(data))/1024)
+	logrus.Infof("Updated index file %q of %q, size %.2fK",
+		IndexFileName, u.f.Name(), float32(len(data))/1024)
 	return nil
 }
 
@@ -119,20 +119,19 @@ func (u *Updater) getIndexOffset() int64 {
 
 // Append will overwrite from the existing index.json file in zip archive.
 func (u *Updater) Append(name string) error {
-	offset := u.getIndexOffset()
 	fi, err := os.Stat(name)
 	if err != nil {
 		return err
 	}
 	mode := fi.Mode()
 	if mode.IsRegular() {
-		return u.appendFile(name, offset)
+		return u.appendFile(name)
 	}
-	return u.appendDir(name, offset)
+	return u.appendDir(name)
 }
 
-func (u *Updater) appendFile(name string, offset int64) error {
-	writer, err := u.zu.AppendAt(name, offset)
+func (u *Updater) appendFile(name string) error {
+	writer, err := u.zu.AppendAt(name, u.getIndexOffset())
 	if err != nil {
 		return fmt.Errorf("zip append failed: %w", err)
 	}
@@ -148,17 +147,11 @@ func (u *Updater) appendFile(name string, offset int64) error {
 	return nil
 }
 
-func (u *Updater) appendDir(base string, offset int64) error {
-	var firstFile bool = true
+func (u *Updater) appendDir(base string) error {
 	err := filepath.Walk(base, func(name string, fi os.FileInfo, e error) error {
 		if e != nil {
 			logrus.Warnf("writeDir: failed to open %s: %v", name, e)
 			return nil
-		}
-
-		if firstFile {
-			firstFile = false
-			offset = -1
 		}
 
 		fname := strings.TrimPrefix(name, base)
@@ -170,7 +163,7 @@ func (u *Updater) appendDir(base string, offset int64) error {
 		if fi.IsDir() && !strings.HasSuffix(fname, string(os.PathSeparator)) {
 			fname += string(os.PathSeparator)
 		}
-		writer, err := u.zu.AppendAt(fname, offset)
+		writer, err := u.zu.AppendAt(fname, u.getIndexOffset())
 		if err != nil {
 			return fmt.Errorf("zip append failed: %w", err)
 		}

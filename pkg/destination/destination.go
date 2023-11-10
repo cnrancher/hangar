@@ -113,15 +113,9 @@ func (d *Destination) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = d.initManifest(ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "manifest unknown") {
-			return nil
-		} else if strings.Contains(err.Error(), "no such file or directory") {
-			return nil
-		}
-	}
-	return err
+	// Ignore error
+	d.initManifest(ctx)
+	return nil
 }
 
 // Type returns the type of the image

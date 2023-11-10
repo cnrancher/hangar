@@ -122,8 +122,8 @@ func (w *Writer) WriteIndex(index *Index) error {
 	if err != nil {
 		return fmt.Errorf("writeIndex: zip write failed: %w", err)
 	}
-	logrus.Infof("Write index file %q, size %.2fK",
-		IndexFileName, float32(len(data))/1024)
+	logrus.Infof("Write index file %q to [%s], size %.2fK",
+		IndexFileName, w.f.Name(), float32(len(data))/1024)
 	return nil
 }
 

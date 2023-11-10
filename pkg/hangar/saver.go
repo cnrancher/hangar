@@ -14,6 +14,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	imagetypes "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,9 +30,10 @@ type saveObject struct {
 type Saver struct {
 	*common
 
-	aw      *archive.Writer
-	awMutex *sync.RWMutex
-	index   *archive.Index
+	aw        *archive.Writer
+	awMutex   *sync.RWMutex
+	index     *archive.Index
+	layersSet map[digest.Digest]bool
 
 	// Override the registry of source image to be copied
 	SourceRegistry string
@@ -58,8 +60,9 @@ type SaverOpts struct {
 
 func NewSaver(o *SaverOpts) *Saver {
 	s := &Saver{
-		awMutex: &sync.RWMutex{},
-		index:   archive.NewIndex(),
+		awMutex:   &sync.RWMutex{},
+		index:     archive.NewIndex(),
+		layersSet: make(map[digest.Digest]bool),
 
 		SourceRegistry:    o.SourceRegistry,
 		SourceProject:     o.SourceProject,
@@ -96,8 +99,8 @@ func (s *Saver) copy(ctx context.Context) {
 			Name:     utils.GetImageName(img),
 			Tag:      utils.GetImageTag(img),
 			SystemContext: &imagetypes.SystemContext{
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.tlsVerify),
-				OCIInsecureSkipTLSVerify:    s.common.tlsVerify,
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    s.skipTlsVerify,
 			},
 		})
 		if err != nil {
@@ -159,6 +162,7 @@ func (s *Saver) writeIndex() error {
 
 // Run save images from registry server into local directory / hangar archive.
 func (s *Saver) Run(ctx context.Context) error {
+	// Init Archive Writer.
 	aw, err := archive.NewWriter(s.ArchiveName)
 	if err != nil {
 		return fmt.Errorf("failed to create archive %q: %w", s.ArchiveName, err)
@@ -197,50 +201,74 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		copyContext, cancel = context.WithCancel(ctx)
 	}
 	defer func() {
-		cancel()
 		if err != nil {
-			s.handleError(err)
-			s.common.recordFailedImage(obj.image)
+			s.handleError(NewError(obj.id, err, obj.source, obj.destination))
+			s.recordFailedImage(obj.image)
 		}
-
+		cancel()
 		// Delete cache dir.
 		if err = os.RemoveAll(obj.destination.Directory()); err != nil {
 			logrus.Errorf("failed to delete cache dir %q: %v",
-				obj.destination.ReferenceNameWithoutTransport(), err)
+				obj.destination.Directory(), err)
 		}
 	}()
 
 	err = obj.source.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init source: %w", err)
 		return
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Saving [%v]", obj.image)
 	err = obj.destination.Init(copyContext)
 	if err != nil {
+		err = fmt.Errorf("failed to init destination: %w", err)
 		return
 	}
 	err = obj.source.Copy(copyContext, obj.destination, s.common.imageSpecSet)
 	if err != nil {
+		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
 		return
 	}
 
 	// images copied to cache folder, write to archive file
 	s.awMutex.Lock()
 	defer s.awMutex.Unlock()
+
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
+
+	shareBlobsDir := obj.destination.ReferenceNameWithoutTransport()
+	copiedImage := obj.source.GetCopiedImage()
+	// Record image layers and remove duplicated layers from shared blob dir.
+	for _, image := range copiedImage.Images {
+		for _, layer := range image.Layers {
+			if s.layersSet[layer] {
+				os.RemoveAll(path.Join(shareBlobsDir, string(layer.Algorithm()), layer.Encoded()))
+			} else {
+				s.layersSet[layer] = true
+			}
+		}
+		if s.layersSet[image.Digest] {
+			os.RemoveAll(path.Join(shareBlobsDir, string(image.Digest.Algorithm()), image.Digest.Encoded()))
+		} else {
+			s.layersSet[image.Digest] = true
+		}
+		if image.Config != "" && s.layersSet[image.Config] {
+			os.RemoveAll(path.Join(shareBlobsDir, string(image.Config.Algorithm()), image.Config.Encoded()))
+		} else if image.Config != "" {
+			s.layersSet[image.Config] = true
+		}
+	}
+
 	err = s.aw.Write(obj.destination.ReferenceNameWithoutTransport())
 	if err != nil {
+		err = fmt.Errorf("failed to write [%v] to [%v]: %w",
+			obj.destination.ReferenceNameWithoutTransport(), s.ArchiveName, err)
 		return
 	}
-	s.index.Append(obj.source.GetCopiedImage())
-
-	logrus.WithFields(logrus.Fields{
-		"IMG": obj.id,
-	}).Infof("Saved [%v] => [%v]",
-		obj.source.ReferenceNameWithoutTransport(),
-		s.ArchiveName)
+	s.index.Append(copiedImage)
 }
 
 func (s *Saver) Validate(ctx context.Context) error {
@@ -293,8 +321,8 @@ func (s *Saver) validate(ctx context.Context) {
 			Name:     utils.GetImageName(img),
 			Tag:      utils.GetImageTag(img),
 			SystemContext: &imagetypes.SystemContext{
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.tlsVerify),
-				OCIInsecureSkipTLSVerify:    s.common.tlsVerify,
+				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
+				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
 			},
 		})
 		if err != nil {
@@ -332,8 +360,8 @@ func (s *Saver) validateWorker(ctx context.Context, o any) {
 	defer func() {
 		cancel()
 		if err != nil {
-			s.handleError(err)
-			s.common.recordFailedImage(obj.image)
+			s.handleError(NewError(obj.id, err, nil, nil))
+			s.recordFailedImage(obj.image)
 		}
 	}()
 
