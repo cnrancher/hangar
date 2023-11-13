@@ -134,7 +134,7 @@ func (cc *saveCmd) prepareHangar() (hangar.Hangar, error) {
 		images = append(images, l)
 	}
 	if err := file.Close(); err != nil {
-		logrus.Fatalf("failed to close %q: %v", cc.file, err)
+		return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
 	}
 
 	s := hangar.NewSaver(&hangar.SaverOpts{

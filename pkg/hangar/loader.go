@@ -10,10 +10,12 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/harbor"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/image/v5/pkg/docker/config"
 	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -36,6 +38,8 @@ type Loader struct {
 	arMutex *sync.RWMutex
 	// index is the archive index.
 	index *archive.Index
+	// indexImageSet is map[image name]*archive.Image .
+	indexImageSet map[string]*archive.Image
 	// layerManager manages the layers
 	layerManager *layerManager
 
@@ -70,10 +74,11 @@ type LoaderOpts struct {
 
 func NewLoader(o *LoaderOpts) (*Loader, error) {
 	l := &Loader{
-		ar:           nil,
-		arMutex:      &sync.RWMutex{},
-		index:        archive.NewIndex(),
-		layerManager: nil,
+		ar:            nil,
+		arMutex:       &sync.RWMutex{},
+		index:         archive.NewIndex(),
+		indexImageSet: make(map[string]*archive.Image),
+		layerManager:  nil,
 
 		DestinationRegistry: o.DestinationRegistry,
 		DestinationProject:  o.DestinationProject,
@@ -104,6 +109,11 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 	if len(l.index.List) == 0 {
 		logrus.Warnf("No images in %q", o.ArchiveName)
 	}
+	for i := 0; i < len(l.index.List); i++ {
+		source := l.index.List[i].Source
+		tag := l.index.List[i].Tag
+		l.indexImageSet[source+":"+tag] = l.index.List[i]
+	}
 	lm, err := newLayerManager(l.index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init layer manager: %w", err)
@@ -115,14 +125,38 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 
 func (l *Loader) copy(ctx context.Context) {
 	l.common.initErrorHandler(ctx)
-	l.common.images = make([]string, len(l.index.List))
 	l.common.initWorker(ctx, l.worker)
-	for i, image := range l.index.List {
-		object := &loadObject{
-			id:    i + 1,
-			image: image,
+	if len(l.common.images) > 0 {
+		// Load images according to image list specified by user.
+		for i, line := range l.common.images {
+			image, ok := l.indexImageSet[line]
+			if !ok {
+				l.recordFailedImage(line)
+				l.handleError(
+					NewError(
+						i+1,
+						fmt.Errorf("image [%v] not exists in archive", line),
+						nil,
+						nil,
+					),
+				)
+				continue
+			}
+			object := &loadObject{
+				id:    i + 1,
+				image: image,
+			}
+			l.handleObject(object)
 		}
-		l.handleObject(object)
+	} else {
+		// Load all images from archive file.
+		for i, image := range l.index.List {
+			object := &loadObject{
+				id:    i + 1,
+				image: image,
+			}
+			l.handleObject(object)
+		}
 	}
 	l.waitWorkers()
 	l.layerManager.cleanAll()
@@ -133,6 +167,9 @@ func (l *Loader) copy(ctx context.Context) {
 
 // Run loads images from hangar archive to destination image registry
 func (l *Loader) Run(ctx context.Context) error {
+	if err := l.initHarborProject(ctx); err != nil {
+		return fmt.Errorf("initHarborProject: %w", err)
+	}
 	l.copy(ctx)
 	if len(l.failedImageSet) != 0 {
 		logrus.Errorf("Failed image list:")
@@ -140,6 +177,48 @@ func (l *Loader) Run(ctx context.Context) error {
 			fmt.Printf("%v\n", i)
 		}
 		return fmt.Errorf("some images failed to load")
+	}
+	return nil
+}
+
+func (l *Loader) initHarborProject(ctx context.Context) error {
+	harborUrl, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry, !l.skipTlsVerify)
+	if err != nil {
+		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
+			return nil
+		}
+		return err
+	}
+	credential, err := config.GetCredentials(nil, l.DestinationRegistry)
+	if err != nil {
+		return fmt.Errorf("failed to get credential of %q: %w",
+			l.DestinationRegistry, err)
+	}
+
+	projectSet := map[string]bool{}
+	if len(l.DestinationProject) > 0 {
+		projectSet[l.DestinationProject] = true
+	}
+	for i := 0; len(l.DestinationProject) == 0 && i < len(l.index.List); i++ {
+		project := utils.GetProjectName(l.index.List[i].Source)
+		projectSet[project] = true
+	}
+	for project := range projectSet {
+		exists, err := harbor.ProjectExists(
+			ctx, project, harborUrl, &credential, !l.skipTlsVerify)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		err = harbor.CreateProject(
+			ctx, project, harborUrl, &credential, !l.skipTlsVerify)
+		if err != nil {
+			return err
+		}
+		logrus.Infof("Created Harbor V2 project %q for registry %q",
+			project, l.DestinationRegistry)
 	}
 	return nil
 }
@@ -323,14 +402,38 @@ func (l *Loader) Validate(ctx context.Context) error {
 
 func (l *Loader) validate(ctx context.Context) {
 	l.common.initErrorHandler(ctx)
-	l.common.images = make([]string, len(l.index.List))
 	l.common.initWorker(ctx, l.validateWorker)
-	for i, image := range l.index.List {
-		object := &loadObject{
-			id:    i + 1,
-			image: image,
+	if len(l.common.images) > 0 {
+		// Validate images according to image list specified by user.
+		for i, line := range l.common.images {
+			image, ok := l.indexImageSet[line]
+			if !ok {
+				l.recordFailedImage(line)
+				l.handleError(
+					NewError(
+						i+1,
+						fmt.Errorf("image [%v] not exists in archive", line),
+						nil,
+						nil,
+					),
+				)
+				continue
+			}
+			object := &loadObject{
+				id:    i + 1,
+				image: image,
+			}
+			l.handleObject(object)
 		}
-		l.handleObject(object)
+	} else {
+		// Validate all images from archive file.
+		for i, image := range l.index.List {
+			object := &loadObject{
+				id:    i + 1,
+				image: image,
+			}
+			l.handleObject(object)
+		}
 	}
 	l.waitWorkers()
 	if err := l.ar.Close(); err != nil {

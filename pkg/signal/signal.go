@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,7 +34,11 @@ func SetupSignalContext() context.Context {
 		logrus.Warnf("Abort: [%s] received, cleaning up resources", s.String())
 		logrus.Warnf("Use 'Ctrl-C' again to force exit (not recommended)")
 		<-shutdownHandler
-		os.Exit(130) // second signal. Exit directly.
+
+		// second signal. Exit directly.
+		logrus.Warnf("Hangar was forced to stop, please clean up %q manually!",
+			archive.CacheDir())
+		os.Exit(130)
 	}()
 
 	return ctx
