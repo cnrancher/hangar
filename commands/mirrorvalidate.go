@@ -52,8 +52,6 @@ hangar mirror validate \
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
 	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
 	flags.IntP("jobs", "j", 1, "worker number, validate images parallelly")
-	flags.StringVarP(&cc.repoType, "repo-type", "", "", "destination registry type, can be 'harbor'")
-	flags.BoolVarP(&cc.harborHttps, "harbor-https", "", true, "use https when create harbor project")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	return cc

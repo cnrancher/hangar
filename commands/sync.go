@@ -10,6 +10,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -115,7 +116,18 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 		images = append(images, l)
 	}
 	if err := file.Close(); err != nil {
-		logrus.Fatalf("failed to close %q: %v", cc.file, err)
+		return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
+	}
+	// Check whether the registry URL needs login.
+	registrySet := cc.getRegistrySet(images)
+	if err := prepareLogin(
+		signalContext,
+		registrySet,
+		&types.SystemContext{
+			DockerInsecureSkipTLSVerify: types.NewOptionalBool(!cc.tlsVerify),
+		},
+	); err != nil {
+		return nil, err
 	}
 
 	s := hangar.NewSyncer(&hangar.SyncerOpts{
@@ -138,4 +150,18 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))
 
 	return s, nil
+}
+
+func (cc *syncCmd) getRegistrySet(images []string) map[string]bool {
+	set := map[string]bool{}
+	if cc.source != "" {
+		// The registry of image list were overrided by command option.
+		set[cc.source] = true
+		return set
+	}
+	for _, line := range images {
+		registry := utils.GetRegistryName(line)
+		set[registry] = true
+	}
+	return set
 }

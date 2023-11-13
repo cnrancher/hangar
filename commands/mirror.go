@@ -9,7 +9,9 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
+	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +25,6 @@ type mirrorOpts struct {
 	failed      string
 	jobs        int
 	repoType    string
-	harborHttps bool
 	timeout     time.Duration
 	tlsVerify   bool
 
@@ -77,8 +78,6 @@ hangar mirror \
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
 	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
-	flags.StringVarP(&cc.repoType, "repo-type", "", "", "destination registry type, can be 'harbor'")
-	flags.BoolVarP(&cc.harborHttps, "harbor-https", "", true, "use https when create harbor project")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
@@ -131,6 +130,18 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 		return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
 	}
 
+	// Check whether the registry URL needs login.
+	registrySet := cc.getRegistrySet(images)
+	if err := prepareLogin(
+		signalContext,
+		registrySet,
+		&types.SystemContext{
+			DockerInsecureSkipTLSVerify: types.NewOptionalBool(!cc.tlsVerify),
+		},
+	); err != nil {
+		return nil, err
+	}
+
 	m := hangar.NewMirrorer(&hangar.MirrorerOpts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
@@ -152,4 +163,42 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))
 
 	return m, nil
+}
+
+func (cc *mirrorCmd) getRegistrySet(images []string) map[string]bool {
+	set := map[string]bool{}
+	if cc.source != "" && cc.destination != "" {
+		// The registry of image list were overrided by command option.
+		set[cc.source] = true
+		set[cc.destination] = true
+		return set
+	}
+	if cc.source != "" {
+		// The registry of source image were overrided by command option.
+		set[cc.source] = true
+	}
+	if cc.destination != "" {
+		// The registry of destination image were overrided by command option.
+		set[cc.destination] = true
+	}
+	for _, line := range images {
+		switch imagelist.Detect(line) {
+		case imagelist.TypeDefault:
+			registry := utils.GetRegistryName(line)
+			set[registry] = true
+		case imagelist.TypeMirror:
+			spec, _ := imagelist.GetMirrorSpec(line)
+			if len(spec) == 0 {
+				continue
+			}
+			if len(cc.source) == 0 {
+				set[utils.GetRegistryName(spec[0])] = true
+			}
+			if len(cc.destination) == 0 {
+				set[utils.GetRegistryName(spec[1])] = true
+			}
+		default:
+		}
+	}
+	return set
 }

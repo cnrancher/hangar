@@ -2,40 +2,99 @@ package harbor
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/common/pkg/retry"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
 
-// ProjectExists check project exists or not on harbor v2
-func ProjectExists(name, u, uname, passwd string) (bool, error) {
+var (
+	ErrRegistryIsNotHarbor = errors.New("registry server is not harbor V2")
+)
+
+func GetRegistryURL(
+	ctx context.Context, registry string, tlsVerify bool,
+) (string, error) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+		},
 	}
-	if !cmdconfig.GetBool("tls-verify") {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	// Try ping registry using HTTPS protocol.
+	u := fmt.Sprintf("https://%s", registry)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+	}
+	resp, err := httpClientDoWithRetry(ctx, client, req)
+	if err != nil {
+		if tlsVerify {
+			return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+		}
+
+		if errors.Is(err, http.ErrSchemeMismatch) {
+			logrus.Debugf("ping %s/api/v2.0/ping: %v", u, err)
+			// The tlsVerify not enabled, try re-ping registry using HTTP.
+			u = fmt.Sprintf("http://%s", registry)
+			req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+			if err != nil {
+				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+			}
+			resp, err = httpClientDoWithRetry(ctx, client, req)
+			if err != nil {
+				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+			}
 		}
 	}
+	defer resp.Body.Close()
+	logrus.Debugf("ping %s/api/v2.0/ping: %v", u, resp.Status)
 
-	u = fmt.Sprintf("%s?project_name=%s", u, url.QueryEscape(name))
-	r, err := http.NewRequest(http.MethodHead, u, nil)
-	if err != nil {
-		return false, fmt.Errorf("CheckHarborProject: %w", err)
+	switch resp.StatusCode {
+	case http.StatusOK:
+	default:
+		return "", ErrRegistryIsNotHarbor
 	}
-	auth := fmt.Sprintf("%s:%s", uname, passwd)
+
+	return u, nil
+}
+
+// ProjectExists check project exists or not on harbor v2.
+func ProjectExists(
+	ctx context.Context,
+	name, u string,
+	credential *types.DockerAuthConfig,
+	tlsVerify bool,
+) (bool, error) {
+	client := &http.Client{
+		Timeout: time.Second * 5,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+		},
+	}
+
+	u = strings.TrimSuffix(u, "/")
+	u = fmt.Sprintf("%s/api/v2.0/projects?project_name=%s", u, url.QueryEscape(name))
+	r, err := http.NewRequestWithContext(ctx, http.MethodHead, u, nil)
+	if err != nil {
+		return false, fmt.Errorf("harbor.ProjectExists: %w", err)
+	}
+	auth := fmt.Sprintf("%s:%s", credential.Username, credential.Password)
 	r.Header.Add("Authorization", "Basic "+utils.Base64(auth))
 	r.Header.Add("Accept", "application/json")
-	resp, err := client.Do(r)
+	resp, err := httpClientDoWithRetry(ctx, client, r)
 	if err != nil {
-		return false, fmt.Errorf("CheckHarborProject: %w", err)
+		return false, fmt.Errorf("harbor.ProjectExists: %w", err)
 	}
 	defer resp.Body.Close()
 	switch resp.StatusCode {
@@ -45,7 +104,7 @@ func ProjectExists(name, u, uname, passwd string) (bool, error) {
 	case http.StatusNotFound:
 		logrus.Debugf("harbor project %q not found", name)
 	default:
-		return false, fmt.Errorf("ProjectExists: %q response: %v",
+		return false, fmt.Errorf("harbor.ProjectExists: %q response: %v",
 			u, resp.Status)
 	}
 
@@ -53,8 +112,13 @@ func ProjectExists(name, u, uname, passwd string) (bool, error) {
 }
 
 // CreateProject creates project for harbor v2
-func CreateProject(name, u, uname, passwd string) error {
-	values := struct {
+func CreateProject(
+	ctx context.Context,
+	name, u string,
+	credential *types.DockerAuthConfig,
+	tlsVerify bool,
+) error {
+	data := struct {
 		ProjectName string `json:"project_name"`
 		Metadata    struct {
 			Public string `json:"public"`
@@ -64,45 +128,58 @@ func CreateProject(name, u, uname, passwd string) error {
 		Metadata: struct {
 			Public string `json:"public"`
 		}{
-			Public: "true",
+			Public: "false",
 		},
 	}
-	json_data, err := json.Marshal(values)
+	json_data, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("CreateHarborProject: json.Marshal: %w", err)
+		return fmt.Errorf("harbor.CreateHarborProject: json.Marshal: %w", err)
 	}
 
 	client := &http.Client{
 		Timeout: time.Second * 5,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+		},
 	}
-	if !cmdconfig.GetBool("tls-verify") {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-	}
-	r, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(json_data))
+	u = strings.TrimSuffix(u, "/")
+	u = fmt.Sprintf("%s/api/v2.0/projects", u)
+	r, err := http.NewRequestWithContext(
+		ctx, http.MethodPost, u, bytes.NewReader(json_data))
 	if err != nil {
-		return fmt.Errorf("CreateHarborProject: %w", err)
+		return fmt.Errorf("harbor.CreateHarborProject: %w", err)
 	}
-	auth := fmt.Sprintf("%s:%s", uname, passwd)
+	auth := fmt.Sprintf("%s:%s", credential.Username, credential.Password)
 	r.Header.Add("Authorization", "Basic "+utils.Base64(auth))
 	r.Header.Add("Content-Type", "application/json")
-	resp, err := client.Do(r)
+	resp, err := httpClientDoWithRetry(ctx, client, r)
 	if err != nil {
-		return fmt.Errorf("CreateHarborProject: %w", err)
+		return fmt.Errorf("harbor.CreateHarborProject: %w", err)
 	}
 	defer resp.Body.Close()
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		logrus.Infof("created harbor project %q, response: %s",
-			name, resp.Status)
 	case http.StatusConflict:
 		logrus.Debugf("already created project %q, response: %s",
 			name, resp.Status)
 	default:
-		logrus.Errorf("failed to create project %q, response: %s",
+		return fmt.Errorf("failed to create project %q, response: %s",
 			name, resp.Status)
 	}
-
 	return nil
+}
+
+func httpClientDoWithRetry(
+	ctx context.Context, client *http.Client, req *http.Request,
+) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+	err = retry.IfNecessary(ctx, func() error {
+		resp, err = client.Do(req)
+		return err
+	}, &retry.Options{
+		MaxRetry: 3,
+		Delay:    time.Microsecond * 100,
+	})
+	return resp, err
 }

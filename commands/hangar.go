@@ -1,9 +1,14 @@
 package commands
 
 import (
+	"context"
+	"fmt"
 	"os"
 
 	"github.com/cnrancher/hangar/pkg/hangar"
+	"github.com/containers/common/pkg/auth"
+	"github.com/containers/image/v5/pkg/docker/config"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -94,6 +99,34 @@ func validate(h hangar.Hangar) error {
 			return err
 		}
 		return err
+	}
+	return nil
+}
+
+func prepareLogin(
+	ctx context.Context,
+	registrySet map[string]bool,
+	sysCtx *types.SystemContext,
+) error {
+	if sysCtx == nil {
+		sysCtx = &types.SystemContext{}
+	}
+	for registry := range registrySet {
+		authConfig, err := config.GetCredentials(sysCtx, registry)
+		if err != nil {
+			return fmt.Errorf("failed to get credential of registry %q: %w",
+				registry, err)
+		}
+		if authConfig.Password == "" {
+			logrus.Infof("Logging into %q", registry)
+			if err = auth.Login(ctx, sysCtx, &auth.LoginOptions{
+				Stdin:                     os.Stdin,
+				Stdout:                    os.Stdout,
+				AcceptUnspecifiedRegistry: true,
+			}, []string{registry}); err != nil {
+				return fmt.Errorf("failed to login to %q: %w", registry, err)
+			}
+		}
 	}
 	return nil
 }

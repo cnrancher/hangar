@@ -119,7 +119,12 @@ func (c *common) SaveFailedImages() error {
 
 func (c *common) initWorker(ctx context.Context, f func(context.Context, any)) {
 	c.objectCtx = ctx
-	for i := 0; i < c.workers && i < len(c.images); i++ {
+	maxWorkerNum := c.workers
+	if len(c.images) > 0 && len(c.images) < maxWorkerNum {
+		logrus.Infof("Reset worker num to [%d]", maxWorkerNum)
+		maxWorkerNum = len(c.images)
+	}
+	for i := 0; i < maxWorkerNum; i++ {
 		c.waitGroup.Add(1)
 		go c.workerFunc(i, f)
 		logrus.Debugf("Created worker id %v", i)
