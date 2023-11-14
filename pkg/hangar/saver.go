@@ -220,7 +220,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		return
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-		Infof("Saving [%v]", obj.image)
+		Infof("Saving [%v]", obj.source.ReferenceNameWithoutTransport())
 	err = obj.destination.Init(copyContext)
 	if err != nil {
 		err = fmt.Errorf("failed to init destination: %w", err)
@@ -242,24 +242,44 @@ func (s *Saver) worker(ctx context.Context, o any) {
 
 	shareBlobsDir := obj.destination.ReferenceNameWithoutTransport()
 	copiedImage := obj.source.GetCopiedImage()
-	// Record image layers and remove duplicated layers from shared blob dir.
+	filesToDelete := []string{}
+	// Record image layers and remove duplicated layers.
 	for _, image := range copiedImage.Images {
 		for _, layer := range image.Layers {
 			if s.layersSet[layer] {
-				os.RemoveAll(path.Join(shareBlobsDir, string(layer.Algorithm()), layer.Encoded()))
+				d := path.Join(shareBlobsDir, archive.SharedBlobDir,
+					string(layer.Algorithm()), layer.Encoded())
+				filesToDelete = append(filesToDelete, d)
 			} else {
 				s.layersSet[layer] = true
 			}
 		}
 		if s.layersSet[image.Digest] {
-			os.RemoveAll(path.Join(shareBlobsDir, string(image.Digest.Algorithm()), image.Digest.Encoded()))
+			// The image already exists in archive, delete all resources.
+			d1 := path.Join(shareBlobsDir, archive.SharedBlobDir,
+				string(image.Digest.Algorithm()), image.Digest.Encoded())
+			d2 := path.Join(shareBlobsDir, image.Digest.Encoded())
+			filesToDelete = append(filesToDelete, d1)
+			filesToDelete = append(filesToDelete, d2)
 		} else {
 			s.layersSet[image.Digest] = true
 		}
 		if image.Config != "" && s.layersSet[image.Config] {
-			os.RemoveAll(path.Join(shareBlobsDir, string(image.Config.Algorithm()), image.Config.Encoded()))
+			d := path.Join(shareBlobsDir, archive.SharedBlobDir,
+				string(image.Config.Algorithm()), image.Config.Encoded())
+			filesToDelete = append(filesToDelete, d)
 		} else if image.Config != "" {
 			s.layersSet[image.Config] = true
+		}
+	}
+	for _, dir := range filesToDelete {
+		if _, err := os.Stat(dir); err != nil {
+			logrus.Warnf("failed to clean duplicated file %q: stat: %v",
+				dir, err)
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			logrus.Warnf("failed to clean duplicated file %q: remove all: %v",
+				dir, err)
 		}
 	}
 

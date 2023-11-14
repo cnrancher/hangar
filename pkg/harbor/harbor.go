@@ -66,11 +66,16 @@ func GetRegistryURL(
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-	default:
-		return "", ErrRegistryIsNotHarbor
+		buff := make([]byte, 10)
+		resp.Body.Read(buff)
+		logrus.Debugf("server response: %v", string(buff))
+		content := strings.ToLower(string(buff))
+		if strings.Contains(content, "pong") {
+			return u, nil
+		}
 	}
 
-	return u, nil
+	return "", ErrRegistryIsNotHarbor
 }
 
 // ProjectExists check project exists or not on harbor v2.

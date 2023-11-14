@@ -150,10 +150,10 @@ func (r *Reader) DecompressImageTmp(
 		return "", fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 	// Decompress the OCI image folder.
-	err = r.Decompress(img.Folder+string(os.PathSeparator), tmpDir)
+	err = r.Decompress(img.Digest.Encoded()+string(os.PathSeparator), tmpDir)
 	if err != nil {
 		return tmpDir, fmt.Errorf("failed to decompress dir [%v]: %w",
-			img.Folder, err)
+			img.Digest.Encoded(), err)
 	}
 	return tmpDir, nil
 }
