@@ -16,7 +16,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/pkg/docker/config"
-	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -89,11 +88,14 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 	if l.SharedBlobDirPath == "" {
 		l.SharedBlobDirPath = archive.SharedBlobDir
 	}
-	l.common = newCommon(&o.CommonOpts)
+	var err error
+	l.common, err = newCommon(&o.CommonOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create common: %w", err)
+	}
 
 	l.arMutex.Lock()
 	defer l.arMutex.Unlock()
-	var err error
 	l.ar, err = archive.NewReader(l.ArchiveName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create archive reader: %w", err)
@@ -188,7 +190,8 @@ func (l *Loader) Run(ctx context.Context) error {
 }
 
 func (l *Loader) initHarborProject(ctx context.Context) error {
-	harborUrl, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry, !l.skipTlsVerify)
+	harborUrl, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry,
+		l.systemContext.OCIInsecureSkipTLSVerify)
 	if err != nil {
 		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
 			return nil
@@ -211,7 +214,8 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 	}
 	for project := range projectSet {
 		exists, err := harbor.ProjectExists(
-			ctx, project, harborUrl, &credential, !l.skipTlsVerify)
+			ctx, project, harborUrl, &credential,
+			l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -219,7 +223,8 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 			continue
 		}
 		err = harbor.CreateProject(
-			ctx, project, harborUrl, &credential, !l.skipTlsVerify)
+			ctx, project, harborUrl, &credential,
+			l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -269,15 +274,12 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		destinationProject = l.DestinationProject
 	}
 	dest, err := destination.NewDestination(&destination.Option{
-		Type:     types.TypeDocker,
-		Registry: destinationRegistry,
-		Project:  destinationProject,
-		Name:     utils.GetImageName(imageName),
-		Tag:      obj.image.Tag,
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
-			OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
-		},
+		Type:          types.TypeDocker,
+		Registry:      destinationRegistry,
+		Project:       destinationProject,
+		Name:          utils.GetImageName(imageName),
+		Tag:           obj.image.Tag,
+		SystemContext: l.systemContext,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create destination image: %w", err)
@@ -350,11 +352,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		src, err = source.NewSource(&source.Option{
 			Type:      types.TypeOci,
 			Directory: tmpDir,
-			SystemContext: &imagetypes.SystemContext{
-				OCISharedBlobDirPath:        l.layerManager.sharedBlobDir(),
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
-				OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
-			},
+			SystemContext: utils.SystemContextWithSharedBlobDir(
+				l.systemContext, l.layerManager.sharedBlobDir()),
 		})
 		if err != nil {
 			err = fmt.Errorf("failed to create source image: %w", err)
@@ -365,7 +364,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 				src.ReferenceName(), err)
 			return
 		}
-		if err = src.Copy(copyContext, dest, l.common.imageSpecSet); err != nil {
+		err = src.Copy(copyContext, dest, l.common.imageSpecSet, l.policy)
+		if err != nil {
 			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
 				src.ReferenceName(), dest.ReferenceName(), err)
 			return
@@ -513,15 +513,12 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		destinationProject = l.DestinationProject
 	}
 	dest, err := destination.NewDestination(&destination.Option{
-		Type:     types.TypeDocker,
-		Registry: destinationRegistry,
-		Project:  destinationProject,
-		Name:     utils.GetImageName(imageName),
-		Tag:      obj.image.Tag,
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(l.skipTlsVerify),
-			OCIInsecureSkipTLSVerify:    l.skipTlsVerify,
-		},
+		Type:          types.TypeDocker,
+		Registry:      destinationRegistry,
+		Project:       destinationProject,
+		Name:          utils.GetImageName(imageName),
+		Tag:           obj.image.Tag,
+		SystemContext: utils.CopySystemContext(l.systemContext),
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create destination image: %w", err)

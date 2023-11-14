@@ -14,6 +14,7 @@ import (
 	"github.com/containers/common/pkg/retry"
 	imagecopy "github.com/containers/image/v5/copy"
 	imagemanifest "github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -24,6 +25,7 @@ func (s *Source) copyDockerV2ListMediaType(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) (int, error) {
 	var copiedNum int = 0
 	var errs []error
@@ -59,7 +61,8 @@ func (s *Source) copyDockerV2ListMediaType(
 			continue
 		}
 
-		err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+		err = copyImage(
+			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -124,6 +127,7 @@ func (s *Source) copyMediaTypeImageIndex(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) (int, error) {
 	var copiedNum int = 0
 	var errs []error
@@ -159,7 +163,8 @@ func (s *Source) copyMediaTypeImageIndex(
 			continue
 		}
 
-		err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+		err = copyImage(
+			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -227,6 +232,7 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) error {
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
@@ -252,8 +258,8 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if err != nil {
 		return err
 	}
-	// return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
-	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
 	if err != nil {
 		return err
 	}
@@ -282,6 +288,7 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) error {
 	arch := s.imageInspectInfo.Architecture
 	osInfo := s.imageInspectInfo.Os
@@ -307,8 +314,8 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	if err != nil {
 		return err
 	}
-	// return copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
-	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
 	if err != nil {
 		return err
 	}
@@ -337,6 +344,7 @@ func (s *Source) copyMediaTypeImageManifest(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) error {
 	arch := s.ociManifest.Config.Platform.Architecture
 	osInfo := s.ociManifest.Config.Platform.OS
@@ -362,7 +370,8 @@ func (s *Source) copyMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	err = copyImage(ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext())
+	err = copyImage(
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
 	if err != nil {
 		return err
 	}
@@ -421,6 +430,7 @@ func copyImage(
 	destRef imagetypes.ImageReference,
 	sourceCtx *imagetypes.SystemContext,
 	destCtx *imagetypes.SystemContext,
+	policy *signature.Policy,
 ) error {
 	var err error
 	copier := copy.NewCopier(&copy.CopierOption{
@@ -440,6 +450,7 @@ func copyImage(
 
 		SourceRef: sourceRef,
 		DestRef:   destRef,
+		Policy:    policy,
 	})
 	_, err = copier.Copy(ctx)
 	return err

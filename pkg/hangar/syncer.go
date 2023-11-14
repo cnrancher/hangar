@@ -13,7 +13,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -58,7 +57,7 @@ type SyncerOpts struct {
 	ArchiveName string
 }
 
-func NewSyncer(o *SyncerOpts) *Syncer {
+func NewSyncer(o *SyncerOpts) (*Syncer, error) {
 	s := &Syncer{
 		auMutex:   &sync.RWMutex{},
 		index:     archive.NewIndex(),
@@ -72,8 +71,12 @@ func NewSyncer(o *SyncerOpts) *Syncer {
 	if s.SharedBlobDirPath == "" {
 		s.SharedBlobDirPath = archive.SharedBlobDir
 	}
-	s.common = newCommon(&o.CommonOpts)
-	return s
+	var err error
+	s.common, err = newCommon(&o.CommonOpts)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 func (s *Syncer) copy(ctx context.Context) {
@@ -93,15 +96,12 @@ func (s *Syncer) copy(ctx context.Context) {
 			sourceProject = s.SourceProject
 		}
 		src, err := source.NewSource(&source.Option{
-			Type:     types.TypeDocker,
-			Registry: sourceRegistry,
-			Project:  sourceProject,
-			Name:     utils.GetImageName(img),
-			Tag:      utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
-				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
-			},
+			Type:          types.TypeDocker,
+			Registry:      sourceRegistry,
+			Project:       sourceProject,
+			Name:          utils.GetImageName(img),
+			Tag:           utils.GetImageTag(img),
+			SystemContext: s.systemContext,
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init source image: %w", err))
@@ -122,11 +122,8 @@ func (s *Syncer) copy(ctx context.Context) {
 			Directory: cd,
 			Name:      utils.GetImageName(img),
 			Tag:       utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{
-				OCISharedBlobDirPath:        sd,
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
-				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
-			},
+			SystemContext: utils.SystemContextWithSharedBlobDir(
+				s.systemContext, sd),
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init dest image: %w", err))
@@ -240,7 +237,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 		err = fmt.Errorf("failed to init destination: %w", err)
 		return
 	}
-	err = obj.source.Copy(copyContext, obj.destination, s.common.imageSpecSet)
+	err = obj.source.Copy(copyContext, obj.destination, s.imageSpecSet, s.policy)
 	if err != nil {
 		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
 			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
@@ -329,15 +326,12 @@ func (s *Syncer) validate(ctx context.Context) {
 			sourceProject = s.SourceProject
 		}
 		src, err := source.NewSource(&source.Option{
-			Type:     types.TypeDocker,
-			Registry: sourceRegistry,
-			Project:  sourceProject,
-			Name:     utils.GetImageName(img),
-			Tag:      utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{
-				DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(s.common.skipTlsVerify),
-				OCIInsecureSkipTLSVerify:    s.common.skipTlsVerify,
-			},
+			Type:          types.TypeDocker,
+			Registry:      sourceRegistry,
+			Project:       sourceProject,
+			Name:          utils.GetImageName(img),
+			Tag:           utils.GetImageTag(img),
+			SystemContext: s.systemContext,
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init source image: %w", err))

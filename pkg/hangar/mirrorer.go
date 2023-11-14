@@ -11,7 +11,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -48,15 +47,19 @@ type MirrorerOpts struct {
 	DestinationProject  string
 }
 
-func NewMirrorer(o *MirrorerOpts) *Mirrorer {
+func NewMirrorer(o *MirrorerOpts) (*Mirrorer, error) {
 	m := &Mirrorer{
 		SourceRegistry:      o.SourceRegistry,
 		DestinationRegistry: o.DestinationRegistry,
 		SourceProject:       o.SourceProject,
 		DestinationProject:  o.DestinationProject,
 	}
-	m.common = newCommon(&o.CommonOpts)
-	return m
+	var err error
+	m.common, err = newCommon(&o.CommonOpts)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (m *Mirrorer) copy(ctx context.Context) {
@@ -112,15 +115,12 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		sourceProject = m.SourceProject
 	}
 	src, err := source.NewSource(&source.Option{
-		Type:     types.TypeDocker,
-		Registry: sourceRegistry,
-		Project:  sourceProject,
-		Name:     utils.GetImageName(line),
-		Tag:      utils.GetImageTag(line),
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.skipTlsVerify),
-			OCIInsecureSkipTLSVerify:    m.skipTlsVerify,
-		},
+		Type:          types.TypeDocker,
+		Registry:      sourceRegistry,
+		Project:       sourceProject,
+		Name:          utils.GetImageName(line),
+		Tag:           utils.GetImageTag(line),
+		SystemContext: m.systemContext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init source image: %v", err)
@@ -131,15 +131,12 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 		destProject = m.DestinationProject
 	}
 	dest, err := destination.NewDestination(&destination.Option{
-		Type:     types.TypeDocker,
-		Registry: m.DestinationRegistry,
-		Project:  destProject,
-		Name:     utils.GetImageName(line),
-		Tag:      utils.GetImageTag(line),
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.skipTlsVerify),
-			OCIInsecureSkipTLSVerify:    m.common.skipTlsVerify,
-		},
+		Type:          types.TypeDocker,
+		Registry:      m.DestinationRegistry,
+		Project:       destProject,
+		Name:          utils.GetImageName(line),
+		Tag:           utils.GetImageTag(line),
+		SystemContext: m.systemContext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init dest image: %v", err)
@@ -241,17 +238,14 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	}).Infof("Copying  [%v] => [%v]",
 		obj.source.ReferenceNameWithoutTransport(),
 		obj.destination.ReferenceNameWithoutTransport())
-	err = obj.source.Copy(copyContext, obj.destination, m.common.imageSpecSet)
+	err = obj.source.Copy(copyContext, obj.destination, m.imageSpecSet, m.policy)
 	if err != nil {
 		return
 	}
 
 	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
 		ReferenceName: obj.destination.ReferenceName(),
-		SystemContext: &imagetypes.SystemContext{
-			DockerInsecureSkipTLSVerify: imagetypes.NewOptionalBool(m.common.skipTlsVerify),
-			OCIInsecureSkipTLSVerify:    m.common.skipTlsVerify,
-		},
+		SystemContext: m.systemContext,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create mafiest builder: %w", err)

@@ -45,8 +45,7 @@ func (cc *baseCmd) newSystemContext() *types.SystemContext {
 	return ctx
 }
 
-// getPolicyContext returns a *signature.PolicyContext based on baseCmd.
-func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
+func (cc *baseCmd) getPolicy() (*signature.Policy, error) {
 	var policy *signature.Policy // This could be cached across calls in baseCmd.
 	var err error
 	if cc.insecurePolicy {
@@ -54,12 +53,22 @@ func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
 			Default: []signature.PolicyRequirement{
 				signature.NewPRInsecureAcceptAnything(),
 			},
+			Transports: make(map[string]signature.PolicyTransportScopes),
 		}
 	} else if cc.policyPath == "" {
 		policy, err = signature.DefaultPolicy(nil)
 	} else {
 		policy, err = signature.NewPolicyFromFile(cc.policyPath)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return policy, nil
+}
+
+// getPolicyContext returns a *signature.PolicyContext based on baseCmd.
+func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
+	policy, err := cc.getPolicy()
 	if err != nil {
 		return nil, err
 	}
