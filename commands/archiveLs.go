@@ -23,10 +23,12 @@ func newArchiveLsCmd() *archiveLsCmd {
 	cc := &archiveLsCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:     "ls",
-		Short:   "Show images (index) in Hangar archive file",
-		Long:    "",
-		Example: ``,
+		Use:   "ls",
+		Short: "Show images (index) in Hangar archive file",
+		Long:  "",
+		Example: `
+# Show images in archive file:
+hangar archive ls -f SAVED_ARCHIVE.zip`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -35,45 +37,49 @@ func newArchiveLsCmd() *archiveLsCmd {
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 
-			cc.run()
+			if err := cc.run(); err != nil {
+				return err
+			}
 			return nil
 		},
 	})
 
 	flags := cc.baseCmd.cmd.Flags()
 	flags.StringVarP(&cc.file, "file", "f", "", "Path to the Hangar archive file (.zip)")
+	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"zip"})
+	flags.SetAnnotation("file", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.BoolVarP(&cc.json, "json", "", false, "Output in json format")
 
 	return cc
 }
 
-func (cc *archiveLsCmd) run() {
+func (cc *archiveLsCmd) run() error {
 	if cc.file == "" {
-		logrus.Fatalf("file not provided, use '--file' to provide the Hangar archive file")
+		return fmt.Errorf("file not provided, use '--file' to provide the Hangar archive file")
 	}
 
 	reader, err := archive.NewReader(cc.file)
 	if err != nil {
 		reader.Close()
-		logrus.Fatalf("Failed to open %q: %v", cc.file, err)
+		return fmt.Errorf("failed to open %q: %v", cc.file, err)
 	}
 	b, err := reader.Index()
 	if err != nil {
 		reader.Close()
-		logrus.Fatalf("Failed to get index from archive: %v", err)
+		return fmt.Errorf("failed to get index from archive: %v", err)
 	}
 	reader.Close()
 
 	index := archive.NewIndex()
 	err = index.Unmarshal(b)
 	if err != nil {
-		logrus.Fatalf("Failed to get index: %v", err)
+		return fmt.Errorf("failed to get index: %v", err)
 	}
 
 	if cc.json {
 		b, _ := json.MarshalIndent(index, "", "  ")
 		fmt.Print(string(b))
-		return
+		return nil
 	}
 	logrus.Infof("Created time: %v", index.Time)
 	logrus.Infof("Index version: %v", index.Version)
@@ -84,4 +90,5 @@ func (cc *archiveLsCmd) run() {
 			strings.Join(image.ArchList, ","),
 			strings.Join(image.OsList, ","))
 	}
+	return nil
 }

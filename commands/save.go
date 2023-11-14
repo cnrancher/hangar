@@ -42,10 +42,11 @@ func newSaveCmd() *saveCmd {
 		Long:  "",
 		Example: `
 hangar save \
-	-f IMAGE_LIST.txt \
+	--file IMAGE_LIST.txt \
+	--source SOURCE_REGISTRY \
+	--destination SAVED_ARCHIVE.zip \
 	--arch amd64,arm64 \
-	--os linux \
-	-d SAVED_ARCHIVE.zip`,
+	--os linux`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -86,14 +87,18 @@ hangar save \
 		},
 	})
 
-	flags := cc.baseCmd.cmd.Flags()
+	flags := cc.baseCmd.cmd.PersistentFlags()
 	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
+	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.SetAnnotation("file", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
 	flags.StringVarP(&cc.destination, "destination", "d", "saved-images.zip", "file name of the output saved images")
+	flags.SetAnnotation("destination", cobra.BashCompFilenameExt, []string{"zip"})
 	flags.StringVarP(&cc.failed, "failed", "o", "save-failed.txt", "file name of the save failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically")

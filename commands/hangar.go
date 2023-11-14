@@ -4,16 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/containers/common/pkg/auth"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func Execute(args []string) {
+func Execute(args []string) error {
 	hangarCmd := newHangarCmd()
 	hangarCmd.addCommands()
 	hangarCmd.cmd.SetArgs(args)
@@ -21,12 +23,12 @@ func Execute(args []string) {
 	_, err := hangarCmd.cmd.ExecuteC()
 	if err != nil {
 		if signalContext.Err() != nil {
-			logrus.Error(signalContext.Err())
+			return signalContext.Err()
 		} else {
-			logrus.Error(err)
+			return err
 		}
-		os.Exit(1)
 	}
+	return nil
 }
 
 type hangarCmd struct {
@@ -38,12 +40,8 @@ func newHangarCmd() *hangarCmd {
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use: "hangar",
-		Long: `Hangar is a tool for mirror/copy multi-arch container images from the public
-registry server to your registry server with manifest list support.
-Besides, it also support other container-image related operations such as image
-list generation according to Rancher KDM data and chart repositories.
-
-Documents of this tool: https://github.com/cnrancher/hangar#docs
+		Long: `Hangar supports container image mirror operations between registry servers.
+Docs: https://github.com/cnrancher/hangar#docs
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
@@ -53,7 +51,9 @@ Documents of this tool: https://github.com/cnrancher/hangar#docs
 	cc.cmd.SilenceUsage = true
 	cc.cmd.SilenceErrors = true
 
-	cc.cmd.PersistentFlags().BoolVarP(&cc.baseCmd.debug, "debug", "", false, "enable debug output")
+	flags := cc.cmd.PersistentFlags()
+	flags.BoolVarP(&cc.baseCmd.debug, "debug", "", false, "enable debug output")
+	flags.BoolVar(&cc.baseCmd.insecurePolicy, "insecure-policy", false, "run Hangar without policy check")
 
 	return cc
 }
@@ -117,15 +117,33 @@ func prepareLogin(
 			return fmt.Errorf("failed to get credential of registry %q: %w",
 				registry, err)
 		}
-		if authConfig.Password == "" {
-			logrus.Infof("Logging into %q", registry)
-			if err = auth.Login(ctx, sysCtx, &auth.LoginOptions{
-				Stdin:                     os.Stdin,
-				Stdout:                    os.Stdout,
-				AcceptUnspecifiedRegistry: true,
-			}, []string{registry}); err != nil {
-				return fmt.Errorf("failed to login to %q: %w", registry, err)
+		if authConfig.Password != "" {
+			continue
+		}
+
+		logrus.Infof("Logging into %q", registry)
+		err = retry.IfNecessary(ctx, func() error {
+			errCh := make(chan error)
+			go func() {
+				// Use go routine to avoid block when SIGINT.
+				errCh <- auth.Login(ctx, sysCtx, &auth.LoginOptions{
+					Stdin:                     os.Stdin,
+					Stdout:                    os.Stdout,
+					AcceptUnspecifiedRegistry: true,
+				}, []string{registry})
+			}()
+			select {
+			case err := <-errCh:
+				return err
+			case <-ctx.Done():
+				return ctx.Err()
 			}
+		}, &retry.Options{
+			MaxRetry: 3,
+			Delay:    time.Microsecond * 100,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to login to %q: %w", registry, err)
 		}
 	}
 	return nil

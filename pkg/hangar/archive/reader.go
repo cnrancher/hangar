@@ -162,10 +162,12 @@ func (r *Reader) Close() error {
 	if r.zr != nil {
 		r.zr = nil
 	}
-	if err := r.f.Close(); err != nil {
-		return err
+	if r.f != nil {
+		if err := r.f.Close(); err != nil {
+			return err
+		}
+		r.f = nil
 	}
-	r.f = nil
 	return nil
 }
 

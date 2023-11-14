@@ -3,6 +3,7 @@ package destination
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -113,8 +114,12 @@ func (d *Destination) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// Ignore error
-	d.initManifest(ctx)
+	// Ignore other error
+	err = d.initManifest(ctx)
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
+		strings.Contains(err.Error(), "timeout") {
+		return err
+	}
 	return nil
 }
 

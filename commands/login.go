@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
-	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/common/pkg/auth"
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/common/pkg/retry"
@@ -34,7 +33,6 @@ func newLoginCmd() *loginCmd {
 			if cc.baseCmd.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 			ctx, cancel := cc.baseCmd.ctxWithTimeout(cc.timeout)
 			defer cancel()
@@ -47,7 +45,17 @@ func newLoginCmd() *loginCmd {
 				sys.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!cc.tlsVerify.Value())
 			}
 			return retry.IfNecessary(ctx, func() error {
-				return auth.Login(ctx, sys, &cc.loginOpts, args)
+				errCh := make(chan error)
+				go func() {
+					// Use go routine to avoid block when SIGINT.
+					errCh <- auth.Login(ctx, sys, &cc.loginOpts, args)
+				}()
+				select {
+				case err := <-errCh:
+					return err
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			}, &cc.retryOptions)
 		},
 	})

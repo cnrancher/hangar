@@ -16,18 +16,17 @@ import (
 )
 
 type loadOpts struct {
-	file         string
-	arch         []string
-	os           []string
-	source       string
-	destination  string
-	failed       string
-	repoType     string
-	jobs         int
-	timeout      time.Duration
-	project      string
-	dockerDaemon bool
-	tlsVerify    bool
+	file        string
+	arch        []string
+	os          []string
+	source      string
+	destination string
+	failed      string
+	repoType    string
+	jobs        int
+	timeout     time.Duration
+	project     string
+	tlsVerify   bool
 }
 
 type loadCmd struct {
@@ -41,13 +40,14 @@ func newLoadCmd() *loadCmd {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "load -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
-		Short: "Load images from zip archive created by 'save' command onto registry server",
-		Long: `Load images from zip archive created by 'save' command onto registry server.
+		Short: "Load images from zip archive created by 'save' command to registry server",
+		Long: `Load images from zip archive created by 'save' command to registry server.
 
 The load command will create Harbor V2 projects for destination registry automatically.
 `,
-		Example: `
+		Example: `# Load images from SAVED_ARCHIVE.zip to REGISTRY SERVER.
 hangar load \
+	--file IMAGE_LIST.txt \
 	--source SAVED_ARCHIVE.zip \
 	--destination REGISTRY_URL \
 	--arch amd64,arm64 \
@@ -71,21 +71,22 @@ hangar load \
 		},
 	})
 
-	flags := cc.baseCmd.cmd.Flags()
+	flags := cc.baseCmd.cmd.PersistentFlags()
 	flags.StringVarP(&cc.file, "file", "f", "", "image list file (optional: load all images from archive if not provided)")
+	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"txt"})
 	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "saved archive filename")
+	flags.SetAnnotation("source", cobra.BashCompFilenameExt, []string{"zip"})
+	flags.SetAnnotation("source", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
+	flags.SetAnnotation("destination", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
-
-	// TODO: Add docker-daemon transport protocol.
-	// flags.BoolVarP(&cc.dockerDaemon, "docker-daemon", "", false,
-	// 	"load images to docker-daemon (will ignore '--destination' option if specified)")
 
 	addCommands(
 		cc.cmd,

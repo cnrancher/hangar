@@ -57,7 +57,11 @@ func GetRegistryURL(
 			}
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
 	logrus.Debugf("ping %s/api/v2.0/ping: %v", u, resp.Status)
 
 	switch resp.StatusCode {
@@ -96,7 +100,11 @@ func ProjectExists(
 	if err != nil {
 		return false, fmt.Errorf("harbor.ProjectExists: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
 	switch resp.StatusCode {
 	case http.StatusOK:
 		logrus.Debugf("harbor project %q already exists", name)
@@ -156,7 +164,11 @@ func CreateProject(
 	if err != nil {
 		return fmt.Errorf("harbor.CreateHarborProject: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
 	switch resp.StatusCode {
 	case http.StatusCreated:
 	case http.StatusConflict:
