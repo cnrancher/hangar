@@ -11,7 +11,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/types"
-	"github.com/cnrancher/hangar/pkg/utils"
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
@@ -37,8 +36,6 @@ type Destination struct {
 	name string
 	// tag
 	tag string
-	// multi-arch hash tag
-	multiArchHashTag string
 
 	// referenceName is the image reference with transport
 	referenceName string
@@ -115,10 +112,12 @@ func (d *Destination) Init(ctx context.Context) error {
 		return err
 	}
 	// Ignore other error
-	err = d.initManifest(ctx)
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
-		strings.Contains(err.Error(), "timeout") {
-		return err
+	if err = d.initManifest(ctx); err != nil {
+		if errors.Is(err, context.Canceled) ||
+			errors.Is(err, context.DeadlineExceeded) ||
+			strings.Contains(err.Error(), "timeout") {
+			return err
+		}
 	}
 	return nil
 }
@@ -142,16 +141,6 @@ func (d *Destination) ReferenceName() string {
 	return d.referenceName
 }
 
-func (d *Destination) MultiArchHashTag(os, osVersion, arch, variant string) string {
-	if osVersion != "" {
-		return utils.Sha256Sum(utils.Sha256Sum(fmt.Sprintf("%s-%s-%s-%s%s",
-			d.tag, os, osVersion, arch, variant)))
-	} else {
-		return utils.Sha256Sum(fmt.Sprintf("%s-%s-%s%s",
-			d.tag, os, arch, variant))
-	}
-}
-
 func (d *Destination) MultiArchTag(os, osVersion, arch, variant string) string {
 	if osVersion != "" {
 		return fmt.Sprintf("%s-%s-%s-%s%s",
@@ -171,14 +160,12 @@ func (d *Destination) MultiArchTag(os, osVersion, arch, variant string) string {
 //		oci:./path/to/oci-image/<sha256sum>
 //		dir:./path/to/image/<sha256sum>
 func (d *Destination) ReferenceNameMultiArch(
-	os, osVersion, arch, variant string,
+	os, osVersion, arch, variant, sha256sum string,
 ) string {
 	switch d.imageType {
 	case types.TypeDir,
 		types.TypeOci:
-		return path.Join(
-			d.referenceName,
-			d.MultiArchHashTag(os, osVersion, arch, variant))
+		return path.Join(d.referenceName, sha256sum)
 	default:
 		return d.MultiArchTag(os, osVersion, arch, variant)
 	}
@@ -189,9 +176,9 @@ func (d *Destination) Reference() (imagetypes.ImageReference, error) {
 }
 
 func (d *Destination) ReferenceMultiArch(
-	os, osVersion, arch, variant string,
+	os, osVersion, arch, variant, sha256sum string,
 ) (imagetypes.ImageReference, error) {
-	refName := d.ReferenceNameMultiArch(os, osVersion, arch, variant)
+	refName := d.ReferenceNameMultiArch(os, osVersion, arch, variant, sha256sum)
 	return alltransports.ParseImageName(refName)
 }
 

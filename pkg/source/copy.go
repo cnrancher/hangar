@@ -55,7 +55,8 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
-		destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
+		destRef, err := dest.ReferenceMultiArch(
+			osInfo, osVersion, arch, variant, dig.Encoded())
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -76,41 +77,54 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 			continue
 		}
-		b, _, err := inspector.Raw(ctx)
+		b, imageMIME, err := inspector.Raw(ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
 		}
 		manifestDigest, err := imagemanifest.Digest(b)
-		schema2, err := imagemanifest.Schema2FromManifest(b)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
 		spec := archive.ImageSpec{
 			Arch:      arch,
 			OS:        osInfo,
 			OsVersion: osVersion,
 			Variant:   variant,
-			Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
 			MediaType: mime,
 			Layers:    nil,
-			Config:    schema2.ConfigDescriptor.Digest,
+			Config:    "",
 			Digest:    manifestDigest,
 		}
-		for _, layer := range schema2.LayersDescriptors {
-			if len(layer.URLs) != 0 {
-				// The layer is from internet, ignore here.
+		switch imageMIME {
+		case imagemanifest.DockerV2Schema2MediaType:
+			schema2, err := imagemanifest.Schema2FromManifest(b)
+			if err != nil {
+				errs = append(errs, err)
 				continue
 			}
-			spec.Layers = append(spec.Layers, layer.Digest)
+			updateSpecDockerV2Schema2(&spec, schema2)
+		case imagemanifest.DockerV2Schema1MediaType,
+			imagemanifest.DockerV2Schema1SignedMediaType:
+			schema1, err := imagemanifest.Schema1FromManifest(b)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			updateSpecDockerV2Schema1(&spec, schema1)
+		case imgspecv1.MediaTypeImageManifest:
+			ociManifest := new(imgspecv1.Manifest)
+			if err = json.Unmarshal(b, ociManifest); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			updateSpecImageManifest(&spec, ociManifest)
+		default:
+			errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
+			continue
 		}
 		err = s.recordCopiedImage(spec)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-
 		copiedNum++
 	}
 
@@ -157,7 +171,8 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, err)
 			continue
 		}
-		destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
+		destRef, err := dest.ReferenceMultiArch(
+			osInfo, osVersion, arch, variant, dig.Encoded())
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -178,7 +193,7 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 			continue
 		}
-		b, _, err := inspector.Raw(ctx)
+		b, imageMIME, err := inspector.Raw(ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
@@ -188,25 +203,42 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, fmt.Errorf("imagemanifest.Digest failed: %w", err))
 			continue
 		}
-		ociManifest := &imgspecv1.Manifest{}
-		err = json.Unmarshal(b, ociManifest)
 		spec := archive.ImageSpec{
 			Arch:      arch,
 			OS:        osInfo,
 			OsVersion: osVersion,
 			Variant:   variant,
-			Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
 			MediaType: mime,
 			Layers:    nil,
-			Config:    ociManifest.Config.Digest,
+			Config:    "",
 			Digest:    manifestDigest,
 		}
-		for _, layer := range ociManifest.Layers {
-			if len(layer.URLs) != 0 {
-				// The layer is from internet, ignore here.
+		switch imageMIME {
+		case imagemanifest.DockerV2Schema2MediaType:
+			schema2, err := imagemanifest.Schema2FromManifest(b)
+			if err != nil {
+				errs = append(errs, err)
 				continue
 			}
-			spec.Layers = append(spec.Layers, layer.Digest)
+			updateSpecDockerV2Schema2(&spec, schema2)
+		case imagemanifest.DockerV2Schema1MediaType,
+			imagemanifest.DockerV2Schema1SignedMediaType:
+			schema1, err := imagemanifest.Schema1FromManifest(b)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			updateSpecDockerV2Schema1(&spec, schema1)
+		case imgspecv1.MediaTypeImageManifest:
+			ociManifest := new(imgspecv1.Manifest)
+			if err = json.Unmarshal(b, ociManifest); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			updateSpecImageManifest(&spec, ociManifest)
+		default:
+			errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
+			continue
 		}
 		err = s.recordCopiedImage(spec)
 		if err != nil {
@@ -254,7 +286,8 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if err != nil {
 		return err
 	}
-	destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
+	destRef, err := dest.ReferenceMultiArch(
+		osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
 	if err != nil {
 		return err
 	}
@@ -268,19 +301,12 @@ func (s *Source) copyDockerV2Schema2MediaType(
 		OS:        osInfo,
 		OsVersion: osVersion,
 		Variant:   variant,
-		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
 		MediaType: s.mime,
 		Layers:    nil,
 		Config:    s.schema2.ConfigDescriptor.Digest,
 		Digest:    s.manifestDigest,
 	}
-	for _, layer := range s.schema2.LayersDescriptors {
-		if len(layer.URLs) != 0 {
-			// The layer is from internet, ignore here.
-			continue
-		}
-		spec.Layers = append(spec.Layers, layer.Digest)
-	}
+	updateSpecDockerV2Schema2(&spec, s.schema2)
 	return s.recordCopiedImage(spec)
 }
 
@@ -310,7 +336,8 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	if err != nil {
 		return err
 	}
-	destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
+	destRef, err := dest.ReferenceMultiArch(
+		osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
 	if err != nil {
 		return err
 	}
@@ -324,19 +351,12 @@ func (s *Source) copyDockerV2Schema1MediaType(
 		OS:        osInfo,
 		OsVersion: osVersion,
 		Variant:   variant,
-		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
 		MediaType: s.mime,
 		Layers:    nil,
 		Config:    "", // Schema1 does not config
 		Digest:    s.manifestDigest,
 	}
-	layerDigestSet := map[digest.Digest]bool{}
-	for _, layer := range s.schema1.FSLayers {
-		layerDigestSet[layer.BlobSum] = true
-	}
-	for d := range layerDigestSet {
-		spec.Layers = append(spec.Layers, d)
-	}
+	updateSpecDockerV2Schema1(&spec, s.schema1)
 	return s.recordCopiedImage(spec)
 }
 
@@ -366,7 +386,8 @@ func (s *Source) copyMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	destRef, err := dest.ReferenceMultiArch(osInfo, osVersion, arch, variant)
+	destRef, err := dest.ReferenceMultiArch(
+		osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
 	if err != nil {
 		return err
 	}
@@ -380,19 +401,12 @@ func (s *Source) copyMediaTypeImageManifest(
 		OS:        osInfo,
 		OsVersion: osVersion,
 		Variant:   variant,
-		Folder:    dest.MultiArchHashTag(osInfo, osVersion, arch, variant),
 		MediaType: s.mime,
 		Layers:    nil,
 		Config:    s.ociManifest.Config.Digest,
 		Digest:    s.manifestDigest,
 	}
-	for _, layer := range s.ociManifest.Layers {
-		if len(layer.URLs) != 0 {
-			// The layer is from internet, ignore here.
-			continue
-		}
-		spec.Layers = append(spec.Layers, layer.Digest)
-	}
+	updateSpecImageManifest(&spec, s.ociManifest)
 	return s.recordCopiedImage(spec)
 }
 
@@ -454,4 +468,42 @@ func copyImage(
 	})
 	_, err = copier.Copy(ctx)
 	return err
+}
+
+func updateSpecDockerV2Schema2(
+	spec *archive.ImageSpec, schema2 *imagemanifest.Schema2,
+) *archive.ImageSpec {
+	spec.Config = schema2.ConfigDescriptor.Digest
+	for _, layer := range schema2.LayersDescriptors {
+		if len(layer.URLs) != 0 {
+			// The layer is from internet, ignore here.
+			continue
+		}
+		spec.Layers = append(spec.Layers, layer.Digest)
+	}
+	return spec
+}
+
+func updateSpecDockerV2Schema1(
+	spec *archive.ImageSpec, schema1 *imagemanifest.Schema1,
+) {
+	layerDigestSet := map[digest.Digest]bool{}
+	for _, layer := range schema1.FSLayers {
+		layerDigestSet[layer.BlobSum] = true
+	}
+	for layer := range layerDigestSet {
+		spec.Layers = append(spec.Layers, layer)
+	}
+}
+
+func updateSpecImageManifest(
+	spec *archive.ImageSpec, ociManifest *imgspecv1.Manifest,
+) {
+	for _, layer := range ociManifest.Layers {
+		if len(layer.URLs) != 0 {
+			// The layer is from internet, ignore here.
+			continue
+		}
+		spec.Layers = append(spec.Layers, layer.Digest)
+	}
 }

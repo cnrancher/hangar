@@ -191,7 +191,7 @@ func (l *Loader) Run(ctx context.Context) error {
 
 func (l *Loader) initHarborProject(ctx context.Context) error {
 	harborUrl, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry,
-		l.systemContext.OCIInsecureSkipTLSVerify)
+		!l.systemContext.OCIInsecureSkipTLSVerify)
 	if err != nil {
 		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
 			return nil
@@ -215,7 +215,7 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 	for project := range projectSet {
 		exists, err := harbor.ProjectExists(
 			ctx, project, harborUrl, &credential,
-			l.systemContext.OCIInsecureSkipTLSVerify)
+			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
 		}
@@ -224,7 +224,7 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 		}
 		err = harbor.CreateProject(
 			ctx, project, harborUrl, &credential,
-			l.systemContext.OCIInsecureSkipTLSVerify)
+			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
 		}

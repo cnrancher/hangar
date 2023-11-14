@@ -34,7 +34,6 @@ type ImageSpec struct {
 	OS        string          `json:"os,omitempty" yaml:"os,omitempty"`
 	OsVersion string          `json:"osVersion,omitempty" yaml:"osVersion,omitempty"`
 	Variant   string          `json:"variant,omitempty" yaml:"variant,omitempty"`
-	Folder    string          `json:"folder,omitempty" yaml:"folder,omitempty"`
 	MediaType string          `json:"mediaType,omitempty" yaml:"mime,omitempty"`
 	Layers    []digest.Digest `json:"layers,omitempty" yaml:"layers,omitempty"`
 	Config    digest.Digest   `json:"config,omitempty" yaml:"config,omitempty"`
@@ -83,9 +82,9 @@ func (s *Index) Append(i *Image) {
 	if i == nil {
 		return
 	}
-	if s.Has(i) {
-		return
-	}
+	// if s.Has(i) {
+	// 	return
+	// }
 	if s.digestSet == nil {
 		s.digestSet = make(map[digest.Digest]bool)
 	}

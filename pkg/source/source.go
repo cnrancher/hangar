@@ -36,7 +36,7 @@ type Source struct {
 	name string
 	// tag
 	tag string
-	// digest
+	// digest is used for specify the source image
 	digest digest.Digest
 
 	// referenceName is the image reference with transport

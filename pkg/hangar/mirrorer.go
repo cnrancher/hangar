@@ -235,7 +235,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	}
 	logrus.WithFields(logrus.Fields{
 		"IMG": obj.id,
-	}).Infof("Copying  [%v] => [%v]",
+	}).Infof("Copying [%v] => [%v]",
 		obj.source.ReferenceNameWithoutTransport(),
 		obj.destination.ReferenceNameWithoutTransport())
 	err = obj.source.Copy(copyContext, obj.destination, m.imageSpecSet, m.policy)
@@ -258,7 +258,8 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	for _, image := range copiedImage.Images {
 		var mi *manifest.ManifestImage
 		mi, err = manifest.NewManifestImage(ctx,
-			fmt.Sprintf("docker://%s@%s", copiedImage.Source, image.Digest), nil)
+			fmt.Sprintf("docker://%s@%s", copiedImage.Source, image.Digest),
+			obj.destination.SystemContext())
 		if err != nil {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
@@ -269,12 +270,6 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		err = fmt.Errorf("failed to push manifest: %w", err)
 		return
 	}
-
-	logrus.WithFields(logrus.Fields{
-		"IMG": obj.id,
-	}).Infof("Mirrored [%v] => [%v]",
-		obj.source.ReferenceNameWithoutTransport(),
-		obj.destination.ReferenceNameWithoutTransport())
 }
 
 func (m *Mirrorer) Validate(ctx context.Context) error {
