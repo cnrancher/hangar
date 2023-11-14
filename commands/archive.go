@@ -15,10 +15,12 @@ func newArchiveCmd() *archiveCmd {
 	cc := &archiveCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:     "archive",
-		Short:   "Action for Hangar achive file",
-		Long:    "",
-		Example: ``,
+		Use:   "archive",
+		Short: "Action for Hangar achive file",
+		Long:  "",
+		Example: `
+# Show images in archive file:
+hangar archive ls -f SAVED_ARCHIVE.zip`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {

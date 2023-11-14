@@ -30,9 +30,11 @@ func newInspectCmd() *inspectCmd {
 		Use:   "inspect IMAGR_REFERENCE",
 		Short: "Inspect provides basic functions of 'skopeo inspect' to inspect image manifest",
 		Long:  "",
-		Example: `
+		Example: `# Inspect image manifest:
+hangar inspect [image-reference]
+
 # Inspect RAW docker image maniefest:
-  hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
+hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -53,8 +55,8 @@ func newInspectCmd() *inspectCmd {
 	flags.StringVarP(&cc.os, "override-os", "", "", "use OS instead of the running OS for choosing images")
 	flags.StringVarP(&cc.variant, "override-variant", "", "", "use VARIANT instead of the running variant for choosing images")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
-	flags.BoolVarP(&cc.raw, "raw", "", false, "output raw manifest or configuration")
-	flags.BoolVarP(&cc.config, "config", "", false, "output configuration")
+	flags.BoolVarP(&cc.raw, "raw", "", false, "output raw manifest")
+	flags.BoolVarP(&cc.config, "config", "", false, "output raw configuration")
 
 	return cc
 }
@@ -71,8 +73,8 @@ func (cc *inspectCmd) run(args []string) error {
 			ArchitectureChoice:          cc.arch,
 			OSChoice:                    cc.os,
 			VariantChoice:               cc.variant,
-			OCIInsecureSkipTLSVerify:    cc.tlsVerify,
-			DockerInsecureSkipTLSVerify: types.NewOptionalBool(cc.tlsVerify),
+			OCIInsecureSkipTLSVerify:    !cc.tlsVerify,
+			DockerInsecureSkipTLSVerify: types.NewOptionalBool(!cc.tlsVerify),
 		},
 	})
 	if err != nil {

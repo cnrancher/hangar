@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"time"
-
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -25,8 +23,11 @@ func newSaveValidateCmd(opts *saveOpts) *saveValidateCmd {
 		Long:  "",
 		Example: `
 hangar save validate \
-	-f IMAGE_LIST.txt \
-	-d SAVED_ARCHIVE.zip`,
+	--file IMAGE_LIST.txt \
+	--source SOURCE_REGISTRY \
+	--destination SAVED_ARCHIVE.zip \
+	--arch amd64,arm64 \
+	--os linux`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -45,15 +46,5 @@ hangar save validate \
 		},
 	})
 
-	flags := cc.saveCmd.baseCmd.cmd.Flags()
-	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
-	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
-	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
-	flags.StringVarP(&cc.destination, "destination", "d", "saved-images.zip", "file name of the output saved images")
-	flags.StringVarP(&cc.failed, "failed", "o", "save-failed.txt", "file name of the save failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, validate images parallelly")
-	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 	return cc
 }

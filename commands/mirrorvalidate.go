@@ -25,7 +25,9 @@ func newMirrorValidateCmd(opts *mirrorOpts) *mirrorValidateCmd {
 hangar mirror validate \
 	--file IMAGE_LIST.txt \
 	--source SOURCE_REGISTRY \
-	--destination DESTINATION_REGISTRY`,
+	--destination DESTINATION_REGISTRY \
+	--arch amd64,arm64 \
+	--os linux`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -43,16 +45,6 @@ hangar mirror validate \
 			return nil
 		},
 	})
-
-	flags := cc.mirrorCmd.baseCmd.cmd.Flags()
-	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
-	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
-	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
-	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
-	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
-	flags.IntP("jobs", "j", 1, "worker number, validate images parallelly")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 
 	return cc
 }

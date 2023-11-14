@@ -29,7 +29,7 @@ func newGenerateListCmd() *generateListCmd {
 
 	cc.baseCmd.cmd = &cobra.Command{
 		Use:   "generate-list",
-		Short: "Generate list according Rancher version",
+		Short: "Generate Rancher image list",
 		Long: `'generate-list' generates an image-list from KDM data and Chart repositories used by Rancher.
 
 Generate image list by just specifying Rancher version:
@@ -38,11 +38,11 @@ Generate image list by just specifying Rancher version:
 
 Generate image-list from custom cloned chart repos & KDM data.json file.
 
-    hangar generate-list --rancher="v2.7.0-ent"  \
-        --chart="./chart-repo-dir"               \
+    hangar generate-list \
+        --rancher="v2.7.0-ent" \
+        --chart="./chart-repo-dir" \
         --system-chart="./system-chart-repo-dir" \
         --kdm="./kdm-data.json"`,
-		// Example: `  hangar generate-list --rancher="v2.7.0-ent"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {

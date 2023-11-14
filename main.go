@@ -28,5 +28,7 @@ func init() {
 }
 
 func main() {
-	commands.Execute(os.Args[1:])
+	if err := commands.Execute(os.Args[1:]); err != nil {
+		logrus.Error(err)
+	}
 }

@@ -23,8 +23,11 @@ func newLoadValidateCmd(opts *loadOpts) *loadValidateCmd {
 		Long:  "",
 		Example: `
 hangar load validate \
-	-s SAVED_ARCHIVE.zip \
-	-d REGISTRY_URL`,
+	--file IMAGE_LIST.txt \
+	--source SAVED_ARCHIVE.zip \
+	--destination REGISTRY_URL \
+	--arch amd64,arm64 \
+	--os linux`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
@@ -43,14 +46,5 @@ hangar load validate \
 		},
 	})
 
-	flags := cc.loadCmd.baseCmd.cmd.Flags()
-	flags.StringVarP(&cc.file, "file", "f", "", "image list file (optional: validate all images in archive if not provided)")
-	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
-	flags.StringVarP(&cc.source, "source", "s", "", "saved archive filename")
-	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
-	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, validate images parallelly")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 	return cc
 }

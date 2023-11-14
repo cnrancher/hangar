@@ -114,6 +114,7 @@ func (c *common) SaveFailedImages() error {
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 	}
+	logrus.Infof("Failed image list exported to %q", c.failedImageListName)
 	return nil
 }
 
@@ -121,8 +122,8 @@ func (c *common) initWorker(ctx context.Context, f func(context.Context, any)) {
 	c.objectCtx = ctx
 	maxWorkerNum := c.workers
 	if len(c.images) > 0 && len(c.images) < maxWorkerNum {
-		logrus.Infof("Reset worker num to [%d]", maxWorkerNum)
 		maxWorkerNum = len(c.images)
+		logrus.Debugf("Reset worker num %d", maxWorkerNum)
 	}
 	for i := 0; i < maxWorkerNum; i++ {
 		c.waitGroup.Add(1)

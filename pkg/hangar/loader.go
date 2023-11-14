@@ -129,13 +129,19 @@ func (l *Loader) copy(ctx context.Context) {
 	if len(l.common.images) > 0 {
 		// Load images according to image list specified by user.
 		for i, line := range l.common.images {
-			image, ok := l.indexImageSet[line]
+			registry := utils.GetRegistryName(line)
+			project := utils.GetProjectName(line)
+			name := utils.GetImageName(line)
+			tag := utils.GetImageTag(line)
+			imageName := fmt.Sprintf("%s/%s/%s:%s",
+				registry, project, name, tag)
+			image, ok := l.indexImageSet[imageName]
 			if !ok {
 				l.recordFailedImage(line)
 				l.handleError(
 					NewError(
 						i+1,
-						fmt.Errorf("image [%v] not exists in archive", line),
+						fmt.Errorf("image [%v] not exists in archive", imageName),
 						nil,
 						nil,
 					),
@@ -406,13 +412,19 @@ func (l *Loader) validate(ctx context.Context) {
 	if len(l.common.images) > 0 {
 		// Validate images according to image list specified by user.
 		for i, line := range l.common.images {
-			image, ok := l.indexImageSet[line]
+			registry := utils.GetRegistryName(line)
+			project := utils.GetProjectName(line)
+			name := utils.GetImageName(line)
+			tag := utils.GetImageTag(line)
+			imageName := fmt.Sprintf("%s/%s/%s:%s",
+				registry, project, name, tag)
+			image, ok := l.indexImageSet[imageName]
 			if !ok {
 				l.recordFailedImage(line)
 				l.handleError(
 					NewError(
 						i+1,
-						fmt.Errorf("image [%v] not exists in archive", line),
+						fmt.Errorf("image [%v] not exists in archive", imageName),
 						nil,
 						nil,
 					),
@@ -436,6 +448,7 @@ func (l *Loader) validate(ctx context.Context) {
 		}
 	}
 	l.waitWorkers()
+	l.layerManager.cleanAll()
 	if err := l.ar.Close(); err != nil {
 		logrus.Errorf("failed to close archive reader: %v", err)
 	}

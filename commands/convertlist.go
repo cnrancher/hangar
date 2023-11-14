@@ -29,17 +29,16 @@ func newConvertListCmd() *convertListCmd {
 		Use:   "convert-list -i IMAGE_LIST.txt -o OUTPUT_IMAGE_LIST.txt",
 		Short: "Convert the image list format to mirror format (see example of this command).",
 		Example: `
-# Prepare an image list file (default format):
+# Prepare an image list file with default format:
 docker.io/library/mysql:8
 docker.io/library/nginx:latest
 
 # Use following command to convert the image list format to 'mirror' format.
-
 hangar convert-list \
-  	-i rancher-images.txt \
-	-o CONVERTED_MIRROR_LIST.txt \
-	-s docker.io \
-	-d registry.example.io
+  	--input IMAGE_LIST.txt \
+	--output OUTPUT_IMAGE_LIST.txt \
+	--source docker.io \
+	--destination registry.example.io
 
 # The converted image list is:
 docker.io/library/mysql registry.example.io/library/mysql 8
@@ -56,11 +55,14 @@ docker.io/library/nginx registry.example.io/library/nginx latest`,
 		},
 	})
 
-	cc.cmd.Flags().StringVarP(&cc.input, "input", "i", "", "input image list (required)")
-	cc.cmd.Flags().StringVarP(&cc.output, "output", "o", "", "output image list (default \"[INPUT_FILE].converted\")")
-	cc.cmd.Flags().StringVarP(&cc.source, "source", "s", "", "specify the source registry")
-	cc.cmd.Flags().StringVarP(&cc.destination, "destination", "d", "", "specify the destination registry")
-
+	flags := cc.cmd.Flags()
+	flags.StringVarP(&cc.input, "input", "i", "", "input image list file")
+	flags.SetAnnotation("input", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.SetAnnotation("input", cobra.BashCompOneRequiredFlag, []string{""})
+	flags.StringVarP(&cc.output, "output", "o", "", "output image list (default \"[INPUT_FILE].converted\")")
+	flags.SetAnnotation("output", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.StringVarP(&cc.source, "source", "s", "", "specify the source registry (optional)")
+	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination registry (optional)")
 	return cc
 }
 
@@ -75,6 +77,7 @@ func (cc *convertListCmd) setupFlags() error {
 	}
 	if cc.output == "" {
 		cmdconfig.Set("output", cmdconfig.GetString("input")+".converted")
+		cc.output = cc.input + ".converted"
 	}
 	return nil
 }
@@ -97,12 +100,12 @@ func (cc *convertListCmd) run() error {
 
 		switch imagelist.Detect(l) {
 		case imagelist.TypeMirror:
-			logrus.Infof("skip line: %v", l)
+			logrus.Infof("Skip line: %v", l)
 			continue
 		case imagelist.TypeDefault:
 		default:
 			// unknow format, continue
-			logrus.Warnf("ignore line: %q: format unknow", l)
+			logrus.Warnf("Ignore line: %q: format unknow", l)
 			continue
 		}
 
@@ -116,7 +119,7 @@ func (cc *convertListCmd) run() error {
 			if len(spec) == 1 {
 				spec = append(spec, "latest")
 			} else {
-				logrus.Warnf("ignore line: %q: format unknow", l)
+				logrus.Warnf("Ignore line: %q: format unknow", l)
 				continue
 			}
 		}
@@ -127,7 +130,7 @@ func (cc *convertListCmd) run() error {
 		} else {
 			srcImage = utils.ConstructRegistry(spec[0], cc.source)
 		}
-		dst := cmdconfig.GetString("destination")
+		dst := cc.destination
 		destImage := utils.ConstructRegistry(spec[0], dst)
 		outputLine := fmt.Sprintf("%s %s %s", srcImage, destImage, spec[1])
 		logrus.Debugf("converted %q => %q", l, outputLine)
@@ -144,7 +147,7 @@ func (cc *convertListCmd) run() error {
 	if err != nil {
 		return fmt.Errorf("failed to save %q: %v", cc.output, err)
 	}
-	logrus.Infof("converted %q to %q", cc.input, cc.output)
+	logrus.Infof("Converted %q to %q", cc.input, cc.output)
 
 	return nil
 }

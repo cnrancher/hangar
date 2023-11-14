@@ -45,12 +45,12 @@ func newMirrorCmd() *mirrorCmd {
 		Use:   "mirror -f IMAGE_LIST.txt -d DESTINATION_REGISTRY",
 		Short: "Mirror images between registry servers",
 		Long:  ``,
-		Example: `
+		Example: `# Mirror images from SOURCE REGISTRY to DESTINATION REGISTRY.
 hangar mirror \
 	--file IMAGE_LIST.txt \
 	--source SOURCE_REGISTRY \
 	--destination DESTINATION_REGISTRY \
-	--arch amd64,arm64,s390x \
+	--arch amd64,arm64 \
 	--os linux`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
@@ -70,14 +70,17 @@ hangar mirror \
 		},
 	})
 
-	flags := cc.baseCmd.cmd.Flags()
+	flags := cc.baseCmd.cmd.PersistentFlags()
 	flags.StringVarP(&cc.file, "file", "f", "", "image list file")
+	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.SetAnnotation("file", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
-	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux", "windows"}, "OS list of images")
+	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux"}, "OS list of images")
 	flags.StringVarP(&cc.source, "source", "s", "", "override the source registry in image list")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination image registry")
 	flags.StringVarP(&cc.failed, "failed", "o", "mirror-failed.txt", "file name of the mirror failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly")
+	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 

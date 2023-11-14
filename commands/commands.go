@@ -39,7 +39,9 @@ func (cc *baseCmd) getCommand() *cobra.Command {
 }
 
 func (cc *baseCmd) newSystemContext() *types.SystemContext {
-	ctx := &types.SystemContext{}
+	ctx := &types.SystemContext{
+		DockerRegistryUserAgent: defaultUserAgent,
+	}
 	return ctx
 }
 

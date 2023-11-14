@@ -359,8 +359,11 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 	}
 	if !obj.destination.Exists() {
 		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-			Errorf("")
-		err = fmt.Errorf("FAILED: [%v]", obj.source.ReferenceNameWithoutTransport())
+			Errorf("[%v] does not exists",
+				obj.destination.ReferenceNameWithoutTransport())
+		err = fmt.Errorf("FAILED: [%v] != [%v]",
+			obj.source.ReferenceNameWithoutTransport(),
+			obj.destination.ReferenceNameWithoutTransport())
 		return
 	}
 	destImages := obj.destination.ImageBySet(m.imageSpecSet)
@@ -373,8 +376,10 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 		if !destDigestSet[img.Digest] {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 				Errorf("Image [%v] does not exists in destination registry",
-					obj.destination.ReferenceNameWithoutTransport())
-			err = fmt.Errorf("FAILED: [%v]", obj.source.ReferenceNameWithoutTransport())
+					obj.destination.ReferenceNameDigest(img.Digest))
+			err = fmt.Errorf("FAILED: [%v] != [%v]",
+				obj.source.ReferenceNameWithoutTransport(),
+				obj.destination.ReferenceNameWithoutTransport())
 			return
 		}
 	}
