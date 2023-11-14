@@ -11,6 +11,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/types"
 	imagemanifest "github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -239,6 +240,7 @@ func (s *Source) Copy(
 	ctx context.Context,
 	dest *destination.Destination,
 	sets map[string]map[string]bool,
+	policy *signature.Policy,
 ) error {
 	if dest.MIME() == imgspecv1.MediaTypeImageIndex ||
 		dest.MIME() == imagemanifest.DockerV2ListMediaType {
@@ -249,7 +251,7 @@ func (s *Source) Copy(
 	switch s.mime {
 	case imagemanifest.DockerV2ListMediaType:
 		// manifest is docker image list
-		num, err := s.copyDockerV2ListMediaType(ctx, dest, sets)
+		num, err := s.copyDockerV2ListMediaType(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
@@ -259,7 +261,7 @@ func (s *Source) Copy(
 		}
 	case imgspecv1.MediaTypeImageIndex:
 		// manifest is oci image list
-		num, err := s.copyMediaTypeImageIndex(ctx, dest, sets)
+		num, err := s.copyMediaTypeImageIndex(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
@@ -269,20 +271,20 @@ func (s *Source) Copy(
 		}
 	case imagemanifest.DockerV2Schema2MediaType:
 		// manifest is docker image schema2
-		err := s.copyDockerV2Schema2MediaType(ctx, dest, sets)
+		err := s.copyDockerV2Schema2MediaType(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
 	case imagemanifest.DockerV2Schema1MediaType,
 		imagemanifest.DockerV2Schema1SignedMediaType:
 		// manifest is docker image schema1
-		err := s.copyDockerV2Schema1MediaType(ctx, dest, sets)
+		err := s.copyDockerV2Schema1MediaType(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
 	case imgspecv1.MediaTypeImageManifest:
 		// manifest is oci image
-		err := s.copyMediaTypeImageManifest(ctx, dest, sets)
+		err := s.copyMediaTypeImageManifest(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}

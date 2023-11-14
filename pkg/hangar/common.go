@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,8 +47,10 @@ type common struct {
 	failedImageListMutex *sync.RWMutex
 	// failedImageListName is the file name of the failed image list
 	failedImageListName string
-	// skipTlsVerify
-	skipTlsVerify bool
+	// systemContext
+	systemContext *types.SystemContext
+	// policy
+	policy *signature.Policy
 }
 
 type CommonOpts struct {
@@ -55,11 +60,12 @@ type CommonOpts struct {
 	Variant             []string
 	Timeout             time.Duration
 	Workers             int
-	SkipTlsVerify       bool
 	FailedImageListName string
+	SystemContext       *types.SystemContext
+	Policy              *signature.Policy
 }
 
-func newCommon(o *CommonOpts) *common {
+func newCommon(o *CommonOpts) (*common, error) {
 	c := &common{
 		images: make([]string, len(o.Images)),
 
@@ -81,9 +87,15 @@ func newCommon(o *CommonOpts) *common {
 		failedImageListMutex: &sync.RWMutex{},
 		failedImageListName:  o.FailedImageListName,
 
-		skipTlsVerify: o.SkipTlsVerify,
+		systemContext: utils.CopySystemContext(o.SystemContext),
+		policy:        nil,
 	}
-
+	var err error
+	policy, err := utils.CopyPolicy(o.Policy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy policy: %w", err)
+	}
+	c.policy = policy
 	copy(c.images, o.Images)
 	for i := 0; i < len(o.OS); i++ {
 		c.imageSpecSet["os"][o.OS[i]] = true
@@ -95,7 +107,7 @@ func newCommon(o *CommonOpts) *common {
 		c.imageSpecSet["variant"][o.Variant[i]] = true
 	}
 
-	return c
+	return c, nil
 }
 
 func (c *common) SaveFailedImages() error {

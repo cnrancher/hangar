@@ -10,6 +10,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
+	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ type loadOpts struct {
 	jobs        int
 	timeout     time.Duration
 	project     string
-	tlsVerify   bool
+	tlsVerify   commonFlag.OptionalBool
 }
 
 type loadCmd struct {
@@ -86,7 +87,7 @@ hangar load \
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
+	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	addCommands(
 		cc.cmd,
@@ -131,17 +132,26 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
 		}
 	}
+
+	sysCtx := cc.baseCmd.newSystemContext()
+	if cc.tlsVerify.Present() {
+		sysCtx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!cc.tlsVerify.Value())
+		sysCtx.OCIInsecureSkipTLSVerify = !cc.tlsVerify.Value()
+	}
+
 	// Check whether the registry URL needs login.
 	if err := prepareLogin(
 		signalContext,
 		map[string]bool{cc.destination: true},
-		&types.SystemContext{
-			DockerInsecureSkipTLSVerify: types.NewOptionalBool(!cc.tlsVerify),
-		},
+		utils.CopySystemContext(sysCtx),
 	); err != nil {
 		return nil, err
 	}
 
+	policy, err := cc.getPolicy()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get policy: %w", err)
+	}
 	l, err := hangar.NewLoader(&hangar.LoaderOpts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
@@ -150,8 +160,9 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			Variant:             nil,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
-			SkipTlsVerify:       !cc.tlsVerify,
 			FailedImageListName: cc.failed,
+			SystemContext:       sysCtx,
+			Policy:              policy,
 		},
 
 		DestinationRegistry: cc.destination,

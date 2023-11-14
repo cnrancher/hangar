@@ -10,6 +10,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
+	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,7 +25,7 @@ type syncOpts struct {
 	failed      string
 	jobs        int
 	timeout     time.Duration
-	tlsVerify   bool
+	tlsVerify   commonFlag.OptionalBool
 }
 
 type syncCmd struct {
@@ -79,7 +80,7 @@ hangar sync \
 	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
+	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	addCommands(
 		cc.cmd,
@@ -123,19 +124,28 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 	if err := file.Close(); err != nil {
 		return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
 	}
+
+	sysCtx := cc.baseCmd.newSystemContext()
+	if cc.tlsVerify.Present() {
+		sysCtx.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!cc.tlsVerify.Value())
+		sysCtx.OCIInsecureSkipTLSVerify = !cc.tlsVerify.Value()
+	}
+
 	// Check whether the registry URL needs login.
 	registrySet := cc.getRegistrySet(images)
 	if err := prepareLogin(
 		signalContext,
 		registrySet,
-		&types.SystemContext{
-			DockerInsecureSkipTLSVerify: types.NewOptionalBool(!cc.tlsVerify),
-		},
+		utils.CopySystemContext(sysCtx),
 	); err != nil {
 		return nil, err
 	}
 
-	s := hangar.NewSyncer(&hangar.SyncerOpts{
+	policy, err := cc.getPolicy()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get policy: %w", err)
+	}
+	s, err := hangar.NewSyncer(&hangar.SyncerOpts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
 			Arch:                cc.arch,
@@ -143,14 +153,18 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 			Variant:             nil,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
-			SkipTlsVerify:       !cc.tlsVerify,
 			FailedImageListName: cc.failed,
+			SystemContext:       sysCtx,
+			Policy:              policy,
 		},
 
 		SourceRegistry:    cc.source,
 		SharedBlobDirPath: "", // Use the default shared blob dir path.
 		ArchiveName:       cc.destination,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create syncer: %v", err)
+	}
 	logrus.Infof("Arch List: [%v]", strings.Join(cc.arch, ","))
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))
 

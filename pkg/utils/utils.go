@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/types"
 	"golang.org/x/mod/semver"
 )
 
@@ -492,4 +494,59 @@ func Scanf(ctx context.Context, format string, a ...any) (int, error) {
 	case <-ctx.Done():
 		return 0, ctx.Err()
 	}
+}
+
+func CopySystemContext(src *types.SystemContext) *types.SystemContext {
+	if src == nil {
+		return &types.SystemContext{}
+	}
+	var dest types.SystemContext = *src
+	if src.ShortNameMode != nil {
+		var m types.ShortNameMode = *src.ShortNameMode
+		dest.ShortNameMode = &m
+	}
+	if src.DockerArchiveAdditionalTags != nil {
+		for _, tag := range src.DockerArchiveAdditionalTags {
+			dest.DockerArchiveAdditionalTags = append(dest.DockerArchiveAdditionalTags, tag)
+		}
+	}
+	if src.DockerAuthConfig != nil {
+		var c = *src.DockerAuthConfig
+		dest.DockerAuthConfig = &c
+	}
+	if src.CompressionFormat != nil {
+		var f = *src.CompressionFormat
+		dest.CompressionFormat = &f
+	}
+	if src.CompressionLevel != nil {
+		var l = *src.CompressionLevel
+		dest.CompressionLevel = &l
+	}
+	return &dest
+}
+
+func SystemContextWithTlsVerify(sysctx *types.SystemContext, tlsVerify bool) *types.SystemContext {
+	n := CopySystemContext(sysctx)
+	n.OCIInsecureSkipTLSVerify = !tlsVerify
+	n.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)
+	return n
+}
+
+func SystemContextWithSharedBlobDir(sysctx *types.SystemContext, dir string) *types.SystemContext {
+	n := CopySystemContext(sysctx)
+	n.OCISharedBlobDirPath = dir
+	return n
+}
+
+func CopyPolicy(src *signature.Policy) (*signature.Policy, error) {
+	b, err := json.Marshal(src)
+	if err != nil {
+		return nil, fmt.Errorf("utils.CopyPolicy: %w", err)
+	}
+	dest := new(signature.Policy)
+	err = dest.UnmarshalJSON(b)
+	if err != nil {
+		return nil, fmt.Errorf("utils.CopyPolicy: %w", err)
+	}
+	return dest, err
 }

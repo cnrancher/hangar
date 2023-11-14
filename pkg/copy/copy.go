@@ -16,6 +16,8 @@ type Copier struct {
 
 	options      *imagecopy.Options
 	retryOptions *retry.Options
+
+	policy *signature.Policy
 }
 
 type CopierOption struct {
@@ -24,6 +26,8 @@ type CopierOption struct {
 
 	SourceRef imagetypes.ImageReference
 	DestRef   imagetypes.ImageReference
+
+	Policy *signature.Policy
 }
 
 func NewCopier(o *CopierOption) *Copier {
@@ -31,6 +35,7 @@ func NewCopier(o *CopierOption) *Copier {
 		source:      o.SourceRef,
 		destination: o.DestRef,
 
+		policy:       o.Policy,
 		options:      o.Options,
 		retryOptions: o.RetryOptions,
 	}
@@ -42,13 +47,9 @@ func (c *Copier) Copy(ctx context.Context) ([]byte, error) {
 	var (
 		m []byte
 	)
-	policy, err := signature.DefaultPolicy(nil)
+	policyContext, err := signature.NewPolicyContext(c.policy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create policy: %w", err)
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create policy context: %w", err)
+		return nil, fmt.Errorf("copy: failed to create policy context: %w", err)
 	}
 	err = retry.IfNecessary(ctx, func() error {
 		var err error
