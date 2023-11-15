@@ -4,7 +4,7 @@ go 1.21.3
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
-	github.com/STARRY-S/zip v0.1.0-beta.1
+	github.com/STARRY-S/zip v0.1.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/containers/common v0.56.0
 	github.com/containers/image/v5 v5.28.0
