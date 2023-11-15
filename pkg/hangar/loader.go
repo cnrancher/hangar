@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
@@ -33,8 +32,6 @@ type Loader struct {
 
 	// ar is the archive reader.
 	ar *archive.Reader
-	// arMutex is the mutex for archive reader.
-	arMutex *sync.RWMutex
 	// index is the archive index.
 	index *archive.Index
 	// indexImageSet is map[image name]*archive.Image .
@@ -82,7 +79,6 @@ type LoaderOpts struct {
 func NewLoader(o *LoaderOpts) (*Loader, error) {
 	l := &Loader{
 		ar:            nil,
-		arMutex:       &sync.RWMutex{},
 		index:         archive.NewIndex(),
 		indexImageSet: make(map[string]*archive.Image),
 		layerManager:  nil,
@@ -104,8 +100,6 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 		return nil, fmt.Errorf("failed to create common: %w", err)
 	}
 
-	l.arMutex.Lock()
-	defer l.arMutex.Unlock()
 	l.ar, err = archive.NewReader(l.ArchiveName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create archive reader: %w", err)
@@ -324,11 +318,9 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			tmpDir string
 			imgRef string
 		)
-		l.arMutex.Lock()
 		imgRef = dest.ReferenceNameDigest(img.Digest)
 		tmpDir, err = l.ar.DecompressImageTmp(
 			&img, l.common.imageSpecSet, l.layerManager.blobDir())
-		l.arMutex.Unlock()
 		// Register defer function to clean-up cache.
 		defer func(d string, img *archive.ImageSpec) {
 			if d != "" {
@@ -359,9 +351,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 			Infof("Loading [%v]", imageName)
 
-		l.arMutex.Lock()
 		err = l.layerManager.decompressLayer(&img, l.ar)
-		l.arMutex.Unlock()
 		if err != nil {
 			err = fmt.Errorf("arch [%v] os [%v]: %w", img.Arch, img.OS, err)
 			return
@@ -578,5 +568,6 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		}
 	}
 
-	logrus.Infof("PASS: [%v]", imageName)
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("PASS: [%v]", imageName)
 }
