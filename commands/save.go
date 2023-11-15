@@ -103,7 +103,7 @@ hangar save \
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
-	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically")
+	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 
 	addCommands(
 		cc.cmd,

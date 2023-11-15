@@ -77,6 +77,8 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 			continue
 		}
+		defer inspector.Close()
+
 		b, imageMIME, err := inspector.Raw(ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
@@ -193,6 +195,8 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 			continue
 		}
+		defer inspector.Close()
+
 		b, imageMIME, err := inspector.Raw(ctx)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
@@ -353,7 +357,7 @@ func (s *Source) copyDockerV2Schema1MediaType(
 		Variant:   variant,
 		MediaType: s.mime,
 		Layers:    nil,
-		Config:    "", // Schema1 does not config
+		Config:    "", // Schema1 does not have config
 		Digest:    s.manifestDigest,
 	}
 	updateSpecDockerV2Schema1(&spec, s.schema1)
@@ -366,10 +370,10 @@ func (s *Source) copyMediaTypeImageManifest(
 	sets map[string]map[string]bool,
 	policy *signature.Policy,
 ) error {
-	arch := s.ociManifest.Config.Platform.Architecture
-	osInfo := s.ociManifest.Config.Platform.OS
-	osVersion := s.ociManifest.Config.Platform.OSVersion
-	variant := s.ociManifest.Config.Platform.Variant
+	arch := s.ociConfig.Architecture
+	osInfo := s.ociConfig.OS
+	osVersion := s.ociConfig.OSVersion
+	variant := s.ociConfig.Variant
 
 	// skip image
 	if len(sets["os"]) != 0 && osInfo != "" && !sets["os"][osInfo] {
@@ -499,6 +503,7 @@ func updateSpecDockerV2Schema1(
 func updateSpecImageManifest(
 	spec *archive.ImageSpec, ociManifest *imgspecv1.Manifest,
 ) {
+	spec.Config = ociManifest.Config.Digest
 	for _, layer := range ociManifest.Layers {
 		if len(layer.URLs) != 0 {
 			// The layer is from internet, ignore here.

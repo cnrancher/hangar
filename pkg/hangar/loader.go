@@ -42,6 +42,10 @@ type Loader struct {
 	// layerManager manages the layers
 	layerManager *layerManager
 
+	// Specify the source image registry.
+	SourceRegistry string
+	// Specify the source image project.
+	SourceProject string
 	// Specify the destination image registry.
 	DestinationRegistry string
 	// Specify the destination image project.
@@ -57,6 +61,10 @@ type Loader struct {
 type LoaderOpts struct {
 	CommonOpts
 
+	// Specify the source image registry.
+	SourceRegistry string
+	// Specify the source image project.
+	SourceProject string
 	// Specify the destination image registry.
 	DestinationRegistry string
 	// Specify the destination image project.
@@ -79,6 +87,8 @@ func NewLoader(o *LoaderOpts) (*Loader, error) {
 		indexImageSet: make(map[string]*archive.Image),
 		layerManager:  nil,
 
+		SourceRegistry:      o.SourceRegistry,
+		SourceProject:       o.SourceProject,
 		DestinationRegistry: o.DestinationRegistry,
 		DestinationProject:  o.DestinationProject,
 		Directory:           o.Directory,
@@ -132,7 +142,13 @@ func (l *Loader) copy(ctx context.Context) {
 		// Load images according to image list specified by user.
 		for i, line := range l.common.images {
 			registry := utils.GetRegistryName(line)
+			if l.SourceRegistry != "" {
+				registry = l.SourceRegistry
+			}
 			project := utils.GetProjectName(line)
+			if l.SourceProject != "" {
+				project = l.SourceProject
+			}
 			name := utils.GetImageName(line)
 			tag := utils.GetImageTag(line)
 			imageName := fmt.Sprintf("%s/%s/%s:%s",
@@ -340,6 +356,9 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			continue
 		}
 
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Infof("Loading [%v]", imageName)
+
 		l.arMutex.Lock()
 		err = l.layerManager.decompressLayer(&img, l.ar)
 		l.arMutex.Unlock()
@@ -366,9 +385,15 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}
 		err = src.Copy(copyContext, dest, l.common.imageSpecSet, l.policy)
 		if err != nil {
-			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-				src.ReferenceName(), dest.ReferenceName(), err)
-			return
+			if errors.Is(err, utils.ErrNoAvailableImage) {
+				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+					Warnf("Skip saving image [%v]: %v", imageName, err)
+				err = nil
+			} else {
+				err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+					src.ReferenceName(), dest.ReferenceName(), err)
+				return
+			}
 		}
 
 		var mi *manifest.ManifestImage
@@ -389,9 +414,6 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		err = fmt.Errorf("failed to push manifest: %w", err)
 		return
 	}
-
-	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-		Infof("Loaded [%v]", imageName)
 }
 
 func (l *Loader) Validate(ctx context.Context) error {
@@ -413,7 +435,13 @@ func (l *Loader) validate(ctx context.Context) {
 		// Validate images according to image list specified by user.
 		for i, line := range l.common.images {
 			registry := utils.GetRegistryName(line)
+			if l.SourceRegistry != "" {
+				registry = l.SourceRegistry
+			}
 			project := utils.GetProjectName(line)
+			if l.SourceProject != "" {
+				project = l.SourceProject
+			}
 			name := utils.GetImageName(line)
 			tag := utils.GetImageTag(line)
 			imageName := fmt.Sprintf("%s/%s/%s:%s",

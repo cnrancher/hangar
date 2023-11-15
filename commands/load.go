@@ -17,17 +17,19 @@ import (
 )
 
 type loadOpts struct {
-	file        string
-	arch        []string
-	os          []string
-	source      string
-	destination string
-	failed      string
-	repoType    string
-	jobs        int
-	timeout     time.Duration
-	project     string
-	tlsVerify   commonFlag.OptionalBool
+	file           string
+	arch           []string
+	os             []string
+	source         string
+	sourceRegistry string
+	destination    string
+	failed         string
+	repoType       string
+	jobs           int
+	timeout        time.Duration
+	project        string
+	skipLogin      bool
+	tlsVerify      commonFlag.OptionalBool
 }
 
 type loadCmd struct {
@@ -80,6 +82,7 @@ hangar load \
 	flags.StringVarP(&cc.source, "source", "s", "", "saved archive filename")
 	flags.SetAnnotation("source", cobra.BashCompFilenameExt, []string{"zip"})
 	flags.SetAnnotation("source", cobra.BashCompOneRequiredFlag, []string{""})
+	flags.StringVarP(&cc.sourceRegistry, "source-registry", "", "", "override the source registry of image list")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "destination registry url")
 	flags.SetAnnotation("destination", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
@@ -88,6 +91,9 @@ hangar load \
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
+
+	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
+		"skip check the destination registry is logged in (used in shell script)")
 
 	addCommands(
 		cc.cmd,
@@ -139,13 +145,15 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 		sysCtx.OCIInsecureSkipTLSVerify = !cc.tlsVerify.Value()
 	}
 
-	// Check whether the registry URL needs login.
-	if err := prepareLogin(
-		signalContext,
-		map[string]bool{cc.destination: true},
-		utils.CopySystemContext(sysCtx),
-	); err != nil {
-		return nil, err
+	if !cc.skipLogin {
+		// Only check whether the destination registry needs login.
+		if err := prepareLogin(
+			signalContext,
+			map[string]bool{cc.destination: true},
+			utils.CopySystemContext(sysCtx),
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	policy, err := cc.getPolicy()
@@ -165,6 +173,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			Policy:              policy,
 		},
 
+		SourceRegistry:      cc.sourceRegistry,
 		DestinationRegistry: cc.destination,
 		DestinationProject:  cc.project,
 		SharedBlobDirPath:   "", // Use the default shared blob dir path.

@@ -10,6 +10,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/types"
+	"github.com/cnrancher/hangar/pkg/utils"
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -257,8 +258,9 @@ func (s *Source) Copy(
 		}
 		logrus.Debugf("copied [%d] images", num)
 		if num == 0 {
-			logrus.Warnf("no available image copied")
+			return utils.ErrNoAvailableImage
 		}
+		return nil
 	case imgspecv1.MediaTypeImageIndex:
 		// manifest is oci image list
 		num, err := s.copyMediaTypeImageIndex(ctx, dest, sets, policy)
@@ -267,14 +269,16 @@ func (s *Source) Copy(
 		}
 		logrus.Debugf("copied [%d] images", num)
 		if num == 0 {
-			logrus.Warnf("no available image copied")
+			return utils.ErrNoAvailableImage
 		}
+		return nil
 	case imagemanifest.DockerV2Schema2MediaType:
 		// manifest is docker image schema2
 		err := s.copyDockerV2Schema2MediaType(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
+		return nil
 	case imagemanifest.DockerV2Schema1MediaType,
 		imagemanifest.DockerV2Schema1SignedMediaType:
 		// manifest is docker image schema1
@@ -282,15 +286,18 @@ func (s *Source) Copy(
 		if err != nil {
 			return err
 		}
+		return nil
 	case imgspecv1.MediaTypeImageManifest:
 		// manifest is oci image
 		err := s.copyMediaTypeImageManifest(ctx, dest, sets, policy)
 		if err != nil {
 			return err
 		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported MIME %q of image [%v]",
+			s.mime, s.referenceName)
 	}
-
-	return nil
 }
 
 func newSourceFromDir(o *Option) (*Source, error) {
@@ -517,6 +524,17 @@ func (s *Source) initManifest(ctx context.Context) error {
 			return fmt.Errorf("initManifest: %w", err)
 		}
 		s.ociManifest = ociManifest
+
+		config, err := inspector.Config(ctx)
+		if err != nil {
+			return fmt.Errorf("initManifest config: %w", err)
+		}
+		ociConfig := &imgspecv1.Image{}
+		err = json.Unmarshal(config, ociConfig)
+		if err != nil {
+			return fmt.Errorf("initManifest: get ociConfig failed: %w", err)
+		}
+		s.ociConfig = ociConfig
 	default:
 		return fmt.Errorf("unsupported MIME type %q", mime)
 	}

@@ -30,6 +30,8 @@ func NewManifestImage(
 	if err != nil {
 		return nil, err
 	}
+	defer inspector.Close()
+
 	b, mime, err := inspector.Raw(ctx)
 	if err != nil {
 		return nil, err
