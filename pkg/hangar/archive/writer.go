@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,14 +40,18 @@ func (w *Writer) Write(name string) error {
 	}
 	mode := fi.Mode()
 	if mode.IsRegular() {
-		return w.writeFile(name)
+		return w.writeFile(name, fi)
 	}
 
 	return w.writeDir(name)
 }
 
-func (w *Writer) writeFile(name string) error {
-	writer, err := w.zw.Create(name)
+func (w *Writer) writeFile(name string, fi fs.FileInfo) error {
+	writer, err := w.zw.CreateHeader(&zip.FileHeader{
+		Name:     name,
+		Method:   zip.Store,
+		Modified: fi.ModTime(),
+	})
 	if err != nil {
 		return fmt.Errorf("zip create failed: %w", err)
 	}
@@ -78,7 +83,11 @@ func (w *Writer) writeDir(base string) error {
 		if fi.IsDir() && !strings.HasSuffix(fname, string(os.PathSeparator)) {
 			fname += string(os.PathSeparator)
 		}
-		writer, err := w.zw.Create(fname)
+		writer, err := w.zw.CreateHeader(&zip.FileHeader{
+			Name:     fname,
+			Method:   zip.Store,
+			Modified: fi.ModTime(),
+		})
 		if err != nil {
 			return fmt.Errorf("zip create failed: %w", err)
 		}

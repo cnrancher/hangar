@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -125,13 +126,17 @@ func (u *Updater) Append(name string) error {
 	}
 	mode := fi.Mode()
 	if mode.IsRegular() {
-		return u.appendFile(name)
+		return u.appendFile(name, fi)
 	}
 	return u.appendDir(name)
 }
 
-func (u *Updater) appendFile(name string) error {
-	writer, err := u.zu.AppendAt(name, u.getIndexOffset())
+func (u *Updater) appendFile(name string, fi fs.FileInfo) error {
+	writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
+		Name:     name,
+		Method:   zip.Store,
+		Modified: fi.ModTime(),
+	}, u.getIndexOffset())
 	if err != nil {
 		return fmt.Errorf("zip append failed: %w", err)
 	}
@@ -163,7 +168,11 @@ func (u *Updater) appendDir(base string) error {
 		if fi.IsDir() && !strings.HasSuffix(fname, string(os.PathSeparator)) {
 			fname += string(os.PathSeparator)
 		}
-		writer, err := u.zu.AppendAt(fname, u.getIndexOffset())
+		writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
+			Name:     fname,
+			Method:   zip.Store,
+			Modified: fi.ModTime(),
+		}, u.getIndexOffset())
 		if err != nil {
 			return fmt.Errorf("zip append failed: %w", err)
 		}
