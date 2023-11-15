@@ -42,7 +42,7 @@ func NewUpdater(name string) (*Updater, error) {
 		f.Close()
 		return nil, fmt.Errorf("failed to init zip index: %w", err)
 	}
-	zu, err := zip.NewUpdater(f, fi.Size())
+	zu, err := zip.NewUpdater(f)
 	if err != nil {
 		f.Close()
 		return nil, fmt.Errorf("failed to create zip updater: %w", err)
