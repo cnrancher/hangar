@@ -245,46 +245,43 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Debugf("Compressing [%v]", obj.destination.ReferenceNameWithoutTransport())
 
-	shareBlobsDir := obj.destination.ReferenceNameWithoutTransport()
+	destDir := obj.destination.Directory()
 	copiedImage := obj.source.GetCopiedImage()
-	filesToDelete := []string{}
+	imageBlobs := map[digest.Digest]bool{}
+	filesToDelete := map[string]bool{}
 	// Record image layers and remove duplicated layers.
 	for _, image := range copiedImage.Images {
 		for _, layer := range image.Layers {
-			if s.layersSet[layer] {
-				d := path.Join(shareBlobsDir, archive.SharedBlobDir,
-					string(layer.Algorithm()), layer.Encoded())
-				filesToDelete = append(filesToDelete, d)
-			} else {
-				s.layersSet[layer] = true
-			}
+			imageBlobs[layer] = true
 		}
+		if image.Config != "" {
+			imageBlobs[image.Config] = true
+		}
+		imageBlobs[image.Digest] = true
 		if s.layersSet[image.Digest] {
-			// The image already exists in archive, delete all resources.
-			d1 := path.Join(shareBlobsDir, archive.SharedBlobDir,
-				string(image.Digest.Algorithm()), image.Digest.Encoded())
-			d2 := path.Join(shareBlobsDir, image.Digest.Encoded())
-			filesToDelete = append(filesToDelete, d1)
-			filesToDelete = append(filesToDelete, d2)
-		} else {
-			s.layersSet[image.Digest] = true
-		}
-		if image.Config != "" && s.layersSet[image.Config] {
-			d := path.Join(shareBlobsDir, archive.SharedBlobDir,
-				string(image.Config.Algorithm()), image.Config.Encoded())
-			filesToDelete = append(filesToDelete, d)
-		} else if image.Config != "" {
-			s.layersSet[image.Config] = true
+			// The image already exists in archive, delete OCI image directory.
+			d := path.Join(destDir, image.Digest.Encoded())
+			filesToDelete[d] = true
 		}
 	}
-	for _, dir := range filesToDelete {
-		if _, err := os.Stat(dir); err != nil {
-			logrus.Debugf("failed to clean duplicated file %q: stat: %v",
-				dir, err)
+	for blob := range imageBlobs {
+		if s.layersSet[blob] {
+			d := path.Join(destDir, archive.SharedBlobDir,
+				string(blob.Algorithm()), blob.Encoded())
+			filesToDelete[d] = true
+		} else {
+			s.layersSet[blob] = true
 		}
-		if err := os.RemoveAll(dir); err != nil {
+	}
+
+	for f := range filesToDelete {
+		if _, err := os.Stat(f); err != nil {
+			logrus.Warnf("failed to clean duplicated file %q: stat: %v",
+				f, err)
+		}
+		if err := os.RemoveAll(f); err != nil {
 			logrus.Warnf("failed to clean duplicated file %q: remove all: %v",
-				dir, err)
+				f, err)
 		}
 	}
 
