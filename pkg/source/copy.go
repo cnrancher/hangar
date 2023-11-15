@@ -33,6 +33,7 @@ func (s *Source) copyDockerV2ListMediaType(
 		arch := m.Platform.Architecture
 		osInfo := m.Platform.OS
 		osVersion := m.Platform.OSVersion
+		osFeatures := m.Platform.OSFeatures
 		variant := m.Platform.Variant
 		dig := m.Digest
 		mime := m.MediaType
@@ -86,14 +87,15 @@ func (s *Source) copyDockerV2ListMediaType(
 		}
 		manifestDigest, err := imagemanifest.Digest(b)
 		spec := archive.ImageSpec{
-			Arch:      arch,
-			OS:        osInfo,
-			OsVersion: osVersion,
-			Variant:   variant,
-			MediaType: mime,
-			Layers:    nil,
-			Config:    "",
-			Digest:    manifestDigest,
+			Arch:       arch,
+			OS:         osInfo,
+			OSVersion:  osVersion,
+			OSFeatures: osFeatures,
+			Variant:    variant,
+			MediaType:  mime,
+			Layers:     nil,
+			Config:     "",
+			Digest:     manifestDigest,
 		}
 		switch imageMIME {
 		case imagemanifest.DockerV2Schema2MediaType:
@@ -152,6 +154,7 @@ func (s *Source) copyMediaTypeImageIndex(
 		arch := m.Platform.Architecture
 		osInfo := m.Platform.OS
 		osVersion := m.Platform.OSVersion
+		osFeatures := m.Platform.OSFeatures
 		variant := m.Platform.Variant
 		dig := m.Digest
 
@@ -208,14 +211,15 @@ func (s *Source) copyMediaTypeImageIndex(
 			continue
 		}
 		spec := archive.ImageSpec{
-			Arch:      arch,
-			OS:        osInfo,
-			OsVersion: osVersion,
-			Variant:   variant,
-			MediaType: mime,
-			Layers:    nil,
-			Config:    "",
-			Digest:    manifestDigest,
+			Arch:       arch,
+			OS:         osInfo,
+			OSVersion:  osVersion,
+			OSFeatures: osFeatures,
+			Variant:    variant,
+			MediaType:  mime,
+			Layers:     nil,
+			Config:     "",
+			Digest:     manifestDigest,
 		}
 		switch imageMIME {
 		case imagemanifest.DockerV2Schema2MediaType:
@@ -273,6 +277,7 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
 	osVersion := s.ociConfig.OSVersion
+	osFeatures := s.ociConfig.OSFeatures
 	variant := s.ociConfig.Variant
 
 	// skip image
@@ -301,14 +306,15 @@ func (s *Source) copyDockerV2Schema2MediaType(
 		return err
 	}
 	spec := archive.ImageSpec{
-		Arch:      arch,
-		OS:        osInfo,
-		OsVersion: osVersion,
-		Variant:   variant,
-		MediaType: s.mime,
-		Layers:    nil,
-		Config:    s.schema2.ConfigDescriptor.Digest,
-		Digest:    s.manifestDigest,
+		Arch:       arch,
+		OS:         osInfo,
+		OSVersion:  osVersion,
+		OSFeatures: osFeatures,
+		Variant:    variant,
+		MediaType:  s.mime,
+		Layers:     nil,
+		Config:     s.schema2.ConfigDescriptor.Digest,
+		Digest:     s.manifestDigest,
 	}
 	updateSpecDockerV2Schema2(&spec, s.schema2)
 	return s.recordCopiedImage(spec)
@@ -353,7 +359,7 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	spec := archive.ImageSpec{
 		Arch:      arch,
 		OS:        osInfo,
-		OsVersion: osVersion,
+		OSVersion: osVersion,
 		Variant:   variant,
 		MediaType: s.mime,
 		Layers:    nil,
@@ -373,6 +379,7 @@ func (s *Source) copyMediaTypeImageManifest(
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
 	osVersion := s.ociConfig.OSVersion
+	osFeatures := s.ociConfig.OSFeatures
 	variant := s.ociConfig.Variant
 
 	// skip image
@@ -401,14 +408,15 @@ func (s *Source) copyMediaTypeImageManifest(
 		return err
 	}
 	spec := archive.ImageSpec{
-		Arch:      arch,
-		OS:        osInfo,
-		OsVersion: osVersion,
-		Variant:   variant,
-		MediaType: s.mime,
-		Layers:    nil,
-		Config:    s.ociManifest.Config.Digest,
-		Digest:    s.manifestDigest,
+		Arch:       arch,
+		OS:         osInfo,
+		OSVersion:  osVersion,
+		OSFeatures: osFeatures,
+		Variant:    variant,
+		MediaType:  s.mime,
+		Layers:     nil,
+		Config:     s.ociManifest.Config.Digest,
+		Digest:     s.manifestDigest,
 	}
 	updateSpecImageManifest(&spec, s.ociManifest)
 	return s.recordCopiedImage(spec)

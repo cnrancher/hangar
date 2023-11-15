@@ -9,6 +9,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"k8s.io/utils/strings/slices"
 )
 
 type ManifestImages []*ManifestImage
@@ -75,6 +76,38 @@ type manifestPlatform struct {
 	variant    string
 	osVersion  string
 	osFeatures []string
+}
+
+func (p *ManifestImage) SetArch(arch string) {
+	p.platform.arch = arch
+}
+
+func (p *ManifestImage) SetOS(os string) {
+	p.platform.os = os
+}
+
+func (p *ManifestImage) SetVariant(variant string) {
+	p.platform.variant = variant
+}
+
+func (p *ManifestImage) SetOsVersion(v string) {
+	p.platform.osVersion = v
+}
+
+func (p *ManifestImage) SetOsFeature(v []string) {
+	p.platform.osFeatures = slices.Clone(v)
+}
+
+func (p *ManifestImage) UpdatePlatform(
+	arch, variant, os, osVersion string, osFeatures []string,
+) {
+	p.platform = manifestPlatform{
+		arch:       arch,
+		variant:    variant,
+		os:         os,
+		osVersion:  osVersion,
+		osFeatures: slices.Clone(osFeatures),
+	}
 }
 
 func (p *ManifestImage) Equal(d *ManifestImage) bool {

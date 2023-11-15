@@ -272,6 +272,8 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
 		}
+		mi.UpdatePlatform(
+			image.Arch, image.Variant, image.OS, image.OSVersion, image.OSFeatures)
 		builder.Add(mi)
 	}
 	if err = builder.Push(ctx); err != nil {

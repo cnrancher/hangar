@@ -335,10 +335,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 				return
 			}
 			refName := fmt.Sprintf("%s@%s", obj.image.Source, img.Digest)
-			if img.OsVersion != "" {
+			if img.OSVersion != "" {
 				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 					Infof("Skip [%s] [%s%s] [%s] [%s]",
-						refName, img.Arch, img.Variant, img.OS, img.OsVersion)
+						refName, img.Arch, img.Variant, img.OS, img.OSVersion)
 			} else {
 				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 					Infof("Skip [%s] [%s%s] [%s]",
@@ -393,6 +393,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
 		}
+		mi.UpdatePlatform(
+			img.Arch, img.Variant, img.OS, img.OSVersion, img.OSFeatures)
 		builder.Add(mi)
 	}
 
