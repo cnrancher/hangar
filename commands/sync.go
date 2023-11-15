@@ -131,16 +131,6 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 		sysCtx.OCIInsecureSkipTLSVerify = !cc.tlsVerify.Value()
 	}
 
-	// Check whether the registry URL needs login.
-	registrySet := cc.getRegistrySet(images)
-	if err := prepareLogin(
-		signalContext,
-		registrySet,
-		utils.CopySystemContext(sysCtx),
-	); err != nil {
-		return nil, err
-	}
-
 	policy, err := cc.getPolicy()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get policy: %w", err)
@@ -169,18 +159,4 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))
 
 	return s, nil
-}
-
-func (cc *syncCmd) getRegistrySet(images []string) map[string]bool {
-	set := map[string]bool{}
-	if cc.source != "" {
-		// The registry of image list were overrided by command option.
-		set[cc.source] = true
-		return set
-	}
-	for _, line := range images {
-		registry := utils.GetRegistryName(line)
-		set[registry] = true
-	}
-	return set
 }

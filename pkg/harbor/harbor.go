@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -32,7 +33,9 @@ func GetRegistryURL(
 		},
 	}
 	// Try ping registry using HTTPS protocol.
-	u := fmt.Sprintf("https://%s", registry)
+	registry = strings.TrimSuffix(registry, "/")
+	u := fmt.Sprintf("https://%s/api/v2.0/ping", registry)
+	ubase := fmt.Sprintf("https://%s", registry)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
@@ -44,9 +47,10 @@ func GetRegistryURL(
 		}
 
 		if errors.Is(err, http.ErrSchemeMismatch) {
-			logrus.Debugf("ping %s/api/v2.0/ping: %v", u, err)
+			logrus.Debugf("ping %s: %v", u, err)
 			// The tlsVerify not enabled, try re-ping registry using HTTP.
-			u = fmt.Sprintf("http://%s", registry)
+			u = fmt.Sprintf("http://%s/api/v2.0/ping", registry)
+			ubase = fmt.Sprintf("http://%s", registry)
 			req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 			if err != nil {
 				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
@@ -55,23 +59,25 @@ func GetRegistryURL(
 			if err != nil {
 				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
 			}
+		} else {
+			return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
 		}
 	}
-	defer func() {
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
-	}()
-	logrus.Debugf("ping %s/api/v2.0/ping: %v", u, resp.Status)
+	defer resp.Body.Close()
+	logrus.Debugf("ping %s: %v", u, resp.Status)
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		buff := make([]byte, 10)
-		resp.Body.Read(buff)
-		logrus.Debugf("server response: %v", string(buff))
-		content := strings.ToLower(string(buff))
-		if strings.Contains(content, "pong") {
-			return u, nil
+		b, _ := io.ReadAll(resp.Body)
+		if len(b) > 0 {
+			if len(b) > 20 {
+				b = b[:20]
+			}
+			logrus.Debugf("server response: %v", string(b))
+			content := strings.ToLower(string(b))
+			if strings.Contains(content, "pong") {
+				return ubase, nil
+			}
 		}
 	}
 
@@ -160,14 +166,14 @@ func CreateProject(
 	r, err := http.NewRequestWithContext(
 		ctx, http.MethodPost, u, bytes.NewReader(json_data))
 	if err != nil {
-		return fmt.Errorf("harbor.CreateHarborProject: %w", err)
+		return fmt.Errorf("harbor.CreateProject: %w", err)
 	}
 	auth := fmt.Sprintf("%s:%s", credential.Username, credential.Password)
 	r.Header.Add("Authorization", "Basic "+utils.Base64(auth))
 	r.Header.Add("Content-Type", "application/json")
 	resp, err := httpClientDoWithRetry(ctx, client, r)
 	if err != nil {
-		return fmt.Errorf("harbor.CreateHarborProject: %w", err)
+		return fmt.Errorf("harbor.CreateProject: %w", err)
 	}
 	defer func() {
 		if resp != nil && resp.Body != nil {
@@ -192,6 +198,7 @@ func httpClientDoWithRetry(
 	var resp *http.Response
 	var err error
 	err = retry.IfNecessary(ctx, func() error {
+		logrus.Debugf("client.Do: %v", req.URL.String())
 		resp, err = client.Do(req)
 		return err
 	}, &retry.Options{

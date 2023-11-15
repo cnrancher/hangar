@@ -27,6 +27,7 @@ type mirrorOpts struct {
 	jobs        int
 	repoType    string
 	timeout     time.Duration
+	skipLogin   bool
 	tlsVerify   commonFlag.OptionalBool
 
 	sourceProject      string
@@ -85,6 +86,8 @@ hangar mirror \
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
+	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
+		"skip check the destination registry is logged in (used in shell script)")
 	flags.StringVarP(&cc.sourceProject, "source-project", "", "",
 		"override all source image projects")
 	flags.StringVarP(&cc.destinationProject, "destination-project", "", "",
@@ -140,14 +143,16 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 		sysCtx.OCIInsecureSkipTLSVerify = !cc.tlsVerify.Value()
 	}
 
-	// Check whether the registry URL needs login.
-	registrySet := cc.getRegistrySet(images)
-	if err := prepareLogin(
-		signalContext,
-		registrySet,
-		utils.CopySystemContext(sysCtx),
-	); err != nil {
-		return nil, err
+	if !cc.skipLogin {
+		// Only check whether the destination registry URL needs login.
+		registrySet := cc.getRegistrySet(images)
+		if err := prepareLogin(
+			signalContext,
+			registrySet,
+			utils.CopySystemContext(sysCtx),
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	policy, err := cc.getPolicy()
@@ -181,21 +186,13 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 	return m, nil
 }
 
+// getRegistrySet only gets the destination registry set: map[registry-url]true.
 func (cc *mirrorCmd) getRegistrySet(images []string) map[string]bool {
 	set := map[string]bool{}
-	if cc.source != "" && cc.destination != "" {
+	if cc.destination != "" {
 		// The registry of image list were overrided by command option.
-		set[cc.source] = true
 		set[cc.destination] = true
 		return set
-	}
-	if cc.source != "" {
-		// The registry of source image were overrided by command option.
-		set[cc.source] = true
-	}
-	if cc.destination != "" {
-		// The registry of destination image were overrided by command option.
-		set[cc.destination] = true
 	}
 	for _, line := range images {
 		switch imagelist.Detect(line) {
@@ -204,15 +201,10 @@ func (cc *mirrorCmd) getRegistrySet(images []string) map[string]bool {
 			set[registry] = true
 		case imagelist.TypeMirror:
 			spec, _ := imagelist.GetMirrorSpec(line)
-			if len(spec) == 0 {
+			if len(spec) != 3 {
 				continue
 			}
-			if len(cc.source) == 0 {
-				set[utils.GetRegistryName(spec[0])] = true
-			}
-			if len(cc.destination) == 0 {
-				set[utils.GetRegistryName(spec[1])] = true
-			}
+			set[utils.GetRegistryName(spec[1])] = true
 		default:
 		}
 	}

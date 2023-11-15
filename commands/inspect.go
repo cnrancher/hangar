@@ -80,6 +80,8 @@ func (cc *inspectCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer inspector.Close()
+
 	switch {
 	case cc.config:
 		b, err := inspector.Config(ctx)

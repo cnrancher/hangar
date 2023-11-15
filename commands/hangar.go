@@ -40,7 +40,7 @@ func newHangarCmd() *hangarCmd {
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use: "hangar",
-		Long: `Hangar supports container image mirror operations between registry servers.
+		Long: `Hangar supports container image copy operations between registry servers.
 Docs: https://github.com/cnrancher/hangar#docs
 `,
 		Run: func(cmd *cobra.Command, args []string) {

@@ -2,6 +2,7 @@ package hangar
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -63,7 +64,7 @@ func NewSyncer(o *SyncerOpts) (*Syncer, error) {
 		index:     archive.NewIndex(),
 		layersSet: make(map[digest.Digest]bool),
 
-		SourceRegistry:    o.SourceProject,
+		SourceRegistry:    o.SourceRegistry,
 		SourceProject:     o.SourceProject,
 		SharedBlobDirPath: o.SharedBlobDirPath,
 		ArchiveName:       o.ArchiveName,
@@ -215,7 +216,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 	defer func() {
 		if err != nil {
 			s.handleError(NewError(obj.id, err, obj.source, obj.destination))
-			s.common.recordFailedImage(obj.image)
+			s.recordFailedImage(obj.image)
 		}
 		cancel()
 		// Delete cache dir.
@@ -239,9 +240,16 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 	}
 	err = obj.source.Copy(copyContext, obj.destination, s.imageSpecSet, s.policy)
 	if err != nil {
-		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
-		return
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+				Warnf("Skip copy image [%v]: %v",
+					obj.source.ReferenceNameWithoutTransport(), err)
+			err = nil
+		} else {
+			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+				obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
+			return
+		}
 	}
 
 	// images copied to cache folder, write to archive file
@@ -253,24 +261,44 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 
 	shareBlobsDir := obj.destination.ReferenceNameWithoutTransport()
 	copiedImage := obj.source.GetCopiedImage()
+	filesToDelete := []string{}
 	// Record image layers and remove duplicated layers from shared blob dir.
 	for _, image := range copiedImage.Images {
 		for _, layer := range image.Layers {
 			if s.layersSet[layer] {
-				os.RemoveAll(path.Join(shareBlobsDir, string(layer.Algorithm()), layer.Encoded()))
+				d := path.Join(shareBlobsDir, archive.SharedBlobDir,
+					string(layer.Algorithm()), layer.Encoded())
+				filesToDelete = append(filesToDelete, d)
 			} else {
 				s.layersSet[layer] = true
 			}
 		}
 		if s.layersSet[image.Digest] {
-			os.RemoveAll(path.Join(shareBlobsDir, string(image.Digest.Algorithm()), image.Digest.Encoded()))
+			// The image already exists in archive, delete all resources.
+			d1 := path.Join(shareBlobsDir, archive.SharedBlobDir,
+				string(image.Digest.Algorithm()), image.Digest.Encoded())
+			d2 := path.Join(shareBlobsDir, image.Digest.Encoded())
+			filesToDelete = append(filesToDelete, d1)
+			filesToDelete = append(filesToDelete, d2)
 		} else {
 			s.layersSet[image.Digest] = true
 		}
 		if image.Config != "" && s.layersSet[image.Config] {
-			os.RemoveAll(path.Join(shareBlobsDir, string(image.Config.Algorithm()), image.Config.Encoded()))
+			d := path.Join(shareBlobsDir, archive.SharedBlobDir,
+				string(image.Config.Algorithm()), image.Config.Encoded())
+			filesToDelete = append(filesToDelete, d)
 		} else if image.Config != "" {
 			s.layersSet[image.Config] = true
+		}
+	}
+	for _, dir := range filesToDelete {
+		if _, err := os.Stat(dir); err != nil {
+			logrus.Debugf("failed to clean duplicated file %q: stat: %v",
+				dir, err)
+		}
+		if err := os.RemoveAll(dir); err != nil {
+			logrus.Warnf("failed to clean duplicated file %q: remove all: %v",
+				dir, err)
 		}
 	}
 
@@ -382,8 +410,10 @@ func (s *Syncer) validateWorker(ctx context.Context, o any) {
 		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 			Errorf("Image [%v] does not exists in archive index",
 				obj.source.ReferenceNameWithoutTransport())
-		err = fmt.Errorf("FAILED: [%v]", obj.source.ReferenceNameWithoutTransport())
+		err = fmt.Errorf("FAILED: [%v]",
+			obj.source.ReferenceNameWithoutTransport())
 		return
 	}
-	logrus.Infof("PASS: [%v]", obj.source.ReferenceNameWithoutTransport())
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("PASS: [%v]", obj.source.ReferenceNameWithoutTransport())
 }

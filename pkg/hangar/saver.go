@@ -2,6 +2,7 @@ package hangar
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,7 +14,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -120,13 +120,11 @@ func (s *Saver) copy(ctx context.Context) {
 		}
 		sd := path.Join(cd, s.SharedBlobDirPath)
 		dest, err := destination.NewDestination(&destination.Option{
-			Type:      types.TypeOci,
-			Directory: cd,
-			Name:      utils.GetImageName(img),
-			Tag:       utils.GetImageTag(img),
-			SystemContext: &imagetypes.SystemContext{
-				OCISharedBlobDirPath: sd,
-			},
+			Type:          types.TypeOci,
+			Directory:     cd,
+			Name:          utils.GetImageName(img),
+			Tag:           utils.GetImageTag(img),
+			SystemContext: utils.SystemContextWithSharedBlobDir(s.systemContext, sd),
 		})
 		if err != nil {
 			s.handleError(fmt.Errorf("failed to init dest image: %w", err))
@@ -228,9 +226,16 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	}
 	err = obj.source.Copy(copyContext, obj.destination, s.imageSpecSet, s.policy)
 	if err != nil {
-		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
-		return
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+				Warnf("Skip save image [%v]: %v",
+					obj.source.ReferenceNameWithoutTransport(), err)
+			err = nil
+		} else {
+			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+				obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
+			return
+		}
 	}
 
 	// images copied to cache folder, write to archive file
@@ -274,7 +279,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	}
 	for _, dir := range filesToDelete {
 		if _, err := os.Stat(dir); err != nil {
-			logrus.Warnf("failed to clean duplicated file %q: stat: %v",
+			logrus.Debugf("failed to clean duplicated file %q: stat: %v",
 				dir, err)
 		}
 		if err := os.RemoveAll(dir); err != nil {

@@ -82,6 +82,9 @@ func (s *Index) Append(i *Image) {
 	if i == nil {
 		return
 	}
+	if len(i.Images) == 0 {
+		return
+	}
 	// if s.Has(i) {
 	// 	return
 	// }

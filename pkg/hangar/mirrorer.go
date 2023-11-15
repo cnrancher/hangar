@@ -2,6 +2,7 @@ package hangar
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -240,7 +241,14 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		obj.destination.ReferenceNameWithoutTransport())
 	err = obj.source.Copy(copyContext, obj.destination, m.imageSpecSet, m.policy)
 	if err != nil {
-		return
+		if errors.Is(err, utils.ErrNoAvailableImage) {
+			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+				Warnf("Skip copy image [%v]: %v",
+					obj.source.ReferenceNameWithoutTransport(), err)
+			err = nil
+		} else {
+			return
+		}
 	}
 
 	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
