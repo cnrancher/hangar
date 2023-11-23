@@ -243,12 +243,6 @@ func (s *Source) Copy(
 	sets map[string]map[string]bool,
 	policy *signature.Policy,
 ) error {
-	if dest.MIME() == imgspecv1.MediaTypeImageIndex ||
-		dest.MIME() == imagemanifest.DockerV2ListMediaType {
-		// TODO: destination image may exists
-		_ = ""
-	}
-
 	switch s.mime {
 	case imagemanifest.DockerV2ListMediaType:
 		// manifest is docker image list

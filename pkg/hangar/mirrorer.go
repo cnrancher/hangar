@@ -98,7 +98,7 @@ func (m *Mirrorer) Run(ctx context.Context) error {
 		for i := range m.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		return fmt.Errorf("some images failed to mirror")
+		logrus.Errorf("some images failed to mirror")
 	}
 	return nil
 }
@@ -251,30 +251,61 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		}
 	}
 
-	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
-		ReferenceName: obj.destination.ReferenceName(),
-		SystemContext: m.systemContext,
-	})
-	if err != nil {
-		err = fmt.Errorf("failed to create mafiest builder: %w", err)
-		return
-	}
 	copiedImage := obj.source.GetCopiedImage()
 	if len(copiedImage.Images) == 0 {
 		return
 	}
+	var manifestImages = make(manifest.ManifestImages, 0)
 	for _, image := range copiedImage.Images {
 		var mi *manifest.ManifestImage
-		mi, err = manifest.NewManifestImage(ctx,
-			fmt.Sprintf("docker://%s@%s", copiedImage.Source, image.Digest),
-			obj.destination.SystemContext())
+		mi, err = manifest.NewManifestImageByInspect(
+			copyContext,
+			obj.destination.ReferenceNameDigest(image.Digest),
+			obj.destination.SystemContext(),
+		)
 		if err != nil {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
 		}
 		mi.UpdatePlatform(
 			image.Arch, image.Variant, image.OS, image.OSVersion, image.OSFeatures)
-		builder.Add(mi)
+		manifestImages = append(manifestImages, mi)
+	}
+	destManifestImages := obj.destination.ManifestImages()
+	if len(destManifestImages) > 0 {
+		// If no new image copied to the destination registry, skip re-create
+		// manifest index for destination image.
+		var skipBuildManifest bool = true
+		for _, img := range destManifestImages {
+			if !manifestImages.ContainDigest(img.Digest) {
+				skipBuildManifest = false
+				break
+			}
+		}
+		if skipBuildManifest {
+			logrus.Debugf("skip build manifest for image [%v]: already exists",
+				obj.destination.ReferenceName())
+			return
+		}
+	}
+
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: obj.destination.ReferenceName(),
+		SystemContext: obj.destination.SystemContext(),
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to create mafiest builder: %w", err)
+		return
+	}
+	// Merge new added images with destination manifest index.
+	for _, img := range manifestImages {
+		builder.Add(img)
+	}
+	for _, img := range destManifestImages {
+		builder.Add(img)
+	}
+	if builder.Images() == 0 {
+		return
 	}
 	if err = builder.Push(ctx); err != nil {
 		err = fmt.Errorf("failed to push manifest: %w", err)
@@ -289,7 +320,7 @@ func (m *Mirrorer) Validate(ctx context.Context) error {
 		for i := range m.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		return fmt.Errorf("some images failed to validate")
+		logrus.Errorf("some images failed to validate")
 	}
 	return nil
 }
