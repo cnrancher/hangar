@@ -88,6 +88,7 @@ func run(h hangar.Hangar) error {
 		}
 		return err
 	}
+	logrus.Infof("Done")
 	return nil
 }
 
@@ -100,6 +101,7 @@ func validate(h hangar.Hangar) error {
 		}
 		return err
 	}
+	logrus.Infof("Done")
 	return nil
 }
 

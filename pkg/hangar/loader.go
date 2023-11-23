@@ -198,7 +198,7 @@ func (l *Loader) Run(ctx context.Context) error {
 		for i := range l.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to load")
+		return ErrCopyFailed
 	}
 	return nil
 }
@@ -451,7 +451,7 @@ func (l *Loader) Validate(ctx context.Context) error {
 		for i := range l.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to validate")
+		return ErrValidateFailed
 	}
 	return nil
 }
