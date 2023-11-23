@@ -17,7 +17,7 @@ import (
 )
 
 type generateListCmd struct {
-	baseCmd
+	*baseCmd
 
 	isRPMGC        bool
 	rancherVersion string
@@ -27,7 +27,7 @@ type generateListCmd struct {
 func newGenerateListCmd() *generateListCmd {
 	cc := &generateListCmd{}
 
-	cc.baseCmd.cmd = &cobra.Command{
+	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "generate-list",
 		Short: "Generate Rancher image list",
 		Long: `'generate-list' generates an image-list from KDM data and Chart repositories used by Rancher.
@@ -66,7 +66,7 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 
 			return nil
 		},
-	}
+	})
 	cc.cmd.Flags().StringP("registry", "", "", "customize the registry URL of generated image list")
 	cc.cmd.Flags().StringP("kdm", "", "", "KDM file path or URL")
 	cc.cmd.Flags().StringP("output", "o", "", "output generated image list file (default \"[RANCHER_VERSION]-images.txt\")")
