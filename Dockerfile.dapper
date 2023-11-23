@@ -6,7 +6,7 @@ ARG no_proxy
 ENV http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}
 ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_COMMIT_SHA
 ENV DAPPER_SOURCE /go/src/github.com/cnrancher/hangar/
-ENV DAPPER_OUTPUT bin dists
+ENV DAPPER_OUTPUT bin dist
 ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
