@@ -19,6 +19,7 @@ import (
 	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/sirupsen/logrus"
 )
 
 func (s *Source) copyDockerV2ListMediaType(
@@ -46,6 +47,11 @@ func (s *Source) copyDockerV2ListMediaType(
 			continue
 		}
 		if len(sets["variant"]) != 0 && variant != "" && !sets["variant"][variant] {
+			continue
+		}
+		if dest.HaveDigest(m.Digest) {
+			logrus.Debugf("dest already have digest %v, skip copy", m.Digest)
+			copiedNum++
 			continue
 		}
 
@@ -166,6 +172,11 @@ func (s *Source) copyMediaTypeImageIndex(
 			continue
 		}
 		if len(sets["variant"]) != 0 && variant != "" && !sets["variant"][variant] {
+			continue
+		}
+		if dest.HaveDigest(m.Digest) {
+			logrus.Debugf("dest already have digest %v, skip copy", m.Digest)
+			copiedNum++
 			continue
 		}
 
@@ -290,6 +301,10 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if len(sets["variant"]) != 0 && variant != "" && !sets["variant"][variant] {
 		return nil
 	}
+	if dest.HaveDigest(s.manifestDigest) {
+		logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
+		return nil
+	}
 
 	sourceRef, err := s.Reference()
 	if err != nil {
@@ -339,6 +354,10 @@ func (s *Source) copyDockerV2Schema1MediaType(
 		return nil
 	}
 	if len(sets["variant"]) != 0 && variant != "" && !sets["variant"][variant] {
+		return nil
+	}
+	if dest.HaveDigest(s.manifestDigest) {
+		logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
 		return nil
 	}
 

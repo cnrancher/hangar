@@ -30,5 +30,6 @@ func init() {
 func main() {
 	if err := commands.Execute(os.Args[1:]); err != nil {
 		logrus.Error(err)
+		os.Exit(1)
 	}
 }

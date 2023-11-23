@@ -426,39 +426,55 @@ func (d *Destination) ImageBySet(set map[string]map[string]bool) *archive.Image 
 	return image
 }
 
-func (d *Destination) ManifestBuilder(ctx context.Context) (*manifest.Builder, error) {
-	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
-		ReferenceName: d.ReferenceName(),
-		SystemContext: d.systemCtx,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if d.mime == "" {
-		return builder, nil
-	}
-
-	// Add existing images into manifest builder
+func (d *Destination) ManifestImages() manifest.ManifestImages {
+	var mis manifest.ManifestImages
 	switch d.mime {
 	case imagemanifest.DockerV2ListMediaType:
 		for _, m := range d.schema2List.Manifests {
-			rn := d.ReferenceNameDigest(m.Digest)
-			mi, err := manifest.NewManifestImage(ctx, rn, d.systemCtx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create manifest image: %w", err)
-			}
-			builder.Add(mi)
+			mi := manifest.NewManifestImage(m.Digest, m.MediaType, m.Size)
+			mi.UpdatePlatform(
+				m.Platform.Architecture,
+				m.Platform.Variant,
+				m.Platform.OS,
+				m.Platform.OSVersion,
+				m.Platform.OSFeatures,
+			)
+			mis = append(mis, mi)
 		}
 	case imgspecv1.MediaTypeImageIndex:
 		for _, m := range d.ociIndex.Manifests {
-			rn := d.ReferenceNameDigest(m.Digest)
-			mi, err := manifest.NewManifestImage(ctx, rn, d.systemCtx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create manifest image: %w", err)
-			}
-			builder.Add(mi)
+			mi := manifest.NewManifestImage(m.Digest, m.MediaType, m.Size)
+			mi.UpdatePlatform(
+				m.Platform.Architecture,
+				m.Platform.Variant,
+				m.Platform.OS,
+				m.Platform.OSVersion,
+				m.Platform.OSFeatures,
+			)
+			mis = append(mis, mi)
 		}
 	}
+	return mis
+}
 
-	return builder, nil
+func (d *Destination) HaveDigest(imageDigest digest.Digest) bool {
+	if d.mime == "" || imageDigest == "" {
+		return false
+	}
+
+	switch d.mime {
+	case imagemanifest.DockerV2ListMediaType:
+		for _, m := range d.schema2List.Manifests {
+			if m.Digest == imageDigest {
+				return true
+			}
+		}
+	case imgspecv1.MediaTypeImageIndex:
+		for _, m := range d.ociIndex.Manifests {
+			if m.Digest == imageDigest {
+				return true
+			}
+		}
+	}
+	return false
 }

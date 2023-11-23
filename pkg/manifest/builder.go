@@ -89,9 +89,9 @@ func (b *Builder) Push(ctx context.Context) error {
 	for _, img := range b.images {
 		s2desc := manifest.Schema2ManifestDescriptor{
 			Schema2Descriptor: manifest.Schema2Descriptor{
-				MediaType: img.mediaType,
-				Size:      int64(img.size),
-				Digest:    img.digest,
+				MediaType: img.MediaType,
+				Size:      img.Size,
+				Digest:    img.Digest,
 			},
 			Platform: manifest.Schema2PlatformSpec{
 				Architecture: img.platform.arch,

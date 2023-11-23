@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
@@ -32,6 +33,8 @@ type Loader struct {
 
 	// ar is the archive reader.
 	ar *archive.Reader
+	// arMutex is the mutex for decompress archive files
+	arMutex *sync.Mutex
 	// index is the archive index.
 	index *archive.Index
 	// indexImageSet is map[image name]*archive.Image .
@@ -79,6 +82,7 @@ type LoaderOpts struct {
 func NewLoader(o *LoaderOpts) (*Loader, error) {
 	l := &Loader{
 		ar:            nil,
+		arMutex:       &sync.Mutex{},
 		index:         archive.NewIndex(),
 		indexImageSet: make(map[string]*archive.Image),
 		layerManager:  nil,
@@ -194,7 +198,7 @@ func (l *Loader) Run(ctx context.Context) error {
 		for i := range l.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		return fmt.Errorf("some images failed to load")
+		logrus.Errorf("some images failed to load")
 	}
 	return nil
 }
@@ -299,13 +303,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		err = fmt.Errorf("failed to init destination image: %w", err)
 		return
 	}
-	// Init manifest Builder.
-	var builder *manifest.Builder
-	builder, err = dest.ManifestBuilder(ctx)
-	if err != nil {
-		err = fmt.Errorf("failed to create manifest builder: %w", err)
-		return
-	}
+
+	var manifestImages = make(manifest.ManifestImages, 0)
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("Loading [%v]", imageName)
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
@@ -319,8 +320,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			imgRef string
 		)
 		imgRef = dest.ReferenceNameDigest(img.Digest)
+		l.arMutex.Lock()
 		tmpDir, err = l.ar.DecompressImageTmp(
 			&img, l.common.imageSpecSet, l.layerManager.blobDir())
+		l.arMutex.Unlock()
 		// Register defer function to clean-up cache.
 		defer func(d string, img *archive.ImageSpec) {
 			if d != "" {
@@ -348,10 +351,9 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			continue
 		}
 
-		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-			Infof("Loading [%v]", imageName)
-
+		l.arMutex.Lock()
 		err = l.layerManager.decompressLayer(&img, l.ar)
+		l.arMutex.Unlock()
 		if err != nil {
 			err = fmt.Errorf("arch [%v] os [%v]: %w", img.Arch, img.OS, err)
 			return
@@ -387,17 +389,51 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}
 
 		var mi *manifest.ManifestImage
-		mi, err = manifest.NewManifestImage(
-			ctx, imgRef, dest.SystemContext())
+		mi, err = manifest.NewManifestImageByInspect(
+			copyContext, dest.ReferenceNameDigest(img.Digest), dest.SystemContext(),
+		)
 		if err != nil {
 			err = fmt.Errorf("failed to create manifest image: %w", err)
 			return
 		}
 		mi.UpdatePlatform(
 			img.Arch, img.Variant, img.OS, img.OSVersion, img.OSFeatures)
-		builder.Add(mi)
+		manifestImages = append(manifestImages, mi)
 	}
 
+	destManifestImages := dest.ManifestImages()
+	if len(destManifestImages) > 0 {
+		// If no new image copied to destination registry, skip re-create
+		// manifest index for destination image.
+		var skipBuildManifest bool = true
+		for _, img := range destManifestImages {
+			if !manifestImages.ContainDigest(img.Digest) {
+				skipBuildManifest = false
+				break
+			}
+		}
+		if skipBuildManifest {
+			logrus.Debugf("skip build manifest for image [%v]: already exists",
+				dest.ReferenceName())
+			return
+		}
+	}
+
+	// Init manifest Builder.
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: dest.ReferenceName(),
+		SystemContext: dest.SystemContext(),
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to create manifest builder: %w", err)
+		return
+	}
+	for _, img := range destManifestImages {
+		builder.Add(img)
+	}
+	for _, img := range manifestImages {
+		builder.Add(img)
+	}
 	if builder.Images() == 0 {
 		err = fmt.Errorf("failed to load [%v]: some images failed to load", imageName)
 		return
@@ -415,7 +451,7 @@ func (l *Loader) Validate(ctx context.Context) error {
 		for i := range l.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		return fmt.Errorf("some images failed to validate")
+		logrus.Errorf("some images failed to validate")
 	}
 	return nil
 }
