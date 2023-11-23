@@ -174,7 +174,7 @@ func (s *Saver) Run(ctx context.Context) error {
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to save")
+		return ErrCopyFailed
 	}
 	return nil
 }
@@ -316,7 +316,7 @@ func (s *Saver) Validate(ctx context.Context) error {
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to validate")
+		return ErrValidateFailed
 	}
 	return nil
 }

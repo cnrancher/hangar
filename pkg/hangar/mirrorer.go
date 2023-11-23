@@ -98,7 +98,7 @@ func (m *Mirrorer) Run(ctx context.Context) error {
 		for i := range m.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to mirror")
+		return ErrCopyFailed
 	}
 	return nil
 }
@@ -320,7 +320,7 @@ func (m *Mirrorer) Validate(ctx context.Context) error {
 		for i := range m.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to validate")
+		return ErrValidateFailed
 	}
 	return nil
 }

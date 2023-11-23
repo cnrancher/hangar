@@ -188,7 +188,7 @@ func (s *Syncer) Run(ctx context.Context) error {
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to sync to %q", s.ArchiveName)
+		return ErrCopyFailed
 	}
 	return nil
 }
@@ -329,7 +329,7 @@ func (s *Syncer) Validate(ctx context.Context) error {
 		for i := range s.failedImageSet {
 			fmt.Printf("%v\n", i)
 		}
-		logrus.Errorf("some images failed to validate")
+		return ErrValidateFailed
 	}
 	return nil
 }

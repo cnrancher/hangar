@@ -1,6 +1,14 @@
 package hangar
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var (
+	ErrValidateFailed = errors.New("some images failed to validate")
+	ErrCopyFailed     = errors.New("some images failed to copy")
+)
 
 type Hangar interface {
 	Run(ctx context.Context) error
