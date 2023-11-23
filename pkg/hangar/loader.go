@@ -325,12 +325,12 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			&img, l.common.imageSpecSet, l.layerManager.blobDir())
 		l.arMutex.Unlock()
 		// Register defer function to clean-up cache.
-		defer func(d string, img *archive.ImageSpec) {
+		defer func(d string, img archive.ImageSpec) {
 			if d != "" {
 				os.RemoveAll(d)
 			}
-			l.layerManager.clean(img)
-		}(tmpDir, &img)
+			l.layerManager.clean(&img)
+		}(tmpDir, img)
 
 		if err != nil {
 			if !errors.Is(err, utils.ErrNoAvailableImage) {

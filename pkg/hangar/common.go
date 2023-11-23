@@ -290,14 +290,23 @@ func (m *layerManager) clean(img *archive.ImageSpec) {
 
 	layers := m.getImageLayers(img)
 	for i := 0; i < len(layers); i++ {
-		if m.layersRefMap[layers[i]] > 0 {
-			m.layersRefMap[layers[i]]--
+		layer := layers[i]
+		ref, ok := m.layersRefMap[layer]
+		if !ok {
+			logrus.Warnf(
+				"failed to cleanup [%v]: layer not exists in ref map", layer)
+			continue
 		}
-		if m.layersRefMap[layers[i]] <= 0 {
-			m.layersRefMap[layers[i]]--
-			p := path.Join(m.blobDir(), layers[i])
-			err := os.RemoveAll(p)
-			if err != nil {
+		if ref > 0 {
+			m.layersRefMap[layer]--
+		}
+		if m.layersRefMap[layer] == 0 {
+			m.layersRefMap[layer]--
+			p := path.Join(m.blobDir(), layer)
+			if _, err := os.Stat(p); err != nil {
+				logrus.Warnf("failed to cleanup [%v]: stat %v", p, err)
+			}
+			if err := os.RemoveAll(p); err != nil {
 				logrus.Warnf("failed to cleanup [%v]: %v", p, err)
 			}
 		}
