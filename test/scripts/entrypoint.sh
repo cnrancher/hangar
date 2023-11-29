@@ -3,38 +3,22 @@
 set -euo pipefail
 
 cd $(dirname $0)/../
-WORKINGDIR="$(pwd)/"
+WORKINGDIR="$(pwd)"
 
 source scripts/env.sh
 
-case ${1} in
-    test_all)
-        ${WORKINGDIR}/scripts/test-all.sh
-        ;;
-    test_mirror | test_mirror-validate)
-        pytest -s test_mirror.py
-        ;;
-    test_save)
-        pytest -s test_save.py
-        ;;
-    test_load | test_load-validate)
-        pytest -s test_load.py
-        ;;
-    test_sync | test_compress | test_decompress)
-        pytest -s test_sync_compress.py
-        ;;
-    test_convert-list)
-        pytest -s test_convert_list.py
-        ;;
-    test_generate-list)
-        pytest -s test_generate_list.py
-        ;;
-    test_version)
-        pytest -s test_version.py
-        ;;
-    *)
-        echo "Usage: $0 test_[COMMAND_NAME]"
-        echo "Usage: $0 test_all"
-        exit 1
-        ;;
-esac
+# Set-up the registry server
+${WORKINGDIR}/scripts/registry.sh
+
+export REGISTRY_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${HANGAR_REGISTRY_NAME})
+export REGISTRY_URL="${REGISTRY_IP}:${HANGAR_REGISTRY_PORT}"
+
+echo "REGISTRY_URL: ${REGISTRY_URL}"
+
+tox $@
+
+if [[ $(docker ps -a -f "name=${HANGAR_REGISTRY_NAME}" --format=json) != "" ]]; then
+    docker kill ${HANGAR_REGISTRY_NAME} > /dev/null || true
+    docker rm ${HANGAR_REGISTRY_NAME} > /dev/null || true
+    echo Delete ${HANGAR_REGISTRY_NAME}.
+fi

@@ -1,0 +1,15 @@
+FROM registry.suse.com/bci/python:3.11
+
+ENV DAPPER_SOURCE /go/src/github.com/cnrancher/hangar/
+ENV DAPPER_DOCKER_SOCKET=true
+WORKDIR ${DAPPER_SOURCE}
+
+RUN zypper ref && \
+    zypper in -y -f libdevmapper1_03 vim wget docker awk && \
+    zypper clean
+RUN pip install pytest tox
+
+COPY bin/hangar /usr/local/bin/hangar
+COPY package/default-policy.json /etc/containers/policy.json
+
+ENTRYPOINT [ "test/scripts/entrypoint.sh" ]

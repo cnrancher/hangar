@@ -2,6 +2,8 @@
 
 # Hangar
 
+> English | [简体中文](https://hangar.cnrancher.com/zh/)
+
 Hangar is a **simple** and **easy-to-use** command line utility for mirroring multi-architecture & multi-platform container images between container image registries. Aiming to simplify the process of copying container images between image registries.
 
 - Hangar allows to copy container images without container runtime (daemon).
@@ -10,7 +12,7 @@ Hangar is a **simple** and **easy-to-use** command line utility for mirroring mu
 - Hangar supports to copy container images parallelly to improve performance.
 - Save and load images with archive files to allow the setup of registry server in Air-Gapped installation.
 
-It provides the following functions：
+Hangar provides following functions：
 
 - Mirror container images between image registries (see [mirror](https://hangar.cnrancher.com/docs/mirror/mirror) subcommand).
 - Save container images into an archive file, and then upload them to the image registry server (see [save](https://hangar.cnrancher.com/docs/save/save) and [load](https://hangar.cnrancher.com/docs/load/load) subcommands). Designed to use for Air-Gapped (offline) installation.
@@ -31,7 +33,7 @@ If you encounter any issues or have suggestions for improvement while using Hang
 
 ## License
 
-Copyright © 2023 SUSE Rancher. All Rights Reserved.
+Copyright 2023 SUSE Rancher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

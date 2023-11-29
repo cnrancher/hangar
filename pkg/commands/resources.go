@@ -10,6 +10,10 @@ import (
 var (
 	// map[version]map[url][branch]
 	RPM_GC_CHARTS = map[string]map[string]string{
+		"v2.8": {
+			// pandaria-catalog
+			"https://github.com/cnrancher/pandaria-catalog": "release/v2.8",
+		},
 		"v2.7": {
 			// pandaria-catalog
 			"https://github.com/cnrancher/pandaria-catalog": "release/v2.7",
@@ -26,6 +30,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_GC_SYSTEM_CHARTS = map[string]map[string]string{
+		"v2.8": {
+			// system-chart
+			"https://github.com/cnrancher/system-charts": "release-v2.8-ent",
+		},
 		"v2.7": {
 			// system-chart
 			"https://github.com/cnrancher/system-charts": "release-v2.7-ent",
@@ -42,6 +50,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_GC_CHARTS_DEV = map[string]map[string]string{
+		"v2.8": {
+			// pandaria-catalog
+			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.8",
+		},
 		"v2.7": {
 			// pandaria-catalog
 			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.7",
@@ -58,6 +70,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_GC_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+		"v2.8": {
+			// system-chart
+			"https://github.com/cnrancher/system-charts": "dev-v2.8",
+		},
 		"v2.7": {
 			// system-chart
 			"https://github.com/cnrancher/system-charts": "dev-v2.7",
@@ -74,6 +90,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_CHARTS = map[string]map[string]string{
+		"v2.8": {
+			// rancher-charts
+			"https://github.com/rancher/charts": "release-v2.8",
+		},
 		"v2.7": {
 			// rancher-charts
 			"https://github.com/rancher/charts": "release-v2.7",
@@ -92,6 +112,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_SYSTEM_CHARTS = map[string]map[string]string{
+		"v2.8": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "release-v2.8",
+		},
 		"v2.7": {
 			// system-chart
 			"https://github.com/rancher/system-charts": "release-v2.7",
@@ -108,6 +132,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_CHARTS_DEV = map[string]map[string]string{
+		"v2.8": {
+			// rancher-charts
+			"https://github.com/rancher/charts": "dev-v2.8",
+		},
 		"v2.7": {
 			// rancher-charts
 			"https://github.com/rancher/charts": "dev-v2.7",
@@ -126,6 +154,10 @@ var (
 
 	// map[version]map[url][branch]
 	RPM_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+		"v2.8": {
+			// system-chart
+			"https://github.com/rancher/system-charts": "dev-v2.8",
+		},
 		"v2.7": {
 			// system-chart
 			"https://github.com/rancher/system-charts": "dev-v2.7",
@@ -142,6 +174,7 @@ var (
 
 	// map[version]url
 	KDM_URLS = map[string]string{
+		"v2.8": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.8/data.json",
 		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.7/data.json",
 		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json",
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.5/data.json",
@@ -149,6 +182,7 @@ var (
 
 	// map[version]url
 	KDM_GC_URLS = map[string]string{
+		"v2.8": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.8/data.json",
 		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.7/data.json",
 		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.6/data.json",
 		// The 2.5 KDM data is same with upstream
@@ -157,6 +191,7 @@ var (
 
 	// map[version]url
 	KDM_URLS_DEV = map[string]string{
+		"v2.8": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.8/data.json",
 		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.7/data.json",
 		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.6/data.json",
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.5/data.json",
@@ -164,6 +199,7 @@ var (
 
 	// map[version]url
 	KDM_GC_URLS_DEV = map[string]string{
+		"v2.8": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.8/data.json",
 		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.7/data.json",
 		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.6/data.json",
 		"v2.5": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.5/data.json",

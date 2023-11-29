@@ -10,11 +10,13 @@ source ${WORKINGDIR}/scripts/version.sh
 mkdir -p $WORKINGDIR/bin
 cd $WORKINGDIR/bin
 
+echo "Start build Hangar binary..."
+
 BUILD_FLAG=""
 if [[ -z "${DEBUG:-}" ]]; then
     BUILD_FLAG="-extldflags -static -s -w"
 else
-    echo "Debug enabled"
+    echo "Debug enabled for the built binary file."
 fi
 if [[ ! -z "${COMMIT}" ]]; then
     BUILD_FLAG="${BUILD_FLAG} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${COMMIT}'"
@@ -33,8 +35,6 @@ else
         GOARCH=$ARCH \
         go build -ldflags "${BUILD_FLAG}" -o hangar ..
 fi
-
-
 
 echo "--------------------------"
 ls -alh hangar*

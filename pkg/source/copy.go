@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -11,13 +13,14 @@ import (
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/manifest"
+	"github.com/cnrancher/hangar/pkg/types"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/common/pkg/retry"
 	imagecopy "github.com/containers/image/v5/copy"
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	imagetypes "github.com/containers/image/v5/types"
-	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -70,7 +73,8 @@ func (s *Source) copyDockerV2ListMediaType(
 		}
 
 		err = copyImage(
-			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
+			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(),
+			policy, mime)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -111,14 +115,14 @@ func (s *Source) copyDockerV2ListMediaType(
 				continue
 			}
 			updateSpecDockerV2Schema2(&spec, schema2)
-		case imagemanifest.DockerV2Schema1MediaType,
-			imagemanifest.DockerV2Schema1SignedMediaType:
-			schema1, err := imagemanifest.Schema1FromManifest(b)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			updateSpecDockerV2Schema1(&spec, schema1)
+		// case imagemanifest.DockerV2Schema1MediaType,
+		// 	imagemanifest.DockerV2Schema1SignedMediaType:
+		// 	schema1, err := imagemanifest.Schema1FromManifest(b)
+		// 	if err != nil {
+		// 		errs = append(errs, err)
+		// 		continue
+		// 	}
+		// 	updateSpecDockerV2Schema1(&spec, schema1)
 		case imgspecv1.MediaTypeImageManifest:
 			ociManifest := new(imgspecv1.Manifest)
 			if err = json.Unmarshal(b, ociManifest); err != nil {
@@ -195,7 +199,8 @@ func (s *Source) copyMediaTypeImageIndex(
 		}
 
 		err = copyImage(
-			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
+			ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(),
+			policy, mime)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -240,14 +245,14 @@ func (s *Source) copyMediaTypeImageIndex(
 				continue
 			}
 			updateSpecDockerV2Schema2(&spec, schema2)
-		case imagemanifest.DockerV2Schema1MediaType,
-			imagemanifest.DockerV2Schema1SignedMediaType:
-			schema1, err := imagemanifest.Schema1FromManifest(b)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			updateSpecDockerV2Schema1(&spec, schema1)
+		// case imagemanifest.DockerV2Schema1MediaType,
+		// 	imagemanifest.DockerV2Schema1SignedMediaType:
+		// 	schema1, err := imagemanifest.Schema1FromManifest(b)
+		// 	if err != nil {
+		// 		errs = append(errs, err)
+		// 		continue
+		// 	}
+		// 	updateSpecDockerV2Schema1(&spec, schema1)
 		case imgspecv1.MediaTypeImageManifest:
 			ociManifest := new(imgspecv1.Manifest)
 			if err = json.Unmarshal(b, ociManifest); err != nil {
@@ -316,7 +321,8 @@ func (s *Source) copyDockerV2Schema2MediaType(
 		return err
 	}
 	err = copyImage(
-		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(),
+		policy, s.mime)
 	if err != nil {
 		return err
 	}
@@ -356,22 +362,46 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	if len(sets["variant"]) != 0 && variant != "" && !sets["variant"][variant] {
 		return nil
 	}
-	if dest.HaveDigest(s.manifestDigest) {
-		logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
-		return nil
-	}
+	// Cannot detect whether the destination registry have Schema1 image here.
+	// if dest.HaveDigest(s.manifestDigest) {
+	// 	logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
+	// 	return nil
+	// }
 
 	sourceRef, err := s.Reference()
 	if err != nil {
 		return err
 	}
+	// Copy the images to temporary dir and rename its directory after copy.
 	destRef, err := dest.ReferenceMultiArch(
-		osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
+		osInfo, osVersion, arch, variant, "UNKNOW")
 	if err != nil {
 		return err
 	}
 	err = copyImage(
-		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(),
+		policy, s.mime)
+	if err != nil {
+		return err
+	}
+
+	// Need to re-inspect the copied destination image digest
+	// since the copied image mediaType was changed.
+	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+		Reference:     destRef,
+		SystemContext: dest.SystemContext(),
+	})
+	if err != nil {
+		return err
+	}
+	defer inspector.Close()
+
+	b, mime, err := inspector.Raw(ctx)
+	if err != nil {
+		return err
+	}
+	manifestDigest, err := imagemanifest.Digest(b)
+	schema2, err := imagemanifest.Schema2FromManifest(b)
 	if err != nil {
 		return err
 	}
@@ -380,12 +410,21 @@ func (s *Source) copyDockerV2Schema1MediaType(
 		OS:        osInfo,
 		OSVersion: osVersion,
 		Variant:   variant,
-		MediaType: s.mime,
+		MediaType: mime,
 		Layers:    nil,
-		Config:    "", // Schema1 does not have config
-		Digest:    s.manifestDigest,
+		Config:    schema2.ConfigDescriptor.Digest,
+		Digest:    manifestDigest,
 	}
-	updateSpecDockerV2Schema1(&spec, s.schema1)
+	updateSpecDockerV2Schema2(&spec, schema2)
+	if dest.Type() == types.TypeOci {
+		old := path.Join(dest.Directory(), "UNKNOW")
+		new := path.Join(dest.Directory(), manifestDigest.Encoded())
+		err = os.Rename(old, new)
+		if err != nil {
+			return fmt.Errorf("failed to rename [%v] to [%v]: %w",
+				old, new, err)
+		}
+	}
 	return s.recordCopiedImage(spec)
 }
 
@@ -422,7 +461,8 @@ func (s *Source) copyMediaTypeImageManifest(
 		return err
 	}
 	err = copyImage(
-		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(), policy)
+		ctx, sourceRef, destRef, s.systemCtx, dest.SystemContext(),
+		policy, s.mime)
 	if err != nil {
 		return err
 	}
@@ -476,21 +516,32 @@ func copyImage(
 	sourceCtx *imagetypes.SystemContext,
 	destCtx *imagetypes.SystemContext,
 	policy *signature.Policy,
+	sourceMIME string,
 ) error {
+	copyOpts := &imagecopy.Options{
+		// TODO: Add sign here if needed.
+		ReportWriter:         nil,
+		SourceCtx:            utils.CopySystemContext(sourceCtx),
+		DestinationCtx:       utils.CopySystemContext(destCtx),
+		ProgressInterval:     time.Second,
+		PreserveDigests:      true,
+		MaxParallelDownloads: 3,
+	}
+	switch sourceMIME {
+	case imagemanifest.DockerV2Schema1MediaType,
+		imagemanifest.DockerV2Schema1SignedMediaType:
+		// Docker schema1 image cannot preserve digest
+		copyOpts.PreserveDigests = false
+		// Convert image mediaType to DockerV2Schema2
+		copyOpts.ForceManifestMIMEType = imagemanifest.DockerV2Schema2MediaType
+	}
+
 	var err error
 	copier := copy.NewCopier(&copy.CopierOption{
-		Options: &imagecopy.Options{
-			// Add sign here if needed
-			ReportWriter:         nil,
-			SourceCtx:            sourceCtx,
-			DestinationCtx:       destCtx,
-			ProgressInterval:     time.Second,
-			PreserveDigests:      true,
-			MaxParallelDownloads: 3,
-		},
+		Options: copyOpts,
 		RetryOptions: &retry.Options{
 			MaxRetry: 3,
-			Delay:    time.Second,
+			Delay:    time.Millisecond * 100,
 		},
 
 		SourceRef: sourceRef,
@@ -515,17 +566,17 @@ func updateSpecDockerV2Schema2(
 	return spec
 }
 
-func updateSpecDockerV2Schema1(
-	spec *archive.ImageSpec, schema1 *imagemanifest.Schema1,
-) {
-	layerDigestSet := map[digest.Digest]bool{}
-	for _, layer := range schema1.FSLayers {
-		layerDigestSet[layer.BlobSum] = true
-	}
-	for layer := range layerDigestSet {
-		spec.Layers = append(spec.Layers, layer)
-	}
-}
+// func updateSpecDockerV2Schema1(
+// 	spec *archive.ImageSpec, schema1 *imagemanifest.Schema1,
+// ) {
+// 	layerDigestSet := map[digest.Digest]bool{}
+// 	for _, layer := range schema1.FSLayers {
+// 		layerDigestSet[layer.BlobSum] = true
+// 	}
+// 	for layer := range layerDigestSet {
+// 		spec.Layers = append(spec.Layers, layer)
+// 	}
+// }
 
 func updateSpecImageManifest(
 	spec *archive.ImageSpec, ociManifest *imgspecv1.Manifest,

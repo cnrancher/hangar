@@ -5,21 +5,17 @@ set -euo pipefail
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
+source ./scripts/env.sh
+
 files=(
-    "load-part.*"
-    "load-directory"
+    "*.zip"
     "*-failed.txt"
-    "*.tar.gz"
-    "*.tar.zstd"
-    "*.txt"
-    "saved-images"
-    "saved-image-cache"
-    "charts-repo-cache"
-    "pandaria-catalog"
-    "rancher-charts"
-    "system-charts"
-    "data.json"
-    "*.part*"
+    ".pytest_cache"
+    ".tox"
+    "suite/converted.txt"
+    "suite/*-failed.txt"
+    "suite/*.zip"
+    "suite/__pycache__"
 )
 
 for f in ${files[@]}; do
@@ -28,5 +24,12 @@ for f in ${files[@]}; do
         rm -rf $WORKINGDIR/$f
     fi
 done
+
+# Registry server.
+if [[ $(docker ps -a -f "name=${HANGAR_REGISTRY_NAME}" --format=json) != "" ]]; then
+    docker kill ${HANGAR_REGISTRY_NAME} > /dev/null || true
+    docker rm ${HANGAR_REGISTRY_NAME} > /dev/null || true
+    echo Delete ${HANGAR_REGISTRY_NAME}.
+fi
 
 exit 0

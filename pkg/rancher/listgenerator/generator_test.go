@@ -1,6 +1,7 @@
 package listgenerator
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -44,11 +45,11 @@ func Test_DataJson(t *testing.T) {
 
 func Test_generateFromKDMPath(t *testing.T) {
 	g := Generator{
-		RancherVersion: "v2.7.0",
+		RancherVersion: "v2.8.0",
 		KDMPath:        "test/data.json",
 	}
 	g.init()
-	err := g.generateFromKDMPath()
+	err := g.generateFromKDMPath(context.TODO())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return
@@ -64,11 +65,11 @@ func Test_generateFromKDMPath(t *testing.T) {
 
 func Test_generateFromKDMURL(t *testing.T) {
 	g := Generator{
-		RancherVersion: "v2.7.0",
+		RancherVersion: "v2.8.0",
 		KDMURL:         "",
 	}
 	g.init()
-	err := g.generateFromKDMURL()
+	err := g.generateFromKDMURL(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}

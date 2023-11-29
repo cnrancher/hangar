@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/url"
 	"sort"
@@ -57,7 +57,7 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 			if err := cc.prepareGenerator(); err != nil {
 				return err
 			}
-			if err := cc.run(); err != nil {
+			if err := cc.run(signalContext); err != nil {
 				return err
 			}
 			if err := cc.finish(); err != nil {
@@ -83,10 +83,6 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 }
 
 func (cc *generateListCmd) setupFlags() error {
-	configData := cmdconfig.DefaultProvider.Get("")
-	b, _ := json.MarshalIndent(configData, "", "  ")
-	logrus.Debugf("cmdconfig: %v", string(b))
-
 	if cmdconfig.GetString("rancher") == "" {
 		return fmt.Errorf("rancher version not specified, use '--rancher' to specify the rancher version")
 	}
@@ -194,8 +190,8 @@ func (cc *generateListCmd) prepareGenerator() error {
 	return nil
 }
 
-func (cc *generateListCmd) run() error {
-	return cc.generator.Generate()
+func (cc *generateListCmd) run(ctx context.Context) error {
+	return cc.generator.Generate(ctx)
 }
 
 func (cc *generateListCmd) finish() error {

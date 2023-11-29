@@ -2,6 +2,7 @@ package chartimages
 
 import (
 	"archive/tar"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -93,7 +94,7 @@ type Questions struct {
 	RancherMaxVersion string `yaml:"rancher_max_version"`
 }
 
-func (c *Chart) FetchImages() error {
+func (c *Chart) FetchImages(ctx context.Context) error {
 	if c.ImageSet == nil {
 		c.ImageSet = make(map[string]map[string]bool)
 	}
@@ -101,7 +102,7 @@ func (c *Chart) FetchImages() error {
 	case c.Path != "":
 		return c.fetchChartsFromPath()
 	case c.URL != "":
-		return c.fetchChartsFromURL()
+		return c.fetchChartsFromURL(ctx)
 	default:
 		return fmt.Errorf("chart Path or URL not specified")
 	}
@@ -199,7 +200,7 @@ func (c *Chart) fetchChartsFromPath() error {
 
 // fetchChartsFromURL clones the chart git repo into current dir and generate
 // image list from it.
-func (c *Chart) fetchChartsFromURL() error {
+func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 	urlWithoutExt := c.URL
 	if strings.HasSuffix(c.URL, ".git") {
 		urlWithoutExt = strings.TrimSuffix(c.URL, ".git")
@@ -221,7 +222,7 @@ func (c *Chart) fetchChartsFromURL() error {
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
 	logrus.Infof("cloning git repo into %q, branch %q",
 		directory, c.Branch)
-	r, err := git.PlainClone(directory, false, &option)
+	r, err := git.PlainCloneContext(ctx, directory, false, &option)
 	if err != nil {
 		if !errors.Is(err, git.ErrRepositoryAlreadyExists) {
 			return fmt.Errorf("fetchChartsFromURL: %w", err)

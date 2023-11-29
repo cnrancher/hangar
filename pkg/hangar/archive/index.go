@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -108,4 +109,16 @@ func (s *Index) Has(i *Image) bool {
 		}
 	}
 	return true
+}
+
+func (s *Index) HasReference(project, name, tag string) bool {
+	for _, images := range s.List {
+		p := utils.GetProjectName(images.Source)
+		n := utils.GetImageName(images.Source)
+		t := images.Tag
+		if p == project && n == name && t == tag {
+			return true
+		}
+	}
+	return false
 }

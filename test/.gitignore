@@ -1,14 +1,22 @@
+# pytest cache
 .pytest_cache
 __pycache__
+.tox
 
-saved-image-cache
-
+# charts
 pandaria-catalog
 rancher-charts
 system-charts
 
-*.tar.gz
-*.zstd
+# temporary files
+*.zip
 *.txt
+!requirements.txt
 *.json
+
+# binary files
 .dapper*
+/bin
+
+# registry files
+/registry

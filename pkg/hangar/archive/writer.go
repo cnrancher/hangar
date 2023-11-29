@@ -137,6 +137,9 @@ func (w *Writer) WriteIndex(index *Index) error {
 }
 
 func (w *Writer) Close() error {
+	if w == nil {
+		return nil
+	}
 	var err error
 	if w.zw != nil {
 		if err = w.zw.Close(); err != nil {
