@@ -159,6 +159,9 @@ func (r *Reader) DecompressImageTmp(
 }
 
 func (r *Reader) Close() error {
+	if r == nil {
+		return nil
+	}
 	if r.zr != nil {
 		r.zr = nil
 	}

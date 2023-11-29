@@ -1,0 +1,19 @@
+# Image list in MIRROR format
+// COMMENT LINE
+
+TEST INVALID IMAGE LIST LINE
+
+# Mirror manifest.list.v2
+cnrancher/hangar mirror-test/mirrored-cnrancher-hangar latest
+
+# Mirror manifest.v2
+hxstarrys/cas    mirror-test/mirrored-cas              6.5.6
+
+# Mirror manifest.v1
+library/mysql    mirror-test/mirrored-mysql            5.7.5
+
+# Mirror OCI manifest index
+quay.io/containers/skopeo mirror-test/mirrored-skopeo  v1.13.3
+
+# Image tag does not have project name
+alpine           alpine                                3

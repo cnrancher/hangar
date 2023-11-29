@@ -9,3 +9,4 @@ source $WORKINGDIR/scripts/version.sh
 
 mkdir -p dist/artifacts
 cp bin/hangar dist/artifacts/hangar${SUFFIX}
+cp -r bin test/

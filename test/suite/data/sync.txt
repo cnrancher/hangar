@@ -1,0 +1,7 @@
+# COMMENT LINE
+// COMMENT LINE
+
+TEST INVALID IMAGE LIST LINE
+
+mirrored-nginx:1.23
+mirror-test/mirrored-cas:6.5.6

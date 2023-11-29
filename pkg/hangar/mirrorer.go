@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
@@ -12,6 +13,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -78,6 +80,7 @@ func (m *Mirrorer) copy(ctx context.Context) {
 			object, err = m.mirrorObjectImageListTypeMirror(line)
 		default:
 			logrus.Warnf("Ignore image list line %q: invalid format", line)
+			continue
 		}
 		if err != nil {
 			m.common.recordFailedImage(line)
@@ -94,10 +97,11 @@ func (m *Mirrorer) copy(ctx context.Context) {
 func (m *Mirrorer) Run(ctx context.Context) error {
 	m.copy(ctx)
 	if len(m.failedImageSet) != 0 {
-		logrus.Errorf("Mirror failed image list:")
+		v := make([]string, 0, len(m.failedImageSet))
 		for i := range m.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
+		logrus.Errorf("Copy failed image list: \n%v", strings.Join(v, "\n"))
 		return ErrCopyFailed
 	}
 	return nil
@@ -164,11 +168,12 @@ func (m *Mirrorer) mirrorObjectImageListTypeMirror(line string) (*mirrorObject, 
 		sourceProject = m.SourceProject
 	}
 	src, err := source.NewSource(&source.Option{
-		Type:     types.TypeDocker,
-		Registry: sourceRegistry,
-		Project:  sourceProject,
-		Name:     utils.GetImageName(spec[0]),
-		Tag:      spec[2],
+		Type:          types.TypeDocker,
+		Registry:      sourceRegistry,
+		Project:       sourceProject,
+		Name:          utils.GetImageName(spec[0]),
+		Tag:           spec[2],
+		SystemContext: m.systemContext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init source image: %v", err)
@@ -179,11 +184,12 @@ func (m *Mirrorer) mirrorObjectImageListTypeMirror(line string) (*mirrorObject, 
 		destProject = m.DestinationProject
 	}
 	dest, err := destination.NewDestination(&destination.Option{
-		Type:     types.TypeDocker,
-		Registry: m.DestinationRegistry,
-		Project:  destProject,
-		Name:     utils.GetImageName(spec[1]),
-		Tag:      spec[2],
+		Type:          types.TypeDocker,
+		Registry:      m.DestinationRegistry,
+		Project:       destProject,
+		Name:          utils.GetImageName(spec[1]),
+		Tag:           spec[2],
+		SystemContext: m.systemContext,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to init dest image: %v", err)
@@ -316,11 +322,12 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 func (m *Mirrorer) Validate(ctx context.Context) error {
 	m.validate(ctx)
 	if len(m.failedImageSet) != 0 {
-		logrus.Errorf("Validate failed image list:")
+		v := make([]string, 0, len(m.failedImageSet))
 		for i := range m.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
-		return ErrValidateFailed
+		logrus.Errorf("Copy failed image list: \n%v", strings.Join(v, "\n"))
+		return ErrCopyFailed
 	}
 	return nil
 }
@@ -340,6 +347,7 @@ func (m *Mirrorer) validate(ctx context.Context) {
 			object, err = m.mirrorObjectImageListTypeMirror(line)
 		default:
 			logrus.Warnf("Ignore image list line %q: invalid format", line)
+			continue
 		}
 		if err != nil {
 			m.common.recordFailedImage(line)
@@ -396,24 +404,34 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 			obj.destination.ReferenceNameWithoutTransport())
 		return
 	}
-	destImages := obj.destination.ImageBySet(m.imageSpecSet)
-	destDigestSet := map[digest.Digest]bool{}
-	for _, img := range destImages.Images {
-		destDigestSet[img.Digest] = true
-	}
-	sourceImages := obj.source.ImageBySet(m.imageSpecSet)
-	for _, img := range sourceImages.Images {
-		if !destDigestSet[img.Digest] {
-			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-				Errorf("Image [%v] does not exists in destination registry",
-					obj.destination.ReferenceNameDigest(img.Digest))
-			err = fmt.Errorf("FAILED: [%v] != [%v]",
-				obj.source.ReferenceNameWithoutTransport(),
-				obj.destination.ReferenceNameWithoutTransport())
-			return
+
+	switch obj.source.MIME() {
+	case imagemanifest.DockerV2Schema1MediaType,
+		imagemanifest.DockerV2Schema1SignedMediaType:
+		// Could not compare image digest since the destination mediaType
+		// was changed during copy.
+	default:
+		destImages := obj.destination.ImageBySet(m.imageSpecSet)
+		destDigestSet := map[digest.Digest]bool{}
+		for _, img := range destImages.Images {
+			destDigestSet[img.Digest] = true
+		}
+		sourceImages := obj.source.ImageBySet(m.imageSpecSet)
+		for _, img := range sourceImages.Images {
+			if !destDigestSet[img.Digest] {
+				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+					Errorf("Image [%v] does not exists in destination registry",
+						obj.destination.ReferenceNameDigest(img.Digest))
+				err = fmt.Errorf("FAILED: [%v] != [%v]",
+					obj.source.ReferenceNameWithoutTransport(),
+					obj.destination.ReferenceNameWithoutTransport())
+				return
+			}
 		}
 	}
-	logrus.Infof("PASS: [%v] == [%v]",
-		obj.source.ReferenceNameWithoutTransport(),
-		obj.destination.ReferenceNameWithoutTransport())
+
+	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+		Infof("PASS: [%v] == [%v]",
+			obj.source.ReferenceNameWithoutTransport(),
+			obj.destination.ReferenceNameWithoutTransport())
 }

@@ -83,6 +83,7 @@ node:
 
 ---
 kind: pipeline
+type: docker
 name: linux-arm64
 platform:
   os: linux
@@ -136,6 +137,7 @@ node:
 
 ---
 kind: pipeline
+type: docker
 name: manifest
 platform:
   os: linux

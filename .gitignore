@@ -13,6 +13,7 @@
 *.zip
 tmp*
 data.json
+charts-repo-cache
 /rancher/
 /cnrancher/
 

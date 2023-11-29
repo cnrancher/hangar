@@ -1,1 +1,0 @@
-mirror-test/mirrored-hardened-skopeo mirror-test/mirrored-hardened-skopeo v1.11.1

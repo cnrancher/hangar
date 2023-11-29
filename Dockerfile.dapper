@@ -1,17 +1,12 @@
 FROM registry.suse.com/bci/golang:1.21
 
-ARG http_proxy
-ARG https_proxy
-ARG no_proxy
-ENV http_proxy=${http_proxy} https_proxy=${https_proxy} no_proxy=${no_proxy}
-ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_COMMIT_SHA
+ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_COMMIT_SHA DISABLE_CGO
 ENV DAPPER_SOURCE /go/src/github.com/cnrancher/hangar/
 ENV DAPPER_OUTPUT bin dist
 ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
-RUN echo "proxy: ${http_proxy}" && \
-    zypper ref && \
+RUN zypper ref && \
     zypper in -y -f wget vim libbtrfs-devel libgpgme-devel device-mapper-devel && \
     zypper clean
 
@@ -21,4 +16,4 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
-CMD ["ci"]
+CMD [ "ci" ]

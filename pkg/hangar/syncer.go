@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/source"
 	"github.com/cnrancher/hangar/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -84,6 +87,12 @@ func (s *Syncer) copy(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.worker)
 	for i, img := range s.common.images {
+		switch imagelist.Detect(img) {
+		case imagelist.TypeDefault:
+		default:
+			logrus.Warnf("Ignore image list line %q: invalid format", img)
+			continue
+		}
 		object := &syncObject{
 			id:    i + 1,
 			image: img,
@@ -184,10 +193,11 @@ func (s *Syncer) Run(ctx context.Context) error {
 
 	s.copy(ctx)
 	if len(s.failedImageSet) != 0 {
-		logrus.Errorf("Failed image list:")
+		v := make([]string, 0, len(s.failedImageSet))
 		for i := range s.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
+		logrus.Errorf("Sync failed image list: \n%v", strings.Join(v, "\n"))
 		return ErrCopyFailed
 	}
 	return nil
@@ -252,7 +262,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 		}
 	}
 
-	// images copied to cache folder, write to archive file
+	// Images copied to cache folder, write to archive file.
 	s.auMutex.Lock()
 	defer s.auMutex.Unlock()
 
@@ -325,10 +335,11 @@ func (s *Syncer) Validate(ctx context.Context) error {
 
 	s.validate(ctx)
 	if len(s.failedImageSet) != 0 {
-		logrus.Errorf("Validate failed image list:")
+		v := make([]string, 0, len(s.failedImageSet))
 		for i := range s.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
+		logrus.Errorf("Validate failed image list: \n%v", strings.Join(v, "\n"))
 		return ErrValidateFailed
 	}
 	return nil
@@ -338,6 +349,12 @@ func (s *Syncer) validate(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.validateWorker)
 	for i, img := range s.common.images {
+		switch imagelist.Detect(img) {
+		case imagelist.TypeDefault:
+		default:
+			logrus.Warnf("Ignore image list line %q: invalid format", img)
+			continue
+		}
 		object := &syncObject{
 			id:    i + 1,
 			image: img,
@@ -402,8 +419,24 @@ func (s *Syncer) validateWorker(ctx context.Context, o any) {
 	if err != nil {
 		return
 	}
-	image := obj.source.ImageBySet(s.imageSpecSet)
-	if !s.index.Has(image) {
+	var fail bool
+	switch obj.source.MIME() {
+	case imagemanifest.DockerV2Schema1MediaType,
+		imagemanifest.DockerV2Schema1SignedMediaType:
+		// Could not compare image digest since the destination mediaType
+		// was changed during copy.
+		if !s.index.HasReference(
+			obj.source.Project(), obj.source.Name(), obj.source.Tag()) {
+			fail = true
+		}
+	default:
+		image := obj.source.ImageBySet(s.imageSpecSet)
+		if !s.index.Has(image) {
+			fail = true
+		}
+	}
+
+	if fail {
 		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 			Errorf("Image [%v] does not exists in archive index",
 				obj.source.ReferenceNameWithoutTransport())
@@ -411,6 +444,7 @@ func (s *Syncer) validateWorker(ctx context.Context, o any) {
 			obj.source.ReferenceNameWithoutTransport())
 		return
 	}
+
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("PASS: [%v]", obj.source.ReferenceNameWithoutTransport())
 }

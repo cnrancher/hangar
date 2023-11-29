@@ -7,13 +7,21 @@ import (
 	"syscall"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/cnrancher/hangar/commands"
+	"github.com/cnrancher/hangar/pkg/commands"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 )
 
-func init() {
+func main() {
+	setup()
+	if err := commands.Execute(os.Args[1:]); err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
+}
+
+func setup() {
 	formatter := &nested.Formatter{
 		HideKeys:        false,
 		TimestampFormat: "[15:04:05]", // hour, time, sec only
@@ -47,12 +55,5 @@ func init() {
 
 	if runtime.GOOS == "windows" {
 		logrus.Panicf("unsupported OS: %v", runtime.GOOS)
-	}
-}
-
-func main() {
-	if err := commands.Execute(os.Args[1:]); err != nil {
-		logrus.Error(err)
-		os.Exit(1)
 	}
 }

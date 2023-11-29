@@ -1,6 +1,7 @@
 package listgenerator
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -67,36 +68,36 @@ func (g *Generator) selfCheck() error {
 	return nil
 }
 
-func (g *Generator) Generate() error {
+func (g *Generator) Generate(ctx context.Context) error {
 	if err := g.selfCheck(); err != nil {
 		return err
 	}
 	g.init()
 
-	if err := g.generateFromChartPaths(); err != nil {
+	if err := g.generateFromChartPaths(ctx); err != nil {
 		return err
 	}
 
-	if err := g.generateFromChartURLs(); err != nil {
+	if err := g.generateFromChartURLs(ctx); err != nil {
 		return err
 	}
 
-	if err := g.generateFromKDMPath(); err != nil {
+	if err := g.generateFromKDMPath(ctx); err != nil {
 		return err
 	}
 
-	if err := g.generateFromKDMURL(); err != nil {
+	if err := g.generateFromKDMURL(ctx); err != nil {
 		return err
 	}
 
-	if err := g.handleImageArguments(); err != nil {
+	if err := g.handleImageArguments(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (g *Generator) generateFromChartPaths() error {
+func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 	if g.ChartsPaths == nil || len(g.ChartsPaths) == 0 {
 		return nil
 	}
@@ -107,7 +108,7 @@ func (g *Generator) generateFromChartPaths() error {
 			Type:           g.ChartsPaths[path],
 			Path:           path,
 		}
-		if err := c.FetchImages(); err != nil {
+		if err := c.FetchImages(ctx); err != nil {
 			return err
 		}
 		for image := range c.ImageSet {
@@ -118,7 +119,7 @@ func (g *Generator) generateFromChartPaths() error {
 		// fetch windows images
 		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
-		if err := c.FetchImages(); err != nil {
+		if err := c.FetchImages(ctx); err != nil {
 			return err
 		}
 		for image := range c.ImageSet {
@@ -130,7 +131,7 @@ func (g *Generator) generateFromChartPaths() error {
 	return nil
 }
 
-func (g *Generator) generateFromChartURLs() error {
+func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 	if g.ChartURLs == nil || len(g.ChartURLs) == 0 {
 		return nil
 	}
@@ -142,7 +143,7 @@ func (g *Generator) generateFromChartURLs() error {
 			Branch:         g.ChartURLs[url].Branch,
 			URL:            url,
 		}
-		if err := c.FetchImages(); err != nil {
+		if err := c.FetchImages(ctx); err != nil {
 			return err
 		}
 		for image := range c.ImageSet {
@@ -153,7 +154,7 @@ func (g *Generator) generateFromChartURLs() error {
 		// fetch windows images
 		c.OS = chartimages.Windows
 		c.ImageSet = make(map[string]map[string]bool)
-		if err := c.FetchImages(); err != nil {
+		if err := c.FetchImages(ctx); err != nil {
 			return err
 		}
 		for image := range c.ImageSet {
@@ -170,7 +171,7 @@ func (g *Generator) generateFromChartURLs() error {
 	return nil
 }
 
-func (g *Generator) generateFromKDMPath() error {
+func (g *Generator) generateFromKDMPath(ctx context.Context) error {
 	if g.KDMPath == "" {
 		return nil
 	}
@@ -178,28 +179,28 @@ func (g *Generator) generateFromKDMPath() error {
 	if err != nil {
 		return err
 	}
-	return g.generateFromKDMData(b)
+	return g.generateFromKDMData(ctx, b)
 }
 
-func (g *Generator) generateFromKDMURL() error {
+func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 	if g.KDMURL == "" {
 		return nil
 	}
 	logrus.Infof("get KDM data from URL: %q", g.KDMURL)
-	b, err := getHttpData(g.KDMURL, time.Second*30)
+	b, err := getHttpData(ctx, g.KDMURL, time.Second*30)
 	if err != nil {
 		// re-try get data from KDM url
 		logrus.Warn(err)
 		logrus.Warnf("failed to get KDM data, retrying...")
-		b, err = getHttpData(g.KDMURL, time.Second*30)
+		b, err = getHttpData(ctx, g.KDMURL, time.Second*30)
 		if err != nil {
 			return fmt.Errorf("generateFromKDMURL: %w", err)
 		}
 	}
-	return g.generateFromKDMData(b)
+	return g.generateFromKDMData(ctx, b)
 }
 
-func (g *Generator) generateFromKDMData(b []byte) error {
+func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	data, err := kdm.FromData(b)
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
@@ -295,20 +296,26 @@ func (g *Generator) generateFromKDMData(b []byte) error {
 	return nil
 }
 
-func (g *Generator) handleImageArguments() error {
+func (g *Generator) handleImageArguments(ctx context.Context) error {
 	return nil
 }
 
-func getHttpData(link string, timeout time.Duration) ([]byte, error) {
+func getHttpData(
+	ctx context.Context, link string, timeout time.Duration,
+) ([]byte, error) {
 	client := &http.Client{
 		Timeout: timeout,
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getHttpData: %w", err)
 	}
 	if !cmdconfig.GetBool("tls-verify") {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
-	resp, err := client.Get(link)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("getHttpData: http.Get: %w", err)
 	}

@@ -198,6 +198,9 @@ func (u *Updater) appendDir(base string) error {
 }
 
 func (u *Updater) Close() error {
+	if u == nil {
+		return nil
+	}
 	if u.zu != nil {
 		if err := u.zu.Close(); err != nil {
 			return err

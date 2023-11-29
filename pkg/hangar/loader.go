@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/harbor"
 	"github.com/cnrancher/hangar/pkg/manifest"
 	"github.com/cnrancher/hangar/pkg/source"
@@ -139,6 +141,12 @@ func (l *Loader) copy(ctx context.Context) {
 	if len(l.common.images) > 0 {
 		// Load images according to image list specified by user.
 		for i, line := range l.common.images {
+			switch imagelist.Detect(line) {
+			case imagelist.TypeDefault:
+			default:
+				logrus.Warnf("Ignore image list line %q: invalid format", line)
+				continue
+			}
 			registry := utils.GetRegistryName(line)
 			if l.SourceRegistry != "" {
 				registry = l.SourceRegistry
@@ -194,10 +202,11 @@ func (l *Loader) Run(ctx context.Context) error {
 	}
 	l.copy(ctx)
 	if len(l.failedImageSet) != 0 {
-		logrus.Errorf("Failed image list:")
+		v := make([]string, 0, len(l.failedImageSet))
 		for i := range l.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
+		logrus.Errorf("Copy failed image list: \n%v", strings.Join(v, "\n"))
 		return ErrCopyFailed
 	}
 	return nil
@@ -447,10 +456,11 @@ func (l *Loader) worker(ctx context.Context, o any) {
 func (l *Loader) Validate(ctx context.Context) error {
 	l.validate(ctx)
 	if len(l.failedImageSet) != 0 {
-		logrus.Errorf("Validate failed image list:")
+		v := make([]string, 0, len(l.failedImageSet))
 		for i := range l.failedImageSet {
-			fmt.Printf("%v\n", i)
+			v = append(v, i)
 		}
+		logrus.Errorf("Validate failed image list: \n%v", strings.Join(v, "\n"))
 		return ErrValidateFailed
 	}
 	return nil
@@ -574,7 +584,7 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		Project:       destinationProject,
 		Name:          utils.GetImageName(imageName),
 		Tag:           obj.image.Tag,
-		SystemContext: utils.CopySystemContext(l.systemContext),
+		SystemContext: l.systemContext,
 	})
 	if err != nil {
 		err = fmt.Errorf("failed to create destination image: %w", err)

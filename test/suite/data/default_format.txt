@@ -1,0 +1,19 @@
+# Image list in DEFAULT format
+// COMMENT LINE
+
+TEST INVAID IMAGE LIST LINE
+
+# docker manifest.list.v2
+cnrancher/hangar:latest
+
+# docker manifest.v2
+hxstarrys/cas:6.5.6
+
+# docker manifest.v1
+library/mysql:5.7.5
+
+# OCI index
+quay.io/containers/skopeo:latest
+
+# docker manifest.list.v2
+alpine:3
