@@ -1,5 +1,3 @@
-![](/docs/images/logo.png)
-
 # Hangar
 
 > English | [简体中文](https://hangar.cnrancher.com/zh/)
