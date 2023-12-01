@@ -113,7 +113,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 		logrus.Infof("debug mode enabled, force worker number to 1")
 		cc.jobs = 1
 	} else {
-		if cc.jobs > utils.MAX_WORKER_NUM || cc.jobs < utils.MIN_WORKER_NUM {
+		if cc.jobs > utils.MaxWorkerNum || cc.jobs < utils.MinWorkerNum {
 			logrus.Warnf("invalid worker num: %v, set to 1", cc.jobs)
 			cc.jobs = 1
 		}

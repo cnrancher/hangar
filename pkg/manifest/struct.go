@@ -12,18 +12,18 @@ import (
 	"k8s.io/utils/strings/slices"
 )
 
-type ManifestImages []*ManifestImage
+type Images []*Image
 
-type ManifestImage struct {
+type Image struct {
 	Size      int64
 	Digest    digest.Digest
 	MediaType string
 	platform  manifestPlatform
 }
 
-func NewManifestImageByInspect(
+func NewImageByInspect(
 	ctx context.Context, referenceName string, sysContext *types.SystemContext,
-) (*ManifestImage, error) {
+) (*Image, error) {
 	inspector, err := NewInspector(ctx, &InspectorOption{
 		ReferenceName: referenceName,
 		SystemContext: sysContext,
@@ -54,7 +54,7 @@ func NewManifestImageByInspect(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image config: %w", err)
 	}
-	mi := &ManifestImage{
+	mi := &Image{
 		Size:      int64(len(b)),
 		Digest:    digest,
 		MediaType: mime,
@@ -70,10 +70,8 @@ func NewManifestImageByInspect(
 	return mi, nil
 }
 
-func NewManifestImage(
-	digest digest.Digest, mime string, size int64,
-) *ManifestImage {
-	mi := &ManifestImage{
+func NewImage(digest digest.Digest, mime string, size int64) *Image {
+	mi := &Image{
 		Digest:    digest,
 		MediaType: mime,
 		Size:      size,
@@ -90,27 +88,27 @@ type manifestPlatform struct {
 	osFeatures []string
 }
 
-func (p *ManifestImage) SetArch(arch string) {
+func (p *Image) SetArch(arch string) {
 	p.platform.arch = arch
 }
 
-func (p *ManifestImage) SetOS(os string) {
+func (p *Image) SetOS(os string) {
 	p.platform.os = os
 }
 
-func (p *ManifestImage) SetVariant(variant string) {
+func (p *Image) SetVariant(variant string) {
 	p.platform.variant = variant
 }
 
-func (p *ManifestImage) SetOsVersion(v string) {
+func (p *Image) SetOsVersion(v string) {
 	p.platform.osVersion = v
 }
 
-func (p *ManifestImage) SetOsFeature(v []string) {
+func (p *Image) SetOsFeature(v []string) {
 	p.platform.osFeatures = slices.Clone(v)
 }
 
-func (p *ManifestImage) UpdatePlatform(
+func (p *Image) UpdatePlatform(
 	arch, variant, os, osVersion string, osFeatures []string,
 ) {
 	p.platform = manifestPlatform{
@@ -122,7 +120,7 @@ func (p *ManifestImage) UpdatePlatform(
 	}
 }
 
-func (p *ManifestImage) Equal(d *ManifestImage) bool {
+func (p *Image) Equal(d *Image) bool {
 	if p == nil || d == nil {
 		return false
 	}
@@ -152,7 +150,7 @@ func (p *ManifestImage) Equal(d *ManifestImage) bool {
 	return true
 }
 
-func (images ManifestImages) Contains(d *ManifestImage) bool {
+func (images Images) Contains(d *Image) bool {
 	if len(images) == 0 {
 		return false
 	}
@@ -164,7 +162,7 @@ func (images ManifestImages) Contains(d *ManifestImage) bool {
 	return false
 }
 
-func (images ManifestImages) ContainDigest(d digest.Digest) bool {
+func (images Images) ContainDigest(d digest.Digest) bool {
 	if len(images) == 0 {
 		return false
 	}
@@ -176,7 +174,7 @@ func (images ManifestImages) ContainDigest(d digest.Digest) bool {
 	return false
 }
 
-func (images ManifestImages) FindPlatformIndex(p *manifestPlatform) int {
+func (images Images) FindPlatformIndex(p *manifestPlatform) int {
 	if len(images) == 0 {
 		return -1
 	}
@@ -188,12 +186,12 @@ func (images ManifestImages) FindPlatformIndex(p *manifestPlatform) int {
 	return -1
 }
 
-func (p ManifestImages) Equal(d ManifestImages) bool {
-	if len(p) != len(d) {
+func (images Images) Equal(d Images) bool {
+	if len(images) != len(d) {
 		return false
 	}
-	for i := 0; i < len(p); i++ {
-		if !p[i].Equal(d[i]) {
+	for i := 0; i < len(images); i++ {
+		if !images[i].Equal(d[i]) {
 			return false
 		}
 	}

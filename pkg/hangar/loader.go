@@ -77,8 +77,6 @@ type LoaderOpts struct {
 	SharedBlobDirPath string
 	// ArchiveName is the archive file name to be load
 	ArchiveName string
-	// Use HTTP and skip verify certificate
-	SkipTlsVerify bool
 }
 
 func NewLoader(o *LoaderOpts) (*Loader, error) {
@@ -213,7 +211,7 @@ func (l *Loader) Run(ctx context.Context) error {
 }
 
 func (l *Loader) initHarborProject(ctx context.Context) error {
-	harborUrl, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry,
+	harborURL, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry,
 		!l.systemContext.OCIInsecureSkipTLSVerify)
 	if err != nil {
 		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
@@ -237,7 +235,7 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 	}
 	for project := range projectSet {
 		exists, err := harbor.ProjectExists(
-			ctx, project, harborUrl, &credential,
+			ctx, project, harborURL, &credential,
 			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
@@ -246,7 +244,7 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 			continue
 		}
 		err = harbor.CreateProject(
-			ctx, project, harborUrl, &credential,
+			ctx, project, harborURL, &credential,
 			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
 			return err
@@ -313,7 +311,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		return
 	}
 
-	var manifestImages = make(manifest.ManifestImages, 0)
+	var manifestImages = make(manifest.Images, 0)
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Loading [%v]", imageName)
 	for _, img := range obj.image.Images {
@@ -330,8 +328,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		)
 		imgRef = dest.ReferenceNameDigest(img.Digest)
 		l.arMutex.Lock()
-		tmpDir, err = l.ar.DecompressImageTmp(
-			&img, l.common.imageSpecSet, l.layerManager.blobDir())
+		tmpDir, err = l.ar.DecompressImageTmp(&img, l.common.imageSpecSet)
 		l.arMutex.Unlock()
 		// Register defer function to clean-up cache.
 		defer func(d string, img archive.ImageSpec) {
@@ -397,8 +394,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			}
 		}
 
-		var mi *manifest.ManifestImage
-		mi, err = manifest.NewManifestImageByInspect(
+		var mi *manifest.Image
+		mi, err = manifest.NewImageByInspect(
 			copyContext, dest.ReferenceNameDigest(img.Digest), dest.SystemContext(),
 		)
 		if err != nil {
@@ -414,7 +411,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	if len(destManifestImages) > 0 {
 		// If no new image copied to destination registry, skip re-create
 		// manifest index for destination image.
-		var skipBuildManifest bool = true
+		var skipBuildManifest = true
 		for _, img := range destManifestImages {
 			if !manifestImages.ContainDigest(img.Digest) {
 				skipBuildManifest = false

@@ -136,7 +136,6 @@ func (r *Reader) DecompressTmp(name string) (string, error) {
 func (r *Reader) DecompressImageTmp(
 	img *ImageSpec,
 	imageSpecSet map[string]map[string]bool,
-	blobDir string,
 ) (string, error) {
 	if len(imageSpecSet["os"]) != 0 && !imageSpecSet["os"][img.OS] {
 		return "", utils.ErrNoAvailableImage

@@ -19,7 +19,7 @@ type Builder struct {
 	// dest image reference
 	reference types.ImageReference
 	// images
-	images ManifestImages
+	images Images
 	// systemContext
 	systemContext *types.SystemContext
 
@@ -62,7 +62,7 @@ func NewBuilder(o *BuilderOpts) (*Builder, error) {
 	return b, nil
 }
 
-func (b *Builder) Add(p *ManifestImage) {
+func (b *Builder) Add(p *Image) {
 	if b.images.Contains(p) {
 		return
 	}

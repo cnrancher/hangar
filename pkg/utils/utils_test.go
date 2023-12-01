@@ -45,21 +45,6 @@ func Test_DecodeBase64(t *testing.T) {
 
 // func AppendFileLine should be test manually
 
-func Test_IsDirEmpty(t *testing.T) {
-	var (
-		ok  bool
-		err error
-	)
-	// non-exist folder should return true
-	if ok, err = IsDirEmpty("UNKNOW_FOLDER"); !ok || err != nil {
-		t.Error("IsDirEmpty failed")
-	}
-	// current dir is not empty, should return false
-	if ok, err = IsDirEmpty("."); ok || err != nil {
-		t.Error("IsDirEmpty failed")
-	}
-}
-
 func Test_GetAbsPath(t *testing.T) {
 	var (
 		dir string

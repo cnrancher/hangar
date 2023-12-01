@@ -7,7 +7,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/source"
 )
 
-type HangarError struct {
+type Error struct {
 	id          int
 	e           error
 	source      *source.Source
@@ -15,7 +15,7 @@ type HangarError struct {
 }
 
 func NewError(id int, e error, s *source.Source, d *destination.Destination) error {
-	return &HangarError{
+	return &Error{
 		id:          id,
 		e:           e,
 		source:      s,
@@ -23,7 +23,7 @@ func NewError(id int, e error, s *source.Source, d *destination.Destination) err
 	}
 }
 
-func (e *HangarError) Error() string {
+func (e *Error) Error() string {
 	if e.source == nil {
 		return fmt.Sprintf("error occurred on [IMG: %d]: %v",
 			e.id, e.e)

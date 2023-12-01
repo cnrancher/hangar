@@ -261,10 +261,10 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	if len(copiedImage.Images) == 0 {
 		return
 	}
-	var manifestImages = make(manifest.ManifestImages, 0)
+	var manifestImages = make(manifest.Images, 0)
 	for _, image := range copiedImage.Images {
-		var mi *manifest.ManifestImage
-		mi, err = manifest.NewManifestImageByInspect(
+		var mi *manifest.Image
+		mi, err = manifest.NewImageByInspect(
 			copyContext,
 			obj.destination.ReferenceNameDigest(image.Digest),
 			obj.destination.SystemContext(),
@@ -281,7 +281,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	if len(destManifestImages) > 0 {
 		// If no new image copied to the destination registry, skip re-create
 		// manifest index for destination image.
-		var skipBuildManifest bool = true
+		var skipBuildManifest = true
 		for _, img := range destManifestImages {
 			if !manifestImages.ContainDigest(img.Digest) {
 				skipBuildManifest = false

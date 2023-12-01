@@ -9,7 +9,7 @@ import (
 
 var (
 	// map[version]map[url][branch]
-	RPM_GC_CHARTS = map[string]map[string]string{
+	RancherPrimeManagerGCCharts = map[string]map[string]string{
 		"v2.8": {
 			// pandaria-catalog
 			"https://github.com/cnrancher/pandaria-catalog": "release/v2.8",
@@ -29,7 +29,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_GC_SYSTEM_CHARTS = map[string]map[string]string{
+	RancherPrimeManagerGCSystemCharts = map[string]map[string]string{
 		"v2.8": {
 			// system-chart
 			"https://github.com/cnrancher/system-charts": "release-v2.8-ent",
@@ -49,7 +49,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_GC_CHARTS_DEV = map[string]map[string]string{
+	RancherPrimeManagerGCChartsDEV = map[string]map[string]string{
 		"v2.8": {
 			// pandaria-catalog
 			"https://github.com/cnrancher/pandaria-catalog": "dev/v2.8",
@@ -69,7 +69,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_GC_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+	RancherPrimeManagerGCSystemChartsDEV = map[string]map[string]string{
 		"v2.8": {
 			// system-chart
 			"https://github.com/cnrancher/system-charts": "dev-v2.8",
@@ -89,7 +89,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_CHARTS = map[string]map[string]string{
+	RancherPrimeManagerCharts = map[string]map[string]string{
 		"v2.8": {
 			// rancher-charts
 			"https://github.com/rancher/charts": "release-v2.8",
@@ -111,7 +111,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_SYSTEM_CHARTS = map[string]map[string]string{
+	RancherPrimeManagerSystemCharts = map[string]map[string]string{
 		"v2.8": {
 			// system-chart
 			"https://github.com/rancher/system-charts": "release-v2.8",
@@ -131,7 +131,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_CHARTS_DEV = map[string]map[string]string{
+	RancherPrimeManagerChartsDEV = map[string]map[string]string{
 		"v2.8": {
 			// rancher-charts
 			"https://github.com/rancher/charts": "dev-v2.8",
@@ -153,7 +153,7 @@ var (
 	}
 
 	// map[version]map[url][branch]
-	RPM_SYSTEM_CHARTS_DEV = map[string]map[string]string{
+	RancherPrimeManagerSystemChartsDEV = map[string]map[string]string{
 		"v2.8": {
 			// system-chart
 			"https://github.com/rancher/system-charts": "dev-v2.8",
@@ -173,7 +173,7 @@ var (
 	}
 
 	// map[version]url
-	KDM_URLS = map[string]string{
+	KontainerDriverMetadataURLs = map[string]string{
 		"v2.8": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.8/data.json",
 		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.7/data.json",
 		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/release-v2.6/data.json",
@@ -181,7 +181,7 @@ var (
 	}
 
 	// map[version]url
-	KDM_GC_URLS = map[string]string{
+	KontainerDriverMetadataGCURLs = map[string]string{
 		"v2.8": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.8/data.json",
 		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.7/data.json",
 		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/release-v2.6/data.json",
@@ -190,7 +190,7 @@ var (
 	}
 
 	// map[version]url
-	KDM_URLS_DEV = map[string]string{
+	KontainerDriverMetadataURLsDEV = map[string]string{
 		"v2.8": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.8/data.json",
 		"v2.7": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.7/data.json",
 		"v2.6": "https://releases.rancher.com/kontainer-driver-metadata/dev-v2.6/data.json",
@@ -198,7 +198,7 @@ var (
 	}
 
 	// map[version]url
-	KDM_GC_URLS_DEV = map[string]string{
+	KontainerDriverMetadataGCURLsDEV = map[string]string{
 		"v2.8": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.8/data.json",
 		"v2.7": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.7/data.json",
 		"v2.6": "https://charts.rancher.cn/kontainer-driver-metadata/dev-v2.6/data.json",
@@ -208,9 +208,9 @@ var (
 
 func addRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	chartsMap := RPM_CHARTS
+	chartsMap := RancherPrimeManagerCharts
 	if dev {
-		chartsMap = RPM_CHARTS_DEV
+		chartsMap = RancherPrimeManagerChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
@@ -225,9 +225,9 @@ func addRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 
 func addRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	systemChartsMap := RPM_SYSTEM_CHARTS
+	systemChartsMap := RancherPrimeManagerSystemCharts
 	if dev {
-		systemChartsMap = RPM_SYSTEM_CHARTS_DEV
+		systemChartsMap = RancherPrimeManagerSystemChartsDEV
 	}
 	for url := range systemChartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
@@ -242,9 +242,9 @@ func addRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 
 func addRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	chartsMap := RPM_GC_CHARTS
+	chartsMap := RancherPrimeManagerGCCharts
 	if dev {
-		chartsMap = RPM_GC_CHARTS_DEV
+		chartsMap = RancherPrimeManagerGCChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
@@ -259,9 +259,9 @@ func addRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 
 func addRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	majorMinor := semver.MajorMinor(v)
-	chartsMap := RPM_GC_SYSTEM_CHARTS
+	chartsMap := RancherPrimeManagerGCSystemCharts
 	if dev {
-		chartsMap = RPM_GC_SYSTEM_CHARTS_DEV
+		chartsMap = RancherPrimeManagerGCSystemChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
 		g.ChartURLs[url] = struct {
@@ -274,11 +274,13 @@ func addRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func addRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
+func addRancherPrimeManagerKontainerDriverMetadata(
+	v string, g *listgenerator.Generator, dev bool,
+) {
 	majorMinor := semver.MajorMinor(v)
-	urlMap := KDM_URLS
+	urlMap := KontainerDriverMetadataURLs
 	if dev {
-		urlMap = KDM_URLS_DEV
+		urlMap = KontainerDriverMetadataURLsDEV
 	}
 	url, ok := urlMap[majorMinor]
 	if !ok {
@@ -288,11 +290,13 @@ func addRPM_KDM(v string, g *listgenerator.Generator, dev bool) {
 	g.KDMURL = url
 }
 
-func addRPM_GC_KDM(v string, g *listgenerator.Generator, dev bool) {
+func addRancherPrimeManagerGCKontainerDriverMetadata(
+	v string, g *listgenerator.Generator, dev bool,
+) {
 	majorMinor := semver.MajorMinor(v)
-	urlMap := KDM_GC_URLS
+	urlMap := KontainerDriverMetadataGCURLs
 	if dev {
-		urlMap = KDM_GC_URLS_DEV
+		urlMap = KontainerDriverMetadataGCURLsDEV
 	}
 	url, ok := urlMap[majorMinor]
 	if !ok {

@@ -24,9 +24,8 @@ func Execute(args []string) error {
 	if err != nil {
 		if signalContext.Err() != nil {
 			return signalContext.Err()
-		} else {
-			return err
 		}
+		return err
 	}
 	return nil
 }

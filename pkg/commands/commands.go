@@ -32,7 +32,7 @@ type baseOpts struct {
 	insecurePolicy bool   // Use an "allow everything" signature verification policy
 }
 
-var globalOpts baseOpts = baseOpts{}
+var globalOpts = baseOpts{}
 
 func (cc *baseCmd) getCommand() *cobra.Command {
 	return cc.cmd
@@ -77,7 +77,7 @@ func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
 
 func (cc *baseCmd) ctxWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
 	var (
-		ctx    context.Context    = signalContext
+		ctx                       = signalContext
 		cancel context.CancelFunc = func() {}
 	)
 	if timeout > 0 {

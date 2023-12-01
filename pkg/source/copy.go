@@ -31,7 +31,7 @@ func (s *Source) copyDockerV2ListMediaType(
 	sets map[string]map[string]bool,
 	policy *signature.Policy,
 ) (int, error) {
-	var copiedNum int = 0
+	var copiedNum int
 	var errs []error
 	for _, m := range s.schema2List.Manifests {
 		arch := m.Platform.Architecture
@@ -96,6 +96,10 @@ func (s *Source) copyDockerV2ListMediaType(
 			continue
 		}
 		manifestDigest, err := imagemanifest.Digest(b)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to get digest: %w", err))
+			continue
+		}
 		spec := archive.ImageSpec{
 			Arch:       arch,
 			OS:         osInfo,
@@ -157,7 +161,7 @@ func (s *Source) copyMediaTypeImageIndex(
 	sets map[string]map[string]bool,
 	policy *signature.Policy,
 ) (int, error) {
-	var copiedNum int = 0
+	var copiedNum int
 	var errs []error
 	for _, m := range s.ociIndex.Manifests {
 		mime := m.MediaType
@@ -401,6 +405,9 @@ func (s *Source) copyDockerV2Schema1MediaType(
 		return err
 	}
 	manifestDigest, err := imagemanifest.Digest(b)
+	if err != nil {
+		return fmt.Errorf("failed to get digest: %w", err)
+	}
 	schema2, err := imagemanifest.Schema2FromManifest(b)
 	if err != nil {
 		return err
@@ -417,12 +424,12 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	}
 	updateSpecDockerV2Schema2(&spec, schema2)
 	if dest.Type() == types.TypeOci {
-		old := path.Join(dest.Directory(), "UNKNOW")
-		new := path.Join(dest.Directory(), manifestDigest.Encoded())
-		err = os.Rename(old, new)
+		o := path.Join(dest.Directory(), "UNKNOW")
+		n := path.Join(dest.Directory(), manifestDigest.Encoded())
+		err = os.Rename(o, n)
 		if err != nil {
 			return fmt.Errorf("failed to rename [%v] to [%v]: %w",
-				old, new, err)
+				o, n, err)
 		}
 	}
 	return s.recordCopiedImage(spec)

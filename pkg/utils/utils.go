@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,15 +18,15 @@ import (
 
 var (
 	ErrVersionIsEmpty   = errors.New("version is empty string")
-	ErrNoAvailableImage = errors.New("no avaiable image for specified arch and os")
+	ErrNoAvailableImage = errors.New("no available image for specified arch and os")
 )
 
 const (
 	HangarGitHubURL         = "https://github.com/cnrancher/hangar"
 	DockerHubRegistry       = "docker.io"
 	CacheCloneRepoDirectory = "charts-repo-cache"
-	MAX_WORKER_NUM          = 20
-	MIN_WORKER_NUM          = 1
+	MaxWorkerNum            = 20
+	MinWorkerNum            = 1
 
 	// Deprecated
 	SavedImageListFile = "saved-images-list.json"
@@ -51,35 +50,6 @@ func DecodeBase64(s string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
-}
-
-func IsDirEmpty(name string) (bool, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// if dir does not exist, return true
-			return true, nil
-		} else {
-			return false, fmt.Errorf("IsDirEmpty: %w", err)
-		}
-	} else if !info.IsDir() {
-		return false, fmt.Errorf("IsDirEmpty: '%s' is not a directory", name)
-	}
-
-	f, err := os.Open(name)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	// read in ONLY one file
-	_, err = f.Readdir(1)
-
-	// and if the file is EOF... well, the dir is empty.
-	if err == io.EOF {
-		return true, nil
-	}
-	return false, err
 }
 
 func AppendFileLine(fileName string, line string) error {
@@ -136,9 +106,8 @@ func DeleteIfExist(name string) error {
 		if os.IsNotExist(err) {
 			// if does not exist, return
 			return nil
-		} else {
-			return fmt.Errorf("DeleteIfExist: %w", err)
 		}
+		return fmt.Errorf("DeleteIfExist: %w", err)
 	}
 
 	if err := os.RemoveAll(name); err != nil {
@@ -147,8 +116,8 @@ func DeleteIfExist(name string) error {
 	return nil
 }
 
-func SaveJson(data interface{}, fileName string) error {
-	var jsonBytes []byte = []byte{}
+func SaveJSON(data interface{}, fileName string) error {
+	var jsonBytes = []byte{}
 	var err error
 
 	if data != nil {
@@ -525,7 +494,7 @@ func CopySystemContext(src *types.SystemContext) *types.SystemContext {
 	return &dest
 }
 
-func SystemContextWithTlsVerify(sysctx *types.SystemContext, tlsVerify bool) *types.SystemContext {
+func SystemContextWithTLSVerify(sysctx *types.SystemContext, tlsVerify bool) *types.SystemContext {
 	n := CopySystemContext(sysctx)
 	n.OCIInsecureSkipTLSVerify = !tlsVerify
 	n.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!tlsVerify)

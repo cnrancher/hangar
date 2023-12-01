@@ -1,5 +1,14 @@
 # Hangar
 
+<div align="center">
+  <p>
+    <a href="https://drone-pandaria.cnrancher.com/cnrancher/hangar"><img alt="Build Status" src="http://drone-pandaria.cnrancher.com/api/badges/cnrancher/hangar/status.svg"></a>
+    <a href="https://goreportcard.com/report/github.com/cnrancher/hangar"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/hangar"></a>
+    <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/hangar?color=default&label=release&logo=github"></a>
+    <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg">
+  </p>
+</div>
+
 > English | [简体中文](https://hangar.cnrancher.com/zh/)
 
 Hangar is a **simple** and **easy-to-use** command line utility for mirroring multi-architecture & multi-platform container images between container image registries. Aiming to simplify the process of copying container images between image registries.

@@ -6,6 +6,10 @@ ENV DAPPER_OUTPUT bin dist
 ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
+RUN if [ "${DAPPER_HOST_ARCH}" == "amd64" ]; then \
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2; \
+    fi
+
 RUN zypper ref && \
     zypper in -y -f wget vim libbtrfs-devel libgpgme-devel device-mapper-devel && \
     zypper clean

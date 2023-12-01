@@ -145,9 +145,8 @@ func (d *Destination) MultiArchTag(os, osVersion, arch, variant string) string {
 	if osVersion != "" {
 		return fmt.Sprintf("%s-%s-%s-%s%s",
 			d.referenceName, os, osVersion, arch, variant)
-	} else {
-		return fmt.Sprintf("%s-%s-%s%s", d.referenceName, os, arch, variant)
 	}
+	return fmt.Sprintf("%s-%s-%s%s", d.referenceName, os, arch, variant)
 }
 
 // ReferenceName returns the multi-arch (os, variant) reference name
@@ -426,12 +425,12 @@ func (d *Destination) ImageBySet(set map[string]map[string]bool) *archive.Image 
 	return image
 }
 
-func (d *Destination) ManifestImages() manifest.ManifestImages {
-	var mis manifest.ManifestImages
+func (d *Destination) ManifestImages() manifest.Images {
+	var mis manifest.Images
 	switch d.mime {
 	case imagemanifest.DockerV2ListMediaType:
 		for _, m := range d.schema2List.Manifests {
-			mi := manifest.NewManifestImage(m.Digest, m.MediaType, m.Size)
+			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size)
 			mi.UpdatePlatform(
 				m.Platform.Architecture,
 				m.Platform.Variant,
@@ -443,7 +442,7 @@ func (d *Destination) ManifestImages() manifest.ManifestImages {
 		}
 	case imgspecv1.MediaTypeImageIndex:
 		for _, m := range d.ociIndex.Manifests {
-			mi := manifest.NewManifestImage(m.Digest, m.MediaType, m.Size)
+			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size)
 			mi.UpdatePlatform(
 				m.Platform.Architecture,
 				m.Platform.Variant,

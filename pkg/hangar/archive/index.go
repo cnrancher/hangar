@@ -80,39 +80,39 @@ func (i *Index) Unmarshal(b []byte) error {
 	return nil
 }
 
-func (s *Index) Append(i *Image) {
-	if i == nil {
+func (i *Index) Append(n *Image) {
+	if n == nil {
 		return
 	}
-	if len(i.Images) == 0 {
+	if len(n.Images) == 0 {
 		return
 	}
-	// if s.Has(i) {
+	// if i.Has(n) {
 	// 	return
 	// }
-	if s.digestSet == nil {
-		s.digestSet = make(map[digest.Digest]bool)
+	if i.digestSet == nil {
+		i.digestSet = make(map[digest.Digest]bool)
 	}
-	for _, img := range i.Images {
-		s.digestSet[img.Digest] = true
+	for _, img := range n.Images {
+		i.digestSet[img.Digest] = true
 	}
-	s.List = append(s.List, i)
+	i.List = append(i.List, n)
 }
 
-func (s *Index) Has(i *Image) bool {
-	if s.digestSet == nil {
+func (i *Index) Has(n *Image) bool {
+	if i.digestSet == nil {
 		return false
 	}
-	for _, img := range i.Images {
-		if _, ok := s.digestSet[img.Digest]; !ok {
+	for _, img := range n.Images {
+		if _, ok := i.digestSet[img.Digest]; !ok {
 			return false
 		}
 	}
 	return true
 }
 
-func (s *Index) HasReference(project, name, tag string) bool {
-	for _, images := range s.List {
+func (i *Index) HasReference(project, name, tag string) bool {
+	for _, images := range i.List {
 		p := utils.GetProjectName(images.Source)
 		n := utils.GetImageName(images.Source)
 		t := images.Tag

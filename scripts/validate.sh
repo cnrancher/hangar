@@ -31,3 +31,8 @@ if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
     echo 'go mod tidy produced differences'
     exit 1
 fi
+
+if type golangci-lint &> /dev/null; then
+    echo Running: golangci-lint
+    golangci-lint run
+fi

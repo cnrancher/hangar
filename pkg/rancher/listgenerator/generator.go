@@ -187,12 +187,12 @@ func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 		return nil
 	}
 	logrus.Infof("get KDM data from URL: %q", g.KDMURL)
-	b, err := getHttpData(ctx, g.KDMURL, time.Second*30)
+	b, err := getHTTPData(ctx, g.KDMURL, time.Second*30)
 	if err != nil {
 		// re-try get data from KDM url
 		logrus.Warn(err)
 		logrus.Warnf("failed to get KDM data, retrying...")
-		b, err = getHttpData(ctx, g.KDMURL, time.Second*30)
+		b, err = getHTTPData(ctx, g.KDMURL, time.Second*30)
 		if err != nil {
 			return fmt.Errorf("generateFromKDMURL: %w", err)
 		}
@@ -200,7 +200,7 @@ func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 	return g.generateFromKDMData(ctx, b)
 }
 
-func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
+func (g *Generator) generateFromKDMData(_ context.Context, b []byte) error {
 	data, err := kdm.FromData(b)
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
@@ -296,11 +296,11 @@ func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	return nil
 }
 
-func (g *Generator) handleImageArguments(ctx context.Context) error {
+func (g *Generator) handleImageArguments(_ context.Context) error {
 	return nil
 }
 
-func getHttpData(
+func getHTTPData(
 	ctx context.Context, link string, timeout time.Duration,
 ) ([]byte, error) {
 	client := &http.Client{

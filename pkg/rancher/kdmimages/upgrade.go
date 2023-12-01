@@ -136,8 +136,8 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 	return externalImages, nil
 }
 
-func (e *UpgradeImages) getExternalList(release string) ([]string, error) {
-	switch e.Source {
+func (g *UpgradeImages) getExternalList(release string) ([]string, error) {
+	switch g.Source {
 	case RKE2:
 		linuxImages, err := getImageListFromURL(
 			fmt.Sprintf(RKE2ImageLinux, release))
@@ -154,7 +154,7 @@ func (e *UpgradeImages) getExternalList(release string) ([]string, error) {
 	case K3S:
 		return getImageListFromURL(fmt.Sprintf(K3SImageURL, release))
 	default:
-		return nil, fmt.Errorf("invalid source provided: %s", e.Source)
+		return nil, fmt.Errorf("invalid source provided: %s", g.Source)
 	}
 }
 

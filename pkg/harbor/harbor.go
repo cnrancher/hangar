@@ -150,7 +150,7 @@ func CreateProject(
 			Public: "false",
 		},
 	}
-	json_data, err := json.Marshal(data)
+	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("harbor.CreateHarborProject: json.Marshal: %w", err)
 	}
@@ -164,7 +164,7 @@ func CreateProject(
 	u = strings.TrimSuffix(u, "/")
 	u = fmt.Sprintf("%s/api/v2.0/projects", u)
 	r, err := http.NewRequestWithContext(
-		ctx, http.MethodPost, u, bytes.NewReader(json_data))
+		ctx, http.MethodPost, u, bytes.NewReader(b))
 	if err != nil {
 		return fmt.Errorf("harbor.CreateProject: %w", err)
 	}

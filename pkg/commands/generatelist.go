@@ -178,12 +178,12 @@ func (cc *generateListCmd) prepareGenerator() error {
 			addRPMCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMGCCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMGCSystemCharts(cc.rancherVersion, cc.generator, dev)
-			addRPM_GC_KDM(cc.rancherVersion, cc.generator, dev)
+			addRancherPrimeManagerGCKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
 		} else {
 			logrus.Debugf("add RPM charts & KDM to generate list")
 			addRPMCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMSystemCharts(cc.rancherVersion, cc.generator, dev)
-			addRPM_KDM(cc.rancherVersion, cc.generator, dev)
+			addRancherPrimeManagerKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
 		}
 	}
 

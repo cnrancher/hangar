@@ -53,7 +53,7 @@ func Detect(line string) ListType {
 func getMirrorSpec(line string) ([]string, bool) {
 	line = strings.TrimSpace(line)
 	v := strings.Split(line, " ")
-	var spec []string = make([]string, 0, 3)
+	var spec = make([]string, 0, 3)
 	for _, s := range v {
 		if len(s) == 0 {
 			continue
@@ -69,7 +69,7 @@ func getMirrorSpec(line string) ([]string, bool) {
 func isDefaultFormat(line string) bool {
 	line = strings.TrimSpace(line)
 	v := strings.Split(line, "/")
-	var spec []string = make([]string, 0, 3)
+	var spec = make([]string, 0, 3)
 	for _, s := range v {
 		if len(s) == 0 {
 			continue

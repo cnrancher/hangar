@@ -259,7 +259,7 @@ func newLayerManager(index *archive.Index) (*layerManager, error) {
 }
 
 func (m *layerManager) getImageLayers(img *archive.ImageSpec) []string {
-	var data []string = make([]string, 0, len(img.Layers)+2)
+	var data = make([]string, 0, len(img.Layers)+2)
 	for _, l := range img.Layers {
 		data = append(data, l.Encoded())
 	}
