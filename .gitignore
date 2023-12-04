@@ -26,6 +26,6 @@ saved-image-cache
 # Dapper
 .dapper
 Dockerfile.dapper*
-Dockerfile-test.dapper*
+Dockerfile.test.dapper*
 !Dockerfile.dapper
-!Dockerfile-test.dapper
+!Dockerfile.test.dapper

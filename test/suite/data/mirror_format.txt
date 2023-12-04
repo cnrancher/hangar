@@ -13,7 +13,7 @@ hxstarrys/cas    mirror-test/mirrored-cas              6.5.6
 library/mysql    mirror-test/mirrored-mysql            5.7.5
 
 # Mirror OCI manifest index
-quay.io/containers/skopeo mirror-test/mirrored-skopeo  v1.13.3
+quay.io/containers/skopeo mirror-test/mirrored-skopeo  latest
 
 # Image tag does not have project name
 alpine           alpine                                3
