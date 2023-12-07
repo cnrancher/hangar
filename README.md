@@ -4,6 +4,7 @@
     <a href="https://drone-pandaria.cnrancher.com/cnrancher/hangar"><img alt="Build Status" src="http://drone-pandaria.cnrancher.com/api/badges/cnrancher/hangar/status.svg"></a>
     <a href="https://goreportcard.com/report/github.com/cnrancher/hangar"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/hangar"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/hangar?color=default&label=release&logo=github"></a>
+    <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub pre-release" src="https://img.shields.io/github/v/release/cnrancher/hangar?include_prereleases&label=pre-release&logo=github"></a>
     <img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg">
   </p>
 </div>
@@ -20,10 +21,10 @@ Hangar is a **simple** and **easy-to-use** command line utility for mirroring mu
 
 Hangar provides following functions：
 
-- Mirror container images between image registries (see [mirror](https://hangar.cnrancher.com/v1.7/mirror/mirror) subcommand).
-- Save container images into an archive file, and then upload them to the image registry server (see [save](https://hangar.cnrancher.com/v1.7/save/save) and [load](https://hangar.cnrancher.com/v1.7/load/load) subcommands). Designed to use for Air-Gapped (offline) installation.
-- Validate commands to verify that the container images were copied correctly (see [validate](https://hangar.cnrancher.com/v1.7/advanced/validate) subcommands).
-- Other advanced commands for image list files and archive files (see [advanced usage](https://hangar.cnrancher.com/v1.7/advanced/)).
+- Mirror container images between image registries (see [mirror](https://hangar.cnrancher.com/docs/v1.7/mirror/mirror) subcommand).
+- Save container images into an archive file, and then upload them to the image registry server (see [save](https://hangar.cnrancher.com/docs/v1.7/save/save) and [load](https://hangar.cnrancher.com/docs/v1.7/load/load) subcommands). Designed to use for Air-Gapped (offline) installation.
+- Validate commands to verify that the container images were copied correctly (see [validate](https://hangar.cnrancher.com/docs/v1.7/advanced/validate) subcommands).
+- Other advanced commands for image list files and archive files (see [advanced usage](https://hangar.cnrancher.com/docs/v1.7/advanced/)).
 
 ## Documents
 
