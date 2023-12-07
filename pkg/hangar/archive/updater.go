@@ -73,7 +73,14 @@ func initIndexFile(zr *zip.Reader) (*Index, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q from zip file", IndexFileName)
 	}
-	return UnmarshalIndex(b)
+	index, err := UnmarshalIndex(b)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal index file: %w", err)
+	}
+	if err := CompareIndexVersion(index); err != nil {
+		return nil, err
+	}
+	return index, nil
 }
 
 func (u *Updater) Index() *Index {

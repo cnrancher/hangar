@@ -122,3 +122,16 @@ func (i *Index) HasReference(project, name, tag string) bool {
 	}
 	return false
 }
+
+// CompareIndexVersion compares the loaded index version with current version.
+func CompareIndexVersion(index *Index) error {
+	res, err := utils.SemverCompare(index.Version, IndexVersion)
+	if err != nil {
+		return fmt.Errorf("failed to compare index version: %w", err)
+	}
+	if res < 0 {
+		return fmt.Errorf("this tool does not support index version %v",
+			index.Version)
+	}
+	return nil
+}

@@ -3,7 +3,6 @@ package archive
 import (
 	"os"
 	"path"
-	"runtime"
 )
 
 const (
@@ -17,10 +16,10 @@ var (
 
 func init() {
 	if os.Getenv("HOME") == "" {
-		cacheDir = path.Join("/tmp", "hangar_cache")
-	} else if runtime.GOOS == "darwin" {
-		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")
+		// Use /var/tmp/hangar_cache as cache folder.
+		cacheDir = path.Join("/", "var", "tmp", "hangar_cache")
 	} else {
+		// Use ${HOME}/.cache/hangar_cache as cache folder
 		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")
 	}
 	os.MkdirAll(cacheDir, 0755)

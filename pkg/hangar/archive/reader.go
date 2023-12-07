@@ -38,7 +38,26 @@ func NewReader(name string) (*Reader, error) {
 		f.Close()
 		return nil, fmt.Errorf("failed to create zip reader: %w", err)
 	}
+	if err := reader.validateIndex(); err != nil {
+		f.Close()
+		return nil, err
+	}
 	return reader, nil
+}
+
+func (r *Reader) validateIndex() error {
+	b, err := r.Index()
+	if err != nil {
+		return fmt.Errorf("failed to load index: %w", err)
+	}
+	index, err := UnmarshalIndex(b)
+	if err != nil {
+		return fmt.Errorf("failed to load index: %w", err)
+	}
+	if err := CompareIndexVersion(index); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *Reader) Index() ([]byte, error) {
