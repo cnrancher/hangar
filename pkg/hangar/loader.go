@@ -313,7 +313,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 
 	var manifestImages = make(manifest.Images, 0)
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-		Infof("Loading [%v]", imageName)
+		Infof("Loading [%v] => [%v]",
+			imageName, dest.ReferenceNameWithoutTransport())
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
