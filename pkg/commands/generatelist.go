@@ -34,12 +34,12 @@ func newGenerateListCmd() *generateListCmd {
 
 Generate image list by just specifying Rancher version:
 
-    hangar generate-list --rancher="v2.7.0-ent"
+    hangar generate-list --rancher="v2.8.0"
 
 Generate image-list from custom cloned chart repos & KDM data.json file.
 
     hangar generate-list \
-        --rancher="v2.7.0-ent" \
+        --rancher="v2.8.0" \
         --chart="./chart-repo-dir" \
         --system-chart="./system-chart-repo-dir" \
         --kdm="./kdm-data.json"`,
@@ -74,7 +74,7 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 	cc.cmd.Flags().StringP("output-windows", "", "", "generate windows image list")
 	cc.cmd.Flags().StringP("output-source", "", "", "generate image list with image source")
 	cc.cmd.Flags().StringP("rancher", "", "", "rancher version (semver with 'v' prefix) "+
-		"(use '-ent' suffix to distinguish with RPM GC) (required)")
+		"(use '-ent' suffix to distinguish with Rancher Prime Manager GC) (required)")
 	cc.cmd.Flags().BoolP("dev", "", false, "switch to dev branch/URL of charts & KDM data")
 	cc.cmd.Flags().StringSliceP("chart", "", nil, "cloned chart repo path (URL is not supported)")
 	cc.cmd.Flags().StringSliceP("system-chart", "", nil, "cloned system chart repo path (URL is not supported)")
