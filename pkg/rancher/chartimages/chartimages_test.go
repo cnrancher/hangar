@@ -187,7 +187,7 @@ func Test_DecodeValuesInTgz(t *testing.T) {
 
 func Test_fetchChartsFromPath_RancherCharts(t *testing.T) {
 	chart := Chart{
-		RancherVersion: "v2.7.0",
+		RancherVersion: "v2.8.0",
 		OS:             Linux,
 		Type:           RepoTypeDefault,
 		Path:           "test/rancher-charts",

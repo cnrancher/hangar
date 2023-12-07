@@ -399,7 +399,13 @@ func PickImagesFromValuesMap(
 		if !ok {
 			return
 		}
-		imageName := fmt.Sprintf("%s:%v", repository, tag)
+		if repository == "" {
+			return
+		}
+		if tag == "" {
+			tag = "latest"
+		}
+		imageName := fmt.Sprintf("%s:%s", repository, tag)
 		// By default, images are added to the generic images list ("linux").
 		// For Windows and multi-OS images to be considered, they must use a
 		// comma-delineated list (e.g. "os: windows", "os: windows,linux",

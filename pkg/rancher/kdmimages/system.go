@@ -72,7 +72,7 @@ func (s *SystemImages) GetImages() error {
 func discardImage(image string) bool {
 	project := u.GetProjectName(image)
 	switch project {
-	case "rancher", "cnrancher", "":
+	case "rancher", "cnrancher", "library":
 		return false
 	}
 	return true

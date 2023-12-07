@@ -198,6 +198,7 @@ func Test_GetRegistryName(t *testing.T) {
 }
 
 func Test_GetImageName(t *testing.T) {
+	assert.Equal(t, GetImageName(":"), "")
 	assert.Equal(t, GetImageName("nginx"), "nginx")
 	assert.Equal(t, GetImageName("nginx:latest"), "nginx")
 	assert.Equal(t, GetImageName("library/nginx"), "nginx")
