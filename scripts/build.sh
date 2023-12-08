@@ -10,24 +10,28 @@ source ${WORKINGDIR}/scripts/version.sh
 mkdir -p $WORKINGDIR/bin
 cd $WORKINGDIR/bin
 
-echo "Start build Hangar binary..."
+echo "Start build Hangar binary version $VERSION"
 
 BUILD_ARGS="-buildmode=pie"
 BUILD_LDFAGS=""
 BUILD_TAGS=""
-if [[ -z "${DEBUG:-}" ]]; then
-    BUILD_LDFAGS="-extldflags -static -s -w"
-else
+if [[ "${DEBUG:-}" = "true" ]]; then
     echo "Debug enabled for the built binary file."
+else
+    echo "Build non-debug binary file with '-s -w' ldflags."
+    BUILD_LDFAGS='-s -w'
 fi
-if [[ ! -z "${COMMIT}" ]]; then
+
+if [[ -n "${COMMIT}" ]]; then
     BUILD_LDFAGS="${BUILD_LDFAGS} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${COMMIT}'"
 fi
 BUILD_LDFAGS="${BUILD_LDFAGS} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"
 
-if [[ ! -z ${DISABLE_CGO:-} ]]; then
+if [[ -n "${DISABLE_CGO:-}" ]]; then
     export CGO_ENABLED=0
     BUILD_TAGS="containers_image_openpgp"
+    BUILD_LDFAGS="${BUILD_LDFAGS} -extldflags='-static'"
+    echo "CGO Disabled with '-static' extldflags."
 fi
 
 go build \
@@ -35,7 +39,7 @@ go build \
     -tags "${BUILD_TAGS}" \
     -ldflags "${BUILD_LDFAGS}" \
     -o hangar \
-    ${WORKINGDIR}
+    "${WORKINGDIR}"
 
 echo "--------------------------"
 ls -alh hangar*

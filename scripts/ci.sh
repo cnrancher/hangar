@@ -7,5 +7,6 @@ WORKINGDIR=$(pwd)
 
 ${WORKINGDIR}/scripts/validate.sh
 ${WORKINGDIR}/scripts/test.sh
+${WORKINGDIR}/scripts/build-test.sh
 ${WORKINGDIR}/scripts/build.sh
 ${WORKINGDIR}/scripts/package.sh

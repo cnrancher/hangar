@@ -21,6 +21,7 @@ help:
 	@echo "Usage:"
 	@echo "    make build           - Build 'hangar' executable files in 'bin' folder"
 	@echo "    make test            - Run hangar unit test"
+	@echo "    make build-test      - Run hangar build test"
 	@echo "    make validation-test - Run hangar validation test"
 	@echo "    make clean           - Remove generated files"
 	@echo "    make help            - Show this message"
