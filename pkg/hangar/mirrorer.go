@@ -304,10 +304,12 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		return
 	}
 	// Merge new added images with destination manifest index.
-	for _, img := range manifestImages {
+	// Add images already exists on destination registry into builder firstly.
+	for _, img := range destManifestImages {
 		builder.Add(img)
 	}
-	for _, img := range destManifestImages {
+	// Then add new copied images into builder, update existing images.
+	for _, img := range manifestImages {
 		builder.Add(img)
 	}
 	if builder.Images() == 0 {

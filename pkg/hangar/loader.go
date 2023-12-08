@@ -413,8 +413,8 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		// If no new image copied to destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
-		for _, img := range destManifestImages {
-			if !manifestImages.ContainDigest(img.Digest) {
+		for _, img := range manifestImages {
+			if !destManifestImages.ContainDigest(img.Digest) {
 				skipBuildManifest = false
 				break
 			}
@@ -435,9 +435,11 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		err = fmt.Errorf("failed to create manifest builder: %w", err)
 		return
 	}
+	// Add images already exists on destination registry into builder firstly.
 	for _, img := range destManifestImages {
 		builder.Add(img)
 	}
+	// Then add new copied images to builder, update existing images.
 	for _, img := range manifestImages {
 		builder.Add(img)
 	}
