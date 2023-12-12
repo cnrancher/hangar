@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Hangar</h1>
   <p>
-    <a href="https://drone-pandaria.cnrancher.com/cnrancher/hangar"><img alt="Build Status" src="http://drone-pandaria.cnrancher.com/api/badges/cnrancher/hangar/status.svg"></a>
+    <a href="https://build.opensuse.org/package/show/home:StarryWang/Hangar"><img alt="GitHub pre-release" src="https://build.opensuse.org/projects/home:StarryWang/packages/Hangar/badge.svg?type=default"></a>
     <a href="https://goreportcard.com/report/github.com/cnrancher/hangar"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/hangar"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/hangar?color=default&label=release&logo=github"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub pre-release" src="https://img.shields.io/github/v/release/cnrancher/hangar?include_prereleases&label=pre-release&logo=github"></a>
