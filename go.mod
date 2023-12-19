@@ -3,6 +3,7 @@ module github.com/cnrancher/hangar
 go 1.21.3
 
 replace (
+	golang.org/x/crypto => golang.org/x/crypto v0.17.0
 	k8s.io/api => k8s.io/api v0.28.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.28.4
 	k8s.io/apiserver => k8s.io/apiserver v0.28.4
@@ -172,8 +173,8 @@ require (
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/oauth2 v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/term v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
