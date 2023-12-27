@@ -2,6 +2,7 @@ package chartimages
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -16,7 +17,6 @@ import (
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 	yamlv2 "gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/repo"
@@ -461,7 +461,7 @@ func DecodeValuesInTgz(path string) ([]map[interface{}]interface{}, error) {
 		return nil, err
 	}
 	defer tgz.Close()
-	gzr, err := pgzip.NewReader(tgz)
+	gzr, err := gzip.NewReader(tgz)
 	if err != nil {
 		return nil, err
 	}
