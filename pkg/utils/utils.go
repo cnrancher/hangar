@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -87,64 +86,6 @@ func AppendFileLine(fileName string, line string) error {
 		return fmt.Errorf("AppendFileLine: %w", err)
 	}
 
-	return nil
-}
-
-func GetAbsPath(dir string) (string, error) {
-	if dir == "" {
-		dir = "."
-	}
-	if !filepath.IsAbs(dir) {
-		currentDir, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("StartSave: os.Getwd failed: %w", err)
-		}
-		dir = filepath.Join(currentDir, dir)
-		return dir, nil
-	}
-	return dir, nil
-}
-
-func EnsureDirExists(directory string) error {
-	info, err := os.Stat(directory)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Mkdir(directory, 0755); err != nil {
-				return fmt.Errorf("StartSave: %w", err)
-			}
-		} else {
-			return fmt.Errorf("StartSave: %w", err)
-		}
-	} else if !info.IsDir() {
-		return fmt.Errorf("StartSave: '%s' is not a directory", directory)
-	}
-	return nil
-}
-
-func SaveJSON(data interface{}, fileName string) error {
-	var jsonBytes = []byte{}
-	var err error
-
-	if data != nil {
-		jsonBytes, err = json.MarshalIndent(data, "", "  ")
-		if err != nil {
-			return fmt.Errorf("SaveJson: %w", err)
-		}
-	}
-	fileName, err = GetAbsPath(fileName)
-	if err != nil {
-		return fmt.Errorf("SaveJson: %w", err)
-	}
-	savedImageFile, err := os.OpenFile(fileName,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("SaveJson: %w", err)
-	}
-	savedImageFile.Write(jsonBytes)
-	err = savedImageFile.Close()
-	if err != nil {
-		return fmt.Errorf("SaveJson: %w", err)
-	}
 	return nil
 }
 

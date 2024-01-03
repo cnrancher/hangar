@@ -2,8 +2,6 @@ package utils
 
 import (
 	"io"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -44,25 +42,6 @@ func Test_DecodeBase64(t *testing.T) {
 }
 
 // func AppendFileLine should be test manually
-
-func Test_GetAbsPath(t *testing.T) {
-	var (
-		dir string
-		err error
-	)
-	currentDir, _ := os.Getwd()
-	// when the parameter is empty string, the return value should be
-	// the current absolute dir
-	if dir, err = GetAbsPath(""); !strings.HasPrefix(dir, currentDir) || dir != currentDir || err != nil {
-		t.Error("GetAbsPath failed")
-	}
-	if dir, err = GetAbsPath("test"); !strings.HasPrefix(dir, currentDir) || !strings.HasSuffix(dir, "test") || err != nil {
-		t.Error("GetAbsPath failed")
-	}
-	if dir, err = GetAbsPath("/bin/cat"); dir != "/bin/cat" || err != nil {
-		t.Error("GetAbsPath failed")
-	}
-}
 
 // EnsureDirExists should be test manually
 // DeleteIfExist   should be test manually
