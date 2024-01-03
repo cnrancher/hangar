@@ -224,7 +224,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 			m.handleError(fmt.Errorf("error occurred when copy [%v] to [%v]: %w",
 				obj.source.ReferenceNameWithoutTransport(),
 				obj.destination.ReferenceNameWithoutTransport(), err))
-			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+			m.common.recordFailedImage(obj.image)
 		}
 	}()
 
@@ -386,7 +386,7 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 		cancel()
 		if err != nil {
 			m.handleError(NewError(obj.id, err, obj.source, obj.destination))
-			m.common.recordFailedImage(obj.source.ReferenceNameWithoutTransport())
+			m.common.recordFailedImage(obj.image)
 		}
 	}()
 	err = obj.source.Init(validateContext)
