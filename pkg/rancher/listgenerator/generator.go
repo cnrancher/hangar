@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
+	"github.com/cnrancher/hangar/pkg/utils"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
@@ -21,8 +21,8 @@ import (
 
 // Generator is a generator to generate image list from charts, KDM data, etc.
 type Generator struct {
-	RancherVersion string // rancher version, should be va.b.c
-	MinKubeVersion string // minimum kube verision, should be va.b.c
+	RancherVersion string // Rancher version, should be va.b.c
+	MinKubeVersion string // Minimum kube verision, should be va.b.c
 
 	ChartsPaths map[string]chartimages.ChartRepoType // map[url]type
 	ChartURLs   map[string]struct {
@@ -30,14 +30,14 @@ type Generator struct {
 		Branch string
 	}
 
-	KDMPath string // the path of KDM data.json file
-	KDMURL  string // the remote URL of KDM data.json
+	KDMPath string // The path of KDM data.json file.
+	KDMURL  string // The remote URL of KDM data.json.
 
-	WindowsImageArguments []string
-	LinuxImageArguments   []string
+	InsecureSkipVerify bool // Skip TLS Verify.
 
-	// generated images, map[image]map[source]true
-	GeneratedLinuxImages   map[string]map[string]bool
+	// Generated linux images, map[image]map[source]true
+	GeneratedLinuxImages map[string]map[string]bool
+	// Generated windows images, map[image]map[source]true
 	GeneratedWindowsImages map[string]map[string]bool
 }
 
@@ -87,10 +87,6 @@ func (g *Generator) Generate(ctx context.Context) error {
 	}
 
 	if err := g.generateFromKDMURL(ctx); err != nil {
-		return err
-	}
-
-	if err := g.handleImageArguments(ctx); err != nil {
 		return err
 	}
 
@@ -147,6 +143,9 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 			return err
 		}
 		for image := range c.ImageSet {
+			if chartimages.IgnoreChartImages[image] {
+				continue
+			}
 			for source := range c.ImageSet[image] {
 				u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
 			}
@@ -158,14 +157,12 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 			return err
 		}
 		for image := range c.ImageSet {
+			if chartimages.IgnoreChartImages[image] {
+				continue
+			}
 			for source := range c.ImageSet[image] {
 				u.AddSourceToImage(g.GeneratedWindowsImages, image, source)
 			}
-		}
-		// Delete cloned chart path after generated images
-		logrus.Debugf("Delete %q", u.CacheCloneRepoDirectory)
-		if err := u.DeleteIfExist(u.CacheCloneRepoDirectory); err != nil {
-			return err
 		}
 	}
 	return nil
@@ -186,21 +183,33 @@ func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 	if g.KDMURL == "" {
 		return nil
 	}
-	logrus.Infof("get KDM data from URL: %q", g.KDMURL)
-	b, err := getHTTPData(ctx, g.KDMURL, time.Second*30)
+	logrus.Infof("Get KDM data from URL: %q", g.KDMURL)
+
+	client := &http.Client{
+		Timeout: time.Second * 15,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: g.InsecureSkipVerify,
+			},
+		},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.KDMURL, nil)
 	if err != nil {
-		// re-try get data from KDM url
-		logrus.Warn(err)
-		logrus.Warnf("failed to get KDM data, retrying...")
-		b, err = getHTTPData(ctx, g.KDMURL, time.Second*30)
-		if err != nil {
-			return fmt.Errorf("generateFromKDMURL: %w", err)
-		}
+		return fmt.Errorf("generateFromKDMURL: %w", err)
+	}
+	resp, err := utils.HTTPClientDoWithRetry(ctx, client, req)
+	if err != nil {
+		return fmt.Errorf("generateFromKDMURL: %w", err)
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("generateFromKDMURL: %w", err)
 	}
 	return g.generateFromKDMData(ctx, b)
 }
 
-func (g *Generator) generateFromKDMData(_ context.Context, b []byte) error {
+func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	data, err := kdm.FromData(b)
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
@@ -260,12 +269,13 @@ func (g *Generator) generateFromKDMData(_ context.Context, b []byte) error {
 
 	// get k3s/rke2 upgrade images
 	upgrade := kdmimages.UpgradeImages{
-		Source:         kdmimages.K3S,
-		RancherVersion: g.RancherVersion,
-		MinKubeVersion: g.MinKubeVersion,
-		Data:           data.K3S,
+		Source:             kdmimages.K3S,
+		RancherVersion:     g.RancherVersion,
+		MinKubeVersion:     g.MinKubeVersion,
+		InsecureSkipVerify: g.InsecureSkipVerify,
+		Data:               data.K3S,
 	}
-	k3sUpgradeImages, err := upgrade.GetImages()
+	k3sUpgradeImages, err := upgrade.GetImages(ctx)
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
@@ -281,7 +291,7 @@ func (g *Generator) generateFromKDMData(_ context.Context, b []byte) error {
 	if !u.SemverMajorMinorEqual(g.RancherVersion, "v2.5") {
 		upgrade.Source = kdmimages.RKE2
 		upgrade.Data = data.RKE2
-		rke2UpgradeImages, err := upgrade.GetImages()
+		rke2UpgradeImages, err := upgrade.GetImages(ctx)
 		if err != nil {
 			return fmt.Errorf("generateFromKDMData: %w", err)
 		}
@@ -294,39 +304,4 @@ func (g *Generator) generateFromKDMData(_ context.Context, b []byte) error {
 	}
 
 	return nil
-}
-
-func (g *Generator) handleImageArguments(_ context.Context) error {
-	return nil
-}
-
-func getHTTPData(
-	ctx context.Context, link string, timeout time.Duration,
-) ([]byte, error) {
-	client := &http.Client{
-		Timeout: timeout,
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link, nil)
-	if err != nil {
-		return nil, fmt.Errorf("getHttpData: %w", err)
-	}
-	if !cmdconfig.GetBool("tls-verify") {
-		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("getHttpData: http.Get: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("getHttpData: get url [%q]: %v",
-			link, resp.Status)
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("getHttpData: io.ReadAll: %w", err)
-	}
-	return b, nil
 }

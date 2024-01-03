@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	u "github.com/cnrancher/hangar/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/sirupsen/logrus"
@@ -100,7 +100,7 @@ func (c *Chart) FetchImages(ctx context.Context) error {
 	}
 	switch {
 	case c.Path != "":
-		return c.fetchChartsFromPath()
+		return c.fetchChartsFromPath(ctx)
 	case c.URL != "":
 		return c.fetchChartsFromURL(ctx)
 	default:
@@ -108,8 +108,8 @@ func (c *Chart) FetchImages(ctx context.Context) error {
 	}
 }
 
-func (c *Chart) fetchChartsFromPath() error {
-	logrus.Infof("fetching %q chart images from %q",
+func (c *Chart) fetchChartsFromPath(ctx context.Context) error {
+	logrus.Infof("Fetching %q chart images from %q",
 		c.OS.String(), c.Path)
 	index, err := BuildOrGetIndex(c.Path)
 	if err != nil {
@@ -117,6 +117,9 @@ func (c *Chart) fetchChartsFromPath() error {
 	}
 	var filteredVersions repo.ChartVersions
 	for _, versions := range index.Entries {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		if len(versions) == 0 {
 			continue
 		}
@@ -179,7 +182,7 @@ func (c *Chart) fetchChartsFromPath() error {
 			versionValues, err = DecodeValuesInTgz(path)
 		}
 		if err != nil {
-			logrus.Warnf("failed to get values from %q: %v",
+			logrus.Warnf("Failed to get values from %q: %v",
 				path, err)
 			continue
 		}
@@ -194,7 +197,6 @@ func (c *Chart) fetchChartsFromPath() error {
 			}
 		}
 	}
-	logrus.Infof("finished fetching %q image from %q", c.OS.String(), c.Path)
 	return nil
 }
 
@@ -218,22 +220,16 @@ func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 	if c.Branch != "" {
 		option.ReferenceName = plumbing.NewBranchReferenceName(c.Branch)
 	}
-	directory := filepath.Join(u.CacheCloneRepoDirectory,
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	directory := filepath.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory,
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
-	logrus.Infof("cloning git repo into %q, branch %q",
+	logrus.Infof("Cloning git repo into %q, branch %q",
 		directory, c.Branch)
 	r, err := git.PlainCloneContext(ctx, directory, false, &option)
 	if err != nil {
-		if !errors.Is(err, git.ErrRepositoryAlreadyExists) {
-			return fmt.Errorf("fetchChartsFromURL: %w", err)
-		}
-	}
-	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
-		logrus.Infof("git repo %q already exists", directory)
-		r, err = git.PlainOpen(directory)
-		if err != nil {
-			return fmt.Errorf("fetchChartsFromURL: %w", err)
-		}
+		return err
 	}
 	remotes, err := r.Remotes()
 	if err != nil {
@@ -257,7 +253,7 @@ func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 	}
 	c.Path = directory
 
-	if err := c.fetchChartsFromPath(); err != nil {
+	if err := c.fetchChartsFromPath(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -418,18 +414,18 @@ func PickImagesFromValuesMap(
 					imageName)
 			}
 			if OS == Linux {
-				u.AddSourceToImage(imagesSet, imageName, chartSource)
+				utils.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 		}
 		for _, os := range strings.Split(osList, ",") {
 			os = strings.TrimSpace(os)
 			if strings.EqualFold("windows", os) && OS == Windows {
-				u.AddSourceToImage(imagesSet, imageName, chartSource)
+				utils.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 			if strings.EqualFold("linux", os) && OS == Linux {
-				u.AddSourceToImage(imagesSet, imageName, chartSource)
+				utils.AddSourceToImage(imagesSet, imageName, chartSource)
 				return
 			}
 		}

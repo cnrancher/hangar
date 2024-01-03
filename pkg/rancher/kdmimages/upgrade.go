@@ -2,12 +2,15 @@ package kdmimages
 
 import (
 	"bufio"
+	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )
@@ -25,18 +28,19 @@ const (
 
 // UpgradeImages generates external image list from KDM RKE2/K3S data
 type UpgradeImages struct {
-	Source         string
-	RancherVersion string
-	MinKubeVersion string
-	Data           map[string]interface{}
+	Source             string
+	RancherVersion     string
+	MinKubeVersion     string
+	InsecureSkipVerify bool
+	Data               map[string]interface{}
 }
 
-func (g *UpgradeImages) GetImages() ([]string, error) {
+func (g *UpgradeImages) GetImages(ctx context.Context) ([]string, error) {
 	if g.Source != K3S && g.Source != RKE2 {
 		return nil, fmt.Errorf("invalid source provided: %v", g.Source)
 	}
 
-	logrus.Infof("generating %s upgrade images...", g.Source)
+	logrus.Infof("Generating %s upgrade images...", g.Source)
 	releases, ok := g.Data["releases"].([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("failed to get 'releases' from data")
@@ -111,16 +115,15 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 			g.Source, strings.ReplaceAll(release, "+", "-"))
 		externalImagesMap[systemAgentInstallerImage] = true
 
-		images, err := g.getExternalList(release)
+		images, err := g.getExternalList(ctx, release)
 		if err != nil {
 			logrus.Errorf(
 				"could not find supporting images for %s release [%s]: %v",
 				g.Source, release, err)
-			continue
+			return nil, err
 		}
 
 		for _, name := range images {
-			// TODO: this step maybe unnecessary
 			name = strings.TrimPrefix(name, "docker.io/")
 			externalImagesMap[name] = true
 		}
@@ -131,16 +134,16 @@ func (g *UpgradeImages) GetImages() ([]string, error) {
 		externalImages = append(externalImages, imageName)
 	}
 	sort.Strings(externalImages)
-	logrus.Infof("finished generating %s upgrade images", g.Source)
+	logrus.Infof("Finished generating %s upgrade images", g.Source)
 
 	return externalImages, nil
 }
 
-func (g *UpgradeImages) getExternalList(release string) ([]string, error) {
+func (g *UpgradeImages) getExternalList(ctx context.Context, release string) ([]string, error) {
 	switch g.Source {
 	case RKE2:
 		linuxImages, err := getImageListFromURL(
-			fmt.Sprintf(RKE2ImageLinux, release))
+			ctx, g.InsecureSkipVerify, fmt.Sprintf(RKE2ImageLinux, release))
 		if err != nil {
 			return nil, err
 		}
@@ -152,26 +155,35 @@ func (g *UpgradeImages) getExternalList(release string) ([]string, error) {
 		// return append(linuxImages, windowsImages...), nil
 		return linuxImages, nil
 	case K3S:
-		return getImageListFromURL(fmt.Sprintf(K3SImageURL, release))
+		return getImageListFromURL(
+			ctx, g.InsecureSkipVerify, fmt.Sprintf(K3SImageURL, release))
 	default:
 		return nil, fmt.Errorf("invalid source provided: %s", g.Source)
 	}
 }
 
-func getImageListFromURL(url string) ([]string, error) {
-	logrus.Debugf("getImageListFromURL: %q", url)
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
+func getImageListFromURL(ctx context.Context, tlsVerify bool, link string) ([]string, error) {
+	logrus.Infof("Getting image list from %q", link)
+	client := &http.Client{
+		Timeout: time.Second * 10,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+		},
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get url: %v", resp.Status)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, link, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getImageListFromURL: %w", err)
+	}
+	resp, err := utils.HTTPClientDoWithRetry(ctx, client, req)
+	if err != nil {
+		return nil, fmt.Errorf("getImageListFromURL: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to get url %q: %v", link, resp.Status)
+	}
 
 	list := []string{}
 	sc := bufio.NewScanner(resp.Body)

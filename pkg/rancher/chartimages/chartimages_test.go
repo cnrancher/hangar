@@ -1,6 +1,7 @@
 package chartimages
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -24,7 +25,7 @@ func Test_fetchChartsFromPath(t *testing.T) {
 		URL:            "",
 		ImageSet:       make(map[string]map[string]bool),
 	}
-	err := chart.fetchChartsFromPath()
+	err := chart.fetchChartsFromPath(context.TODO())
 	if os.IsNotExist(err) {
 		// skip if not exists
 		logrus.Warnf("%q does not exists", chart.Path)
@@ -33,7 +34,7 @@ func Test_fetchChartsFromPath(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	utils.DeleteIfExist("test/pandaria-catalog-linux.txt")
+	os.RemoveAll("test/pandaria-catalog-linux.txt")
 	utils.AppendFileLine("test/pandaria-catalog-linux.txt", "# IMAGE SOURCE")
 	for image := range chart.ImageSet {
 		for source := range chart.ImageSet[image] {
@@ -50,16 +51,15 @@ func Test_fetchChartsFromPath(t *testing.T) {
 		URL:            "",
 		ImageSet:       make(map[string]map[string]bool),
 	}
-	err = chart.fetchChartsFromPath()
+	err = chart.fetchChartsFromPath(context.TODO())
 	if os.IsNotExist(err) {
 		// skip if not exists
-		logrus.Warnf("%q does not exists", chart.Path)
 		return
 	}
 	if err != nil {
 		t.Error(err)
 	}
-	utils.DeleteIfExist("test/system-charts-linux.txt")
+	os.RemoveAll("test/system-charts-linux.txt")
 	utils.AppendFileLine("test/system-charts-linux.txt", "# IMAGE SOURCE")
 	for image := range chart.ImageSet {
 		for source := range chart.ImageSet[image] {
@@ -194,7 +194,7 @@ func Test_fetchChartsFromPath_RancherCharts(t *testing.T) {
 		URL:            "",
 		ImageSet:       make(map[string]map[string]bool),
 	}
-	err := chart.fetchChartsFromPath()
+	err := chart.fetchChartsFromPath(context.TODO())
 	if os.IsNotExist(err) {
 		// skip if not exists
 		logrus.Warnf("%q does not exists", chart.Path)
@@ -203,7 +203,7 @@ func Test_fetchChartsFromPath_RancherCharts(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	utils.DeleteIfExist("test/rancher-charts-linux.txt")
+	os.RemoveAll("test/rancher-charts-linux.txt")
 	utils.AppendFileLine("test/rancher-charts-linux.txt", "# IMAGE SOURCE")
 	for image := range chart.ImageSet {
 		for source := range chart.ImageSet[image] {

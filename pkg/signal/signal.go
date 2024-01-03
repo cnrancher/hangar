@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,7 +37,7 @@ func SetupSignalContext() context.Context {
 
 		// second signal. Exit directly.
 		logrus.Warnf("Hangar was forced to stop, please clean up %q manually!",
-			archive.CacheDir())
+			utils.CacheDir())
 		os.Exit(130)
 	}()
 

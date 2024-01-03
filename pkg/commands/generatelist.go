@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
+	"path"
 	"sort"
 	"strings"
 
@@ -16,27 +18,42 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+type generateListOpts struct {
+	registry       string
+	kdm            string
+	output         string
+	outputLinux    string
+	outputWindows  string
+	outputSource   string
+	rancherVersion string
+	dev            bool
+	charts         []string
+	systemCharts   []string
+}
+
 type generateListCmd struct {
 	*baseCmd
+	*generateListOpts
 
-	isRPMGC        bool
-	rancherVersion string
-	generator      *listgenerator.Generator
+	isRPMGC   bool
+	generator *listgenerator.Generator
 }
 
 func newGenerateListCmd() *generateListCmd {
-	cc := &generateListCmd{}
+	cc := &generateListCmd{
+		generateListOpts: new(generateListOpts),
+	}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "generate-list",
-		Short: "Generate Rancher image list",
-		Long: `'generate-list' generates an image-list from KDM data and Chart repositories used by Rancher.
+		Short: "Generate Rancher image list file",
+		Long: `'generate-list' generates an image list and k8s version list from KDM data and Chart repos of Rancher.
 
-Generate image list by just specifying Rancher version:
+Generate the image list by simply specifying the Rancher version:
 
     hangar generate-list --rancher="v2.8.0"
 
-Generate image-list from custom cloned chart repos & KDM data.json file.
+You can also download the KDM JSON file and clone chart repos manually:
 
     hangar generate-list \
         --rancher="v2.8.0" \
@@ -44,7 +61,6 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
         --system-chart="./system-chart-repo-dir" \
         --kdm="./kdm-data.json"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("debug output enabled")
@@ -67,44 +83,40 @@ Generate image-list from custom cloned chart repos & KDM data.json file.
 			return nil
 		},
 	})
-	cc.cmd.Flags().StringP("registry", "", "", "customize the registry URL of generated image list")
-	cc.cmd.Flags().StringP("kdm", "", "", "KDM file path or URL")
-	cc.cmd.Flags().StringP("output", "o", "", "output generated image list file (default \"[RANCHER_VERSION]-images.txt\")")
-	cc.cmd.Flags().StringP("output-linux", "", "", "generate linux image list")
-	cc.cmd.Flags().StringP("output-windows", "", "", "generate windows image list")
-	cc.cmd.Flags().StringP("output-source", "", "", "generate image list with image source")
-	cc.cmd.Flags().StringP("rancher", "", "", "rancher version (semver with 'v' prefix) "+
+	flags := cc.baseCmd.cmd.PersistentFlags()
+	flags.StringVarP(&cc.registry, "registry", "", "", "customize the registry URL of the generated image list")
+	flags.StringVarP(&cc.kdm, "kdm", "", "", "KDM file path or URL (optional)")
+	flags.StringVarP(&cc.output, "output", "o", "", "output generated image list file (default \"[RANCHER_VERSION]-images.txt\")")
+	flags.StringVarP(&cc.outputLinux, "output-linux", "", "", "output the linux image list if specified")
+	flags.StringVarP(&cc.outputWindows, "output-windows", "", "", "output the windows image list if specified")
+	flags.StringVarP(&cc.outputSource, "output-source", "", "", "output the image list with image source if specified")
+	flags.StringVarP(&cc.rancherVersion, "rancher", "", "", "rancher version (semver with 'v' prefix) "+
 		"(use '-ent' suffix to distinguish with Rancher Prime Manager GC) (required)")
-	cc.cmd.Flags().BoolP("dev", "", false, "switch to dev branch/URL of charts & KDM data")
-	cc.cmd.Flags().StringSliceP("chart", "", nil, "cloned chart repo path (URL is not supported)")
-	cc.cmd.Flags().StringSliceP("system-chart", "", nil, "cloned system chart repo path (URL is not supported)")
+	flags.BoolVarP(&cc.dev, "dev", "", false, "switch to dev branch/URL of charts & KDM data")
+	flags.StringSliceVarP(&cc.charts, "chart", "", nil, "cloned chart repo path (URL not supported)")
+	flags.StringSliceVarP(&cc.systemCharts, "system-chart", "", nil, "cloned system chart repo path (URL not supported)")
 
 	return cc
 }
 
 func (cc *generateListCmd) setupFlags() error {
-	if cmdconfig.GetString("rancher") == "" {
+	if cc.rancherVersion == "" {
 		return fmt.Errorf("rancher version not specified, use '--rancher' to specify the rancher version")
 	}
-
-	cc.rancherVersion = cmdconfig.GetString("rancher")
 	if !strings.HasPrefix(cc.rancherVersion, "v") {
 		cc.rancherVersion = "v" + cc.rancherVersion
 	}
+	if cc.output == "" {
+		cc.output = cc.rancherVersion + "-images.txt"
+	}
 	if strings.Contains(cc.rancherVersion, "-ent") {
-		logrus.Infof("set to RPM GC")
+		logrus.Infof("Set to Rancher Prime Manager GC version")
 		cc.isRPMGC = true
 		v := strings.Split(cc.rancherVersion, "-ent")
 		cc.rancherVersion = v[0]
-		cmdconfig.Set("rancher", cc.rancherVersion)
 	}
 	if !semver.IsValid(cc.rancherVersion) {
-		return fmt.Errorf("%q is not valid semver", cc.rancherVersion)
-	}
-
-	if cmdconfig.GetString("output") == "" {
-		output := cc.rancherVersion + "-images.txt"
-		cmdconfig.Set("output", output)
+		return fmt.Errorf("%q is not a valid semver version", cc.rancherVersion)
 	}
 
 	return nil
@@ -126,22 +138,23 @@ func (cc *generateListCmd) prepareGenerator() error {
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.6"):
 		cc.generator.MinKubeVersion = "v1.21.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
-		cc.generator.MinKubeVersion = "v1.21.0"
+		cc.generator.MinKubeVersion = "v1.23.0"
+	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
+		cc.generator.MinKubeVersion = "v1.25.0"
 	}
-	kdm := cmdconfig.GetString("kdm")
-	if kdm != "" {
-		if _, err := url.ParseRequestURI(kdm); err != nil {
-			cc.generator.KDMPath = kdm
+	if cc.kdm != "" {
+		if _, err := url.ParseRequestURI(cc.kdm); err != nil {
+			cc.generator.KDMPath = cc.kdm
 		} else {
-			cc.generator.KDMURL = kdm
+			cc.generator.KDMURL = cc.kdm
 		}
 	}
 
-	charts := cmdconfig.GetStringSlice("chart")
+	charts := cc.charts
 	if len(charts) != 0 {
 		for _, chart := range charts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
-				logrus.Debugf("add chart path to load images: %q", chart)
+				logrus.Debugf("Add chart path to load images: %q", chart)
 				cc.generator.ChartsPaths[chart] = chartimages.RepoTypeDefault
 			} else {
 				// cc.generator.ChartURLs[chart] = struct {
@@ -155,32 +168,32 @@ func (cc *generateListCmd) prepareGenerator() error {
 			}
 		}
 	}
-	systemCharts := cmdconfig.GetStringSlice("system-chart")
+	systemCharts := cc.systemCharts
 	if len(systemCharts) != 0 {
 		for _, chart := range systemCharts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
-				logrus.Debugf("add system chart path to load images: %q", chart)
+				logrus.Debugf("Add system chart path to load images: %q", chart)
 				cc.generator.ChartsPaths[chart] = chartimages.RepoTypeSystem
 			} else {
 				return fmt.Errorf("chart url is not supported, please provide the cloned chart path")
 			}
 		}
 	}
-	dev := cmdconfig.GetBool("dev")
-	if kdm == "" && len(charts) == 0 && len(systemCharts) == 0 {
+	dev := cc.dev
+	if cc.kdm == "" && len(charts) == 0 && len(systemCharts) == 0 {
 		if dev {
-			logrus.Info("using dev branch")
+			logrus.Info("Using branch: dev")
 		} else {
-			logrus.Info("using release branch")
+			logrus.Info("Using branch: release")
 		}
 		if cc.isRPMGC {
-			logrus.Debugf("add RPM GC charts & KDM to generate list")
+			logrus.Debugf("Add Rancher Prime Manager GC charts & KDM to generate list")
 			addRPMCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMGCCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMGCSystemCharts(cc.rancherVersion, cc.generator, dev)
 			addRancherPrimeManagerGCKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
 		} else {
-			logrus.Debugf("add RPM charts & KDM to generate list")
+			logrus.Debugf("Add Rancher Prime Manager charts & KDM to generate list")
 			addRPMCharts(cc.rancherVersion, cc.generator, dev)
 			addRPMSystemCharts(cc.rancherVersion, cc.generator, dev)
 			addRancherPrimeManagerKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
@@ -191,7 +204,14 @@ func (cc *generateListCmd) prepareGenerator() error {
 }
 
 func (cc *generateListCmd) run(ctx context.Context) error {
-	return cc.generator.Generate(ctx)
+	err := cc.generator.Generate(ctx)
+
+	// Cleanup cache (if exists) after generate image list.
+	cacheDir := path.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory)
+	if err1 := os.RemoveAll(cacheDir); err1 != nil {
+		logrus.Warnf("Failed to delete %q: %v", cacheDir, err1)
+	}
+	return err
 }
 
 func (cc *generateListCmd) finish() error {
@@ -202,7 +222,7 @@ func (cc *generateListCmd) finish() error {
 		len(cc.generator.GeneratedLinuxImages)+
 			len(cc.generator.GeneratedWindowsImages))
 
-	registry := cmdconfig.GetString("registry")
+	registry := cc.registry
 	for image := range cc.generator.GeneratedLinuxImages {
 		imgWithRegistry := image
 		if registry != "" {
@@ -265,30 +285,26 @@ func (cc *generateListCmd) finish() error {
 	sort.Strings(imagesLinuxList)
 	sort.Strings(imagesWindowsList)
 	sort.Strings(imageSources)
-	output := cmdconfig.GetString("output")
-	if output != "" {
-		err := utils.SaveSlice(output, imagesList)
+	if cc.output != "" {
+		err := utils.SaveSlice(cc.output, imagesList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputLinux := cmdconfig.GetString("output-linux")
-	if outputLinux != "" {
-		err := utils.SaveSlice(outputLinux, imagesLinuxList)
+	if cc.outputLinux != "" {
+		err := utils.SaveSlice(cc.outputLinux, imagesLinuxList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputWindows := cmdconfig.GetString("output-windows")
-	if outputWindows != "" {
-		err := utils.SaveSlice(outputWindows, imagesWindowsList)
+	if cc.outputWindows != "" {
+		err := utils.SaveSlice(cc.outputWindows, imagesWindowsList)
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
-	outputSource := cmdconfig.GetString("output-source")
-	if outputSource != "" {
-		err := utils.SaveSlice(outputSource, imageSources)
+	if cc.outputSource != "" {
+		err := utils.SaveSlice(cc.outputSource, imageSources)
 		if err != nil {
 			logrus.Error(err)
 		}

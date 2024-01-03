@@ -1,6 +1,7 @@
 package kdmimages_test
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -30,14 +31,14 @@ func Test_Upgrade_GetImages(t *testing.T) {
 		MinKubeVersion: "v1.21.0",
 		Data:           data.RKE2,
 	}
-	images, err := ug.GetImages()
+	images, err := ug.GetImages(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}
 	utils.SaveSlice("test/rke2-upgrade-images.txt", images)
 	ug.Source = kdmimages.K3S
 	ug.Data = data.K3S
-	images, err = ug.GetImages()
+	images, err = ug.GetImages(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}

@@ -76,7 +76,6 @@ func (cc *convertListCmd) setupFlags() error {
 		return fmt.Errorf("input file not specified")
 	}
 	if cc.output == "" {
-		cmdconfig.Set("output", cmdconfig.GetString("input")+".converted")
 		cc.output = cc.input + ".converted"
 	}
 	return nil

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +39,7 @@ func GetRegistryURL(
 	if err != nil {
 		return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
 	}
-	resp, err := httpClientDoWithRetry(ctx, client, req)
+	resp, err := utils.HTTPClientDoWithRetry(ctx, client, req)
 	if err != nil {
 		if tlsVerify {
 			return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
@@ -55,7 +54,7 @@ func GetRegistryURL(
 			if err != nil {
 				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
 			}
-			resp, err = httpClientDoWithRetry(ctx, client, req)
+			resp, err = utils.HTTPClientDoWithRetry(ctx, client, req)
 			if err != nil {
 				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
 			}
@@ -107,7 +106,7 @@ func ProjectExists(
 	auth := fmt.Sprintf("%s:%s", credential.Username, credential.Password)
 	r.Header.Add("Authorization", "Basic "+utils.Base64(auth))
 	r.Header.Add("Accept", "application/json")
-	resp, err := httpClientDoWithRetry(ctx, client, r)
+	resp, err := utils.HTTPClientDoWithRetry(ctx, client, r)
 	if err != nil {
 		return false, fmt.Errorf("harbor.ProjectExists: %w", err)
 	}
@@ -171,7 +170,7 @@ func CreateProject(
 	auth := fmt.Sprintf("%s:%s", credential.Username, credential.Password)
 	r.Header.Add("Authorization", "Basic "+utils.Base64(auth))
 	r.Header.Add("Content-Type", "application/json")
-	resp, err := httpClientDoWithRetry(ctx, client, r)
+	resp, err := utils.HTTPClientDoWithRetry(ctx, client, r)
 	if err != nil {
 		return fmt.Errorf("harbor.CreateProject: %w", err)
 	}
@@ -190,20 +189,4 @@ func CreateProject(
 			name, resp.Status)
 	}
 	return nil
-}
-
-func httpClientDoWithRetry(
-	ctx context.Context, client *http.Client, req *http.Request,
-) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-	err = retry.IfNecessary(ctx, func() error {
-		logrus.Debugf("client.Do: %v", req.URL.String())
-		resp, err = client.Do(req)
-		return err
-	}, &retry.Options{
-		MaxRetry: 3,
-		Delay:    time.Microsecond * 100,
-	})
-	return resp, err
 }

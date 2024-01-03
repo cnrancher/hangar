@@ -235,7 +235,7 @@ type layerManager struct {
 }
 
 func newLayerManager(index *archive.Index) (*layerManager, error) {
-	tmpDir, err := os.MkdirTemp(archive.CacheDir(), "*")
+	tmpDir, err := os.MkdirTemp(utils.CacheDir(), "*")
 	if err != nil {
 		return nil, fmt.Errorf("mkdir temp: %w", err)
 	}

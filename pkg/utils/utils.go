@@ -7,18 +7,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )
 
 var (
 	ErrVersionIsEmpty   = errors.New("version is empty string")
 	ErrNoAvailableImage = errors.New("no available image for specified arch and os")
+
+	cacheDir string
 )
 
 const (
@@ -27,12 +34,26 @@ const (
 	CacheCloneRepoDirectory = "charts-repo-cache"
 	MaxWorkerNum            = 20
 	MinWorkerNum            = 1
-
-	// Deprecated
-	SavedImageListFile = "saved-images-list.json"
-	// Deprecated
-	CacheImageDirectory = "saved-image-cache"
 )
+
+func init() {
+	if os.Getenv("HOME") == "" {
+		// Use /var/tmp/hangar_cache as cache folder.
+		cacheDir = path.Join("/", "var", "tmp", "hangar_cache")
+	} else {
+		// Use ${HOME}/.cache/hangar_cache as cache folder
+		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")
+	}
+	os.MkdirAll(cacheDir, 0755)
+}
+
+// Get the hangar cache dir.
+//
+// The default cache dir is `${HOME}/.cache/hangar_cache`.
+// Or using `/var/tmp/hangar_cache` as cache dir if the $HOME env is missing.
+func CacheDir() string {
+	return cacheDir
+}
 
 func Sha256Sum(s string) string {
 	sum := sha256.Sum256([]byte(s))
@@ -96,22 +117,6 @@ func EnsureDirExists(directory string) error {
 		}
 	} else if !info.IsDir() {
 		return fmt.Errorf("StartSave: '%s' is not a directory", directory)
-	}
-	return nil
-}
-
-func DeleteIfExist(name string) error {
-	_, err := os.Stat(name)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// if does not exist, return
-			return nil
-		}
-		return fmt.Errorf("DeleteIfExist: %w", err)
-	}
-
-	if err := os.RemoveAll(name); err != nil {
-		return fmt.Errorf("DeleteIfExist: %s", err)
 	}
 	return nil
 }
@@ -518,4 +523,20 @@ func CopyPolicy(src *signature.Policy) (*signature.Policy, error) {
 		return nil, fmt.Errorf("utils.CopyPolicy: %w", err)
 	}
 	return dest, err
+}
+
+func HTTPClientDoWithRetry(
+	ctx context.Context, client *http.Client, req *http.Request,
+) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+	err = retry.IfNecessary(ctx, func() error {
+		logrus.Debugf("client.Do: %v", req.URL.String())
+		resp, err = client.Do(req)
+		return err
+	}, &retry.Options{
+		MaxRetry: 3,
+		Delay:    time.Microsecond * 100,
+	})
+	return resp, err
 }
