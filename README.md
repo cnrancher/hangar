@@ -40,7 +40,7 @@ If you encounter any issues or have suggestions for improvement while using Hang
 
 ## License
 
-Copyright 2023 SUSE Rancher
+Copyright 2024 SUSE Rancher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
