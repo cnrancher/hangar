@@ -72,36 +72,6 @@ func DecodeBase64(s string) (string, error) {
 	return string(data), nil
 }
 
-func AppendFileLine(fileName string, line string) error {
-	// If the file doesn't exist, create it, or append to the file
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("AppendFileLine: %w", err)
-	}
-	if _, err := f.Write([]byte(line + "\n")); err != nil {
-		f.Close() // ignore error; Write error takes precedence
-		return fmt.Errorf("AppendFileLine: %w", err)
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("AppendFileLine: %w", err)
-	}
-
-	return nil
-}
-
-func SaveSlice(fileName string, data []string) error {
-	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("SaveSlice: %w", err)
-	}
-	defer f.Close()
-	_, err = f.WriteString(strings.Join(data, "\n"))
-	if err != nil {
-		return fmt.Errorf("SaveSlice: %w", err)
-	}
-	return nil
-}
-
 // ConstructRegistry will re-construct the image url:
 //
 // If `registryOverride` is empty string, example:
@@ -320,6 +290,31 @@ func AddSourceToImage(
 	}
 	for i := range sources {
 		imagesSet[image][sources[i]] = true
+	}
+}
+
+// Merge map[image]map[source]true from b into a
+func MergeImageSourceSet(a, b map[string]map[string]bool) {
+	if a == nil || b == nil {
+		return
+	}
+	for image, sources := range b {
+		if a[image] == nil {
+			a[image] = make(map[string]bool)
+		}
+		for source := range sources {
+			a[image][source] = true
+		}
+	}
+}
+
+// Merge map[string]true from b into a
+func MergeSets(a, b map[string]bool) {
+	if a == nil || b == nil {
+		return
+	}
+	for v := range b {
+		a[v] = true
 	}
 }
 

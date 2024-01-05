@@ -36,17 +36,30 @@ type Generator struct {
 	InsecureSkipVerify bool // Skip TLS Verify.
 
 	// Generated linux images, map[image]map[source]true
-	GeneratedLinuxImages map[string]map[string]bool
+	LinuxImages map[string]map[string]bool
 	// Generated windows images, map[image]map[source]true
-	GeneratedWindowsImages map[string]map[string]bool
+	WindowsImages map[string]map[string]bool
+
+	RKE1Versions map[string]bool // Generated RKE1 versions
+	RKE2Versions map[string]bool // Generated RKE2 versions
+	K3sVersions  map[string]bool // Generated K3s versions
 }
 
 func (g *Generator) init() {
-	if g.GeneratedLinuxImages == nil {
-		g.GeneratedLinuxImages = make(map[string]map[string]bool)
+	if g.LinuxImages == nil {
+		g.LinuxImages = make(map[string]map[string]bool)
 	}
-	if g.GeneratedWindowsImages == nil {
-		g.GeneratedWindowsImages = make(map[string]map[string]bool)
+	if g.WindowsImages == nil {
+		g.WindowsImages = make(map[string]map[string]bool)
+	}
+	if g.K3sVersions == nil {
+		g.K3sVersions = make(map[string]bool)
+	}
+	if g.RKE1Versions == nil {
+		g.RKE1Versions = make(map[string]bool)
+	}
+	if g.RKE2Versions == nil {
+		g.RKE2Versions = make(map[string]bool)
 	}
 }
 
@@ -69,10 +82,10 @@ func (g *Generator) selfCheck() error {
 }
 
 func (g *Generator) Generate(ctx context.Context) error {
+	g.init()
 	if err := g.selfCheck(); err != nil {
 		return err
 	}
-	g.init()
 
 	if err := g.generateFromChartPaths(ctx); err != nil {
 		return err
@@ -109,7 +122,7 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
+				u.AddSourceToImage(g.LinuxImages, image, source)
 			}
 		}
 		// fetch windows images
@@ -120,7 +133,7 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.GeneratedWindowsImages, image, source)
+				u.AddSourceToImage(g.WindowsImages, image, source)
 			}
 		}
 	}
@@ -147,7 +160,7 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 				continue
 			}
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
+				u.AddSourceToImage(g.LinuxImages, image, source)
 			}
 		}
 		// fetch windows images
@@ -161,7 +174,7 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 				continue
 			}
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.GeneratedWindowsImages, image, source)
+				u.AddSourceToImage(g.WindowsImages, image, source)
 			}
 		}
 	}
@@ -191,6 +204,7 @@ func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: g.InsecureSkipVerify,
 			},
+			Proxy: http.ProxyFromEnvironment,
 		},
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.KDMURL, nil)
@@ -214,94 +228,47 @@ func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
-	// get release images
-	r := kdmimages.ReleaseImages{
-		Source: kdmimages.K3S,
-		Data:   data.K3S,
-	}
-	k3sReleaseImages, err := r.GetImages()
+
+	getters := []kdmimages.Getter{}
+	var getter kdmimages.Getter
+	// K3s images getter
+	getter, err = kdmimages.NewK3sRKE2Getter(
+		kdmimages.K3S, g.RancherVersion, g.MinKubeVersion, data.K3S, g.InsecureSkipVerify)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMData: %w", err)
+		return err
 	}
-	for _, image := range k3sReleaseImages {
-		if g.GeneratedLinuxImages[image] == nil {
-			g.GeneratedLinuxImages[image] = make(map[string]bool)
-		}
-		g.GeneratedLinuxImages[image]["[k3s-release(rancher)]"] = true
-	}
+	getters = append(getters, getter)
 
-	r.Source = kdmimages.RKE2
-	r.Data = data.RKE2
-	rke2ReleaseImages, err := r.GetImages()
+	// RKE2 images getter
+	getter, err = kdmimages.NewK3sRKE2Getter(
+		kdmimages.RKE2, g.RancherVersion, g.MinKubeVersion, data.RKE2, g.InsecureSkipVerify)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMData: %w", err)
+		return err
 	}
-	for _, image := range rke2ReleaseImages {
-		if g.GeneratedLinuxImages[image] == nil {
-			g.GeneratedLinuxImages[image] = make(map[string]bool)
-		}
-		g.GeneratedLinuxImages[image]["[rke2-release(rancher)]"] = true
-	}
+	getters = append(getters, getter)
 
-	// get system-images
-	s := kdmimages.SystemImages{
-		RancherVersion:    g.RancherVersion,
-		RkeSysImages:      data.K8sVersionRKESystemImages,
-		LinuxSvcOptions:   data.K8sVersionServiceOptions,
-		WindowsSvcOptions: data.K8sVersionWindowsServiceOptions,
-		RancherVersions:   data.K8sVersionInfo,
-	}
-	err = s.GetImages()
+	// RKE images getter
+	getter, err = kdmimages.NewRKEGetter(g.RancherVersion, &data)
 	if err != nil {
-		return fmt.Errorf("generateFromKDMData: %w", err)
+		return err
 	}
-	// clone generated system-images
-	for image := range s.LinuxImageSet {
-		for source := range s.LinuxImageSet[image] {
-			u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
-		}
-	}
-	for image := range s.WindowsImageSet {
-		for source := range s.WindowsImageSet[image] {
-			u.AddSourceToImage(g.GeneratedLinuxImages, image, source)
-		}
-	}
+	getters = append(getters, getter)
 
-	// get k3s/rke2 upgrade images
-	upgrade := kdmimages.UpgradeImages{
-		Source:             kdmimages.K3S,
-		RancherVersion:     g.RancherVersion,
-		MinKubeVersion:     g.MinKubeVersion,
-		InsecureSkipVerify: g.InsecureSkipVerify,
-		Data:               data.K3S,
-	}
-	k3sUpgradeImages, err := upgrade.GetImages(ctx)
-	if err != nil {
-		return fmt.Errorf("generateFromKDMData: %w", err)
-	}
-
-	for _, image := range k3sUpgradeImages {
-		if g.GeneratedLinuxImages[image] == nil {
-			g.GeneratedLinuxImages[image] = make(map[string]bool)
+	for _, getter := range getters {
+		if err = getter.Get(ctx); err != nil {
+			return err
 		}
-		g.GeneratedLinuxImages[image]["k3sUpgrade"] = true
-	}
-
-	// 2.5.X does not have RKE2 system images to generate, skip
-	if !u.SemverMajorMinorEqual(g.RancherVersion, "v2.5") {
-		upgrade.Source = kdmimages.RKE2
-		upgrade.Data = data.RKE2
-		rke2UpgradeImages, err := upgrade.GetImages(ctx)
-		if err != nil {
-			return fmt.Errorf("generateFromKDMData: %w", err)
-		}
-		for _, image := range rke2UpgradeImages {
-			if g.GeneratedLinuxImages[image] == nil {
-				g.GeneratedLinuxImages[image] = make(map[string]bool)
-			}
-			g.GeneratedLinuxImages[image]["rke2All"] = true
+		utils.MergeImageSourceSet(g.LinuxImages, getter.LinuxImageSet())
+		utils.MergeImageSourceSet(g.WindowsImages, getter.WindowsImageSet())
+		// Merge version sets
+		switch getter.Source() {
+		case kdmimages.RKE:
+			utils.MergeSets(g.RKE1Versions, getter.VersionSet())
+		case kdmimages.RKE2:
+			utils.MergeSets(g.RKE2Versions, getter.VersionSet())
+		case kdmimages.K3S:
+			utils.MergeSets(g.K3sVersions, getter.VersionSet())
 		}
 	}
-
 	return nil
 }

@@ -20,6 +20,7 @@ type convertListCmd struct {
 	output      string
 	source      string
 	destination string
+	autoYes     bool
 }
 
 func newConvertListCmd() *convertListCmd {
@@ -63,6 +64,7 @@ docker.io/library/nginx registry.example.io/library/nginx latest`,
 	flags.SetAnnotation("output", cobra.BashCompFilenameExt, []string{"txt"})
 	flags.StringVarP(&cc.source, "source", "s", "", "specify the source registry (optional)")
 	flags.StringVarP(&cc.destination, "destination", "d", "", "specify the destination registry (optional)")
+	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 	return cc
 }
 
@@ -135,16 +137,36 @@ func (cc *convertListCmd) run() error {
 		logrus.Debugf("converted %q => %q", l, outputLine)
 		convertedLines = append(convertedLines, outputLine)
 	}
-	// utils.DeleteIfExist(cc.output)
-	// utils.SaveSlice(cc.output, convertedLines)
+
+	_, err = os.Stat(cc.output)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+	} else {
+		var s string
+		fmt.Printf("File %q already exists! Overwrite? [y/N] ", cc.output)
+		if cc.autoYes {
+			fmt.Println("y")
+		} else {
+			if _, err := utils.Scanf(signalContext, "%s", &s); err != nil {
+				return err
+			}
+			if len(s) == 0 || s[0] != 'y' && s[0] != 'Y' {
+				logrus.Warnf("Abort.")
+				return fmt.Errorf("file %q already exists", cc.output)
+			}
+		}
+	}
+
 	file, err := os.OpenFile(cc.output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to save %q: %v", cc.output, err)
 	}
 	defer file.Close()
-	_, err = file.WriteString(strings.Join(convertedLines, "\n"))
+	_, err = fmt.Fprintf(file, "%v", strings.Join(convertedLines, "\n"))
 	if err != nil {
-		return fmt.Errorf("failed to save %q: %v", cc.output, err)
+		return fmt.Errorf("failed to write %q: %v", cc.output, err)
 	}
 	logrus.Infof("Converted %q to %q", cc.input, cc.output)
 

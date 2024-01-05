@@ -1,70 +1,94 @@
 package kdmimages
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/cnrancher/hangar/pkg/utils"
 	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types"
+	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 )
 
-type SystemImages struct {
-	RancherVersion    string
-	RkeSysImages      map[string]types.RKESystemImages
-	LinuxSvcOptions   map[string]types.KubernetesServicesOptions
-	WindowsSvcOptions map[string]types.KubernetesServicesOptions
-	RancherVersions   map[string]types.K8sVersionInfo
-
-	LinuxInfo   *VersionInfo
-	WindowsInfo *VersionInfo
-
-	// map[image][source]bool
-	LinuxImageSet   map[string]map[string]bool
-	WindowsImageSet map[string]map[string]bool
+type RKEGetterOpts struct {
+	RancherVersion string
+	Data           *kdm.Data
 }
 
-func (s *SystemImages) GetImages() error {
-	if s.RancherVersion == "" ||
-		s.RkeSysImages == nil ||
-		s.LinuxSvcOptions == nil ||
-		s.WindowsSvcOptions == nil ||
-		s.RancherVersions == nil {
-		return fmt.Errorf("GetImages: SystemImages not initialized")
-	}
-	if s.LinuxImageSet == nil {
-		s.LinuxImageSet = make(map[string]map[string]bool)
-	}
-	if s.WindowsImageSet == nil {
-		s.WindowsImageSet = make(map[string]map[string]bool)
+// RKEGetter is the object to get RKE images and versions.
+type RKEGetter struct {
+	rancherVersion    string
+	rkeSysImages      map[string]types.RKESystemImages
+	linuxSvcOptions   map[string]types.KubernetesServicesOptions
+	windowsSvcOptions map[string]types.KubernetesServicesOptions
+	rancherVersions   map[string]types.K8sVersionInfo
+
+	linuxInfo   *versionInfo
+	windowsInfo *versionInfo
+
+	// map[image][source]bool
+	linuxImageSet   map[string]map[string]bool
+	windowsImageSet map[string]map[string]bool
+	// RKE versions set
+	versionSet map[string]bool
+}
+
+func NewRKEGetter(rancherVersion string, data *kdm.Data) (*RKEGetter, error) {
+	if _, err := utils.EnsureSemverValid(rancherVersion); err != nil {
+		return nil, err
 	}
 
-	if err := s.getK8sVersionInfo(); err != nil {
+	return &RKEGetter{
+		rancherVersion:    rancherVersion,
+		rkeSysImages:      data.K8sVersionRKESystemImages,
+		linuxSvcOptions:   data.K8sVersionServiceOptions,
+		windowsSvcOptions: data.K8sVersionWindowsServiceOptions,
+		rancherVersions:   data.K8sVersionInfo,
+	}, nil
+}
+
+func (g *RKEGetter) Get(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	if g.linuxImageSet == nil {
+		g.linuxImageSet = make(map[string]map[string]bool)
+	}
+	if g.windowsImageSet == nil {
+		g.windowsImageSet = make(map[string]map[string]bool)
+	}
+	if g.versionSet == nil {
+		g.versionSet = make(map[string]bool)
+	}
+
+	logrus.Infof("Generating RKE images.")
+	if err := g.getK8sVersionInfo(); err != nil {
 		return err
 	}
 
-	logrus.Infof("Generating KDM system images...")
-	if err := fetchImages(s.LinuxInfo, s.LinuxImageSet); err != nil {
+	if err := fetchImages(g.linuxInfo, g.linuxImageSet); err != nil {
 		return err
 	}
 
-	if err := fetchImages(s.WindowsInfo, s.WindowsImageSet); err != nil {
+	if err := fetchImages(g.windowsInfo, g.windowsImageSet); err != nil {
 		return err
 	}
 	// Remove images begins with noiro
-	for image := range s.LinuxImageSet {
+	for image := range g.linuxImageSet {
 		if discardImage(image) {
-			logrus.Debugf("Discard %q system image", image)
-			delete(s.LinuxImageSet, image)
+			logrus.Debugf("Discard %q rke system image", image)
+			delete(g.linuxImageSet, image)
 		}
 	}
-	for image := range s.WindowsImageSet {
+	for image := range g.windowsImageSet {
 		if discardImage(image) {
-			logrus.Debugf("Discard %q system image", image)
-			delete(s.WindowsImageSet, image)
+			logrus.Debugf("Discard %q rke system image", image)
+			delete(g.windowsImageSet, image)
 		}
 	}
-	logrus.Infof("Finished generating KDM system images")
 
 	return nil
 }
@@ -79,28 +103,31 @@ func discardImage(image string) bool {
 }
 
 func fetchImages(
-	versionInfo *VersionInfo,
+	versionInfo *versionInfo,
 	imageSet map[string]map[string]bool,
 ) error {
 	if versionInfo == nil || len(versionInfo.RKESystemImages) <= 0 {
 		return nil
 	}
-	collectionImagesList := []interface{}{versionInfo.RKESystemImages}
+	collectionImagesList := []any{versionInfo.RKESystemImages}
 	images, err := flatImagesFromCollections(collectionImagesList...)
 	if err != nil {
 		return fmt.Errorf("fetchImages: %w", err)
 	}
 	for _, image := range images {
-		u.AddSourceToImage(imageSet, image, "system")
+		if imageSet[image] == nil {
+			imageSet[image] = make(map[string]bool)
+		}
+		imageSet[image]["rke-system"] = true
 	}
 	return nil
 }
 
 func flatImagesFromCollections(
-	cols ...interface{},
+	cols ...any,
 ) (images []string, err error) {
 	for _, col := range cols {
-		colObj := map[string]interface{}{}
+		colObj := map[string]any{}
 		if err := u.ToObj(col, &colObj); err != nil {
 			return []string{}, err
 		}
@@ -109,33 +136,33 @@ func flatImagesFromCollections(
 	return images, nil
 }
 
-func fetchImagesFromCollection(obj map[string]interface{}) (images []string) {
+func fetchImagesFromCollection(obj map[string]any) (images []string) {
 	for _, v := range obj {
 		switch t := v.(type) {
 		case string:
 			images = append(images, t)
-		case map[string]interface{}:
+		case map[string]any:
 			images = append(images, fetchImagesFromCollection(t)...)
 		}
 	}
 	return images
 }
 
-func (s *SystemImages) getK8sVersionInfo() error {
+func (g *RKEGetter) getK8sVersionInfo() error {
 	linuxInfo := newVersionInfo()
 	windowsInfo := newVersionInfo()
-	s.LinuxInfo = linuxInfo
-	s.WindowsInfo = windowsInfo
+	g.linuxInfo = linuxInfo
+	g.windowsInfo = windowsInfo
 
 	maxVersionForMajorK8sVersion := map[string]string{}
-	for k8sVersion := range s.RkeSysImages {
-		rancherVersionInfo, ok := s.RancherVersions[k8sVersion]
-		if ok && toIgnoreForAllK8s(rancherVersionInfo, s.RancherVersion) {
+	for k8sVersion := range g.rkeSysImages {
+		rancherVersionInfo, ok := g.rancherVersions[k8sVersion]
+		if ok && toIgnoreForAllK8s(rancherVersionInfo, g.rancherVersion) {
 			continue
 		}
 		majorVersion := getTagMajorVersion(k8sVersion)
-		majorVersionInfo, ok := s.RancherVersions[majorVersion]
-		if ok && toIgnoreForK8sCurrent(majorVersionInfo, s.RancherVersion) {
+		majorVersionInfo, ok := g.rancherVersions[majorVersion]
+		if ok && toIgnoreForK8sCurrent(majorVersionInfo, g.rancherVersion) {
 			continue
 		}
 		curr, ok := maxVersionForMajorK8sVersion[majorVersion]
@@ -145,13 +172,13 @@ func (s *SystemImages) getK8sVersionInfo() error {
 		}
 	}
 	for majorVersion, k8sVersion := range maxVersionForMajorK8sVersion {
-		sysImgs, exist := s.RkeSysImages[k8sVersion]
+		sysImgs, exist := g.rkeSysImages[k8sVersion]
 		if !exist {
 			continue
 		}
 		// windows has been supported since v1.14,
 		// the following logic would not find `< v1.14` service options
-		if svcOptions, exist := s.WindowsSvcOptions[majorVersion]; exist {
+		if svcOptions, exist := g.windowsSvcOptions[majorVersion]; exist {
 			// only keep the related images for windows
 			windowsSysImgs := types.RKESystemImages{
 				NginxProxy:                sysImgs.NginxProxy,
@@ -163,13 +190,15 @@ func (s *SystemImages) getK8sVersionInfo() error {
 
 			windowsInfo.RKESystemImages[k8sVersion] = windowsSysImgs
 			windowsInfo.KubernetesServicesOptions[k8sVersion] = svcOptions
+			g.versionSet[k8sVersion] = true
 		}
-		if svcOptions, exist := s.LinuxSvcOptions[majorVersion]; exist {
+		if svcOptions, exist := g.linuxSvcOptions[majorVersion]; exist {
 			// clean the unrelated images for linux
 			sysImgs.WindowsPodInfraContainer = ""
 
 			linuxInfo.RKESystemImages[k8sVersion] = sysImgs
 			linuxInfo.KubernetesServicesOptions[k8sVersion] = svcOptions
+			g.versionSet[k8sVersion] = true
 		}
 	}
 
@@ -184,13 +213,13 @@ func getTagMajorVersion(tag string) string {
 	return strings.Join(splitTag[:2], ".")
 }
 
-type VersionInfo struct {
+type versionInfo struct {
 	RKESystemImages           map[string]types.RKESystemImages
 	KubernetesServicesOptions map[string]types.KubernetesServicesOptions
 }
 
-func newVersionInfo() *VersionInfo {
-	return &VersionInfo{
+func newVersionInfo() *versionInfo {
+	return &versionInfo{
 		RKESystemImages:           map[string]types.RKESystemImages{},
 		KubernetesServicesOptions: map[string]types.KubernetesServicesOptions{},
 	}
@@ -238,4 +267,20 @@ func toIgnoreForK8sCurrent(
 		}
 	}
 	return false
+}
+
+func (g *RKEGetter) LinuxImageSet() map[string]map[string]bool {
+	return g.linuxImageSet
+}
+
+func (g *RKEGetter) WindowsImageSet() map[string]map[string]bool {
+	return g.windowsImageSet
+}
+
+func (g *RKEGetter) VersionSet() map[string]bool {
+	return g.versionSet
+}
+
+func (g *RKEGetter) Source() ClusterType {
+	return RKE
 }
