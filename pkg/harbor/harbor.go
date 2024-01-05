@@ -29,6 +29,7 @@ func GetRegistryURL(
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
 	// Try ping registry using HTTPS protocol.
@@ -94,6 +95,7 @@ func ProjectExists(
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
 
@@ -158,6 +160,7 @@ func CreateProject(
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
 	u = strings.TrimSuffix(u, "/")

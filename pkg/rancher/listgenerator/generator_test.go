@@ -56,7 +56,7 @@ func Test_generateFromKDMPath(t *testing.T) {
 		}
 		t.Error(err)
 	}
-	for source, imageMap := range g.GeneratedLinuxImages {
+	for source, imageMap := range g.LinuxImages {
 		for k := range imageMap {
 			t.Logf("[%v] %s", source, k)
 		}
@@ -73,7 +73,7 @@ func Test_generateFromKDMURL(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	for source, imageMap := range g.GeneratedLinuxImages {
+	for source, imageMap := range g.LinuxImages {
 		for k := range imageMap {
 			t.Logf("[%v] %s", source, k)
 		}

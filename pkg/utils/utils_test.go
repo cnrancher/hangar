@@ -41,13 +41,6 @@ func Test_DecodeBase64(t *testing.T) {
 	}
 }
 
-// func AppendFileLine should be test manually
-
-// EnsureDirExists should be test manually
-// DeleteIfExist   should be test manually
-// SaveJson        should be test manually
-// SaveSlice       should be test manually
-
 func Test_ConstructRegistry(t *testing.T) {
 	s := ConstructRegistry("nginx", "")
 	if s != "docker.io/nginx" {
