@@ -37,7 +37,7 @@ func newArchiveMergeCmd() *archiveMergeCmd {
 hangar archive merge \
 	--file ARCHIVE_1.zip \
 	--file ARCHIVE_2.zip \
-	--output MERGE_OUTPUT.zip'`,
+	--output MERGE_OUTPUT.zip`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
 			if cc.baseCmd.debug {
