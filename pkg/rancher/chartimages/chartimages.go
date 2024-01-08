@@ -78,13 +78,14 @@ func (t *ChartRepoType) String() string {
 }
 
 type Chart struct {
-	RancherVersion string
-	OS             OsType
-	Type           ChartRepoType // chart type: default, system, etc...
-	Path           string
-	URL            string
-	CloneBaseDir   string // directory to clone
-	Branch         string // git branch if in URL mode
+	RancherVersion  string
+	OS              OsType
+	Type            ChartRepoType // chart type: default, system, etc...
+	Path            string
+	URL             string
+	CloneBaseDir    string // directory to clone
+	Branch          string // git branch if in URL mode
+	InsecureSkipTLS bool
 
 	ImageSet map[string]map[string]bool // map[image]map[source]
 }
@@ -211,17 +212,19 @@ func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("fetchChartsFromURL: %w", err)
 	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	option := git.CloneOptions{
 		URL:               c.URL,
 		RecurseSubmodules: git.NoRecurseSubmodules,
 		Depth:             1,
 		Progress:          os.Stdout,
+		InsecureSkipTLS:   c.InsecureSkipTLS,
 	}
 	if c.Branch != "" {
 		option.ReferenceName = plumbing.NewBranchReferenceName(c.Branch)
-	}
-	if ctx.Err() != nil {
-		return ctx.Err()
+		option.SingleBranch = true
 	}
 	directory := filepath.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory,
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))

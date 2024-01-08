@@ -13,7 +13,6 @@ def test_generate_list_help():
     check(run_hangar(["generate-list", "--help"]))
 
 
-@pytest.mark.skip(reason="v2.8.0-ent is not released yet")
 def test_generate_list_gc_28():
     check(run_hangar([
         "generate-list",
@@ -28,6 +27,15 @@ def test_generate_list_gc_28():
     print("......")
     f.close()
     os.remove("v2.8.0-ent-images.txt")
+
+    f = open("v2.8.0-ent-versions.txt", "r")
+    print("")
+    print("Generated k8s version list of 'v2.8.0-ent'")
+    for _ in range(0, 5):
+        print(f.readline(), end="")
+    print("......")
+    f.close()
+    os.remove("v2.8.0-ent-versions.txt")
 
 
 def test_generate_list_gc_28_dev():
@@ -46,6 +54,15 @@ def test_generate_list_gc_28_dev():
     f.close()
     os.remove("v2.8.0-ent-dev-images.txt")
 
+    f = open("v2.8.0-ent-versions.txt", "r")
+    print("")
+    print("Generated k8s version list of 'v2.8.0-ent'")
+    for _ in range(0, 5):
+        print(f.readline(), end="")
+    print("......")
+    f.close()
+    os.remove("v2.8.0-ent-versions.txt")
+
 
 def test_generate_list_28():
     check(run_hangar([
@@ -62,6 +79,15 @@ def test_generate_list_28():
     f.close()
     os.remove("v2.8.0-images.txt")
 
+    f = open("v2.8.0-versions.txt", "r")
+    print("")
+    print("Generated k8s version list of 'v2.8.0'")
+    for _ in range(0, 5):
+        print(f.readline(), end="")
+    print("......")
+    f.close()
+    os.remove("v2.8.0-versions.txt")
+
 
 def test_generate_list_28_dev():
     check(run_hangar([
@@ -77,3 +103,12 @@ def test_generate_list_28_dev():
     print("......")
     f.close()
     os.remove("v2.8.0-dev-images.txt")
+
+    f = open("v2.8.0-versions.txt", "r")
+    print("")
+    print("Generated k8s version list of 'v2.8.0'")
+    for _ in range(0, 5):
+        print(f.readline(), end="")
+    print("......")
+    f.close()
+    os.remove("v2.8.0-versions.txt")

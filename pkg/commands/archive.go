@@ -36,6 +36,8 @@ hangar archive ls -f SAVED_ARCHIVE.zip`,
 
 	addCommands(cc.cmd,
 		newArchiveLsCmd(),
+		newArchiveMergeCmd(),
+		newArchiveExportCmd(),
 	)
 	return cc
 }

@@ -123,7 +123,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 	if cc.file != "" {
 		file, err := os.Open(cc.file)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open %q: %v", cc.file, err)
+			return nil, fmt.Errorf("failed to open %q: %w", cc.file, err)
 		}
 		sc := bufio.NewScanner(file)
 		sc.Split(bufio.ScanLines)
@@ -135,7 +135,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			images = append(images, l)
 		}
 		if err := file.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close %q: %v", cc.file, err)
+			return nil, fmt.Errorf("failed to close %q: %w", cc.file, err)
 		}
 	}
 
@@ -180,7 +180,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 		ArchiveName:         cc.source,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create loader: %v", err)
+		return nil, fmt.Errorf("failed to create loader: %w", err)
 	}
 	logrus.Infof("Arch List: [%v]", strings.Join(cc.arch, ","))
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))

@@ -329,6 +329,8 @@ func EnsureSemverValid(v string) (string, error) {
 }
 
 // SemverCompare compares two semvers
+//
+// The result will be 0 if a == b, -1 if a < b, or +1 if a > b.
 func SemverCompare(a, b string) (int, error) {
 	if a == "" || b == "" {
 		return 0, ErrVersionIsEmpty
@@ -475,4 +477,30 @@ func HTTPClientDoWithRetry(
 		Delay:    time.Microsecond * 100,
 	})
 	return resp, err
+}
+
+func CheckFileExistsPrompt(
+	ctx context.Context, name string, autoYes bool,
+) error {
+	_, err := os.Stat(name)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+	var s string
+	fmt.Printf("File %q already exists! Overwrite? [y/N] ", name)
+	if autoYes {
+		fmt.Println("y")
+	} else {
+		if _, err := Scanf(ctx, "%s", &s); err != nil {
+			return err
+		}
+		if len(s) == 0 || s[0] != 'y' && s[0] != 'Y' {
+			return fmt.Errorf("file %q already exists", name)
+		}
+	}
+
+	return nil
 }

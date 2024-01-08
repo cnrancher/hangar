@@ -146,11 +146,12 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 	}
 	for url := range g.ChartURLs {
 		c := chartimages.Chart{
-			RancherVersion: g.RancherVersion,
-			OS:             chartimages.Linux,
-			Type:           g.ChartURLs[url].Type,
-			Branch:         g.ChartURLs[url].Branch,
-			URL:            url,
+			RancherVersion:  g.RancherVersion,
+			OS:              chartimages.Linux,
+			Type:            g.ChartURLs[url].Type,
+			Branch:          g.ChartURLs[url].Branch,
+			URL:             url,
+			InsecureSkipTLS: g.InsecureSkipVerify,
 		}
 		if err := c.FetchImages(ctx); err != nil {
 			return err
