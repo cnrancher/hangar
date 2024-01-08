@@ -60,28 +60,9 @@ hangar save \
 			if err != nil {
 				return err
 			}
-
-			if _, err = os.Stat(cc.destination); err != nil {
-				if !os.IsNotExist(err) {
-					return fmt.Errorf("failed to stat file [%v]: %w",
-						cc.destination, err)
-				}
-			} else {
-				fmt.Printf("File %q already exists! Overwrite? [y/N] ", cc.destination)
-				if cc.autoYes {
-					fmt.Println("y")
-				} else {
-					var s string
-					if _, err = utils.Scanf(signalContext, "%s", &s); err != nil {
-						return err
-					}
-					if len(s) == 0 || s[0] != 'y' && s[0] != 'Y' {
-						logrus.Warnf("Abort.")
-						return fmt.Errorf("file %q already exists", cc.destination)
-					}
-				}
+			if err := utils.CheckFileExistsPrompt(signalContext, cc.destination, cc.autoYes); err != nil {
+				return err
 			}
-
 			if err := run(h); err != nil {
 				return err
 			}

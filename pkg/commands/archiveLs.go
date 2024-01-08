@@ -37,7 +37,7 @@ hangar archive ls -f SAVED_ARCHIVE.zip`,
 				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
 			}
 
-			if err := cc.run(); err != nil {
+			if err := cc.run(args); err != nil {
 				return err
 			}
 			return nil
@@ -53,9 +53,13 @@ hangar archive ls -f SAVED_ARCHIVE.zip`,
 	return cc
 }
 
-func (cc *archiveLsCmd) run() error {
+func (cc *archiveLsCmd) run(args []string) error {
 	if cc.file == "" {
-		return fmt.Errorf("file not provided, use '--file' to provide the Hangar archive file")
+		if len(args) > 0 {
+			cc.file = args[0]
+		} else {
+			return fmt.Errorf("file not provided, use '--file' to provide the Hangar archive file")
+		}
 	}
 
 	reader, err := archive.NewReader(cc.file)

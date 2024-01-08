@@ -138,25 +138,8 @@ func (cc *convertListCmd) run() error {
 		convertedLines = append(convertedLines, outputLine)
 	}
 
-	_, err = os.Stat(cc.output)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		var s string
-		fmt.Printf("File %q already exists! Overwrite? [y/N] ", cc.output)
-		if cc.autoYes {
-			fmt.Println("y")
-		} else {
-			if _, err := utils.Scanf(signalContext, "%s", &s); err != nil {
-				return err
-			}
-			if len(s) == 0 || s[0] != 'y' && s[0] != 'Y' {
-				logrus.Warnf("Abort.")
-				return fmt.Errorf("file %q already exists", cc.output)
-			}
-		}
+	if err := utils.CheckFileExistsPrompt(signalContext, cc.output, cc.autoYes); err != nil {
+		return err
 	}
 
 	file, err := os.OpenFile(cc.output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)

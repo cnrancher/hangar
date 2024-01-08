@@ -144,14 +144,14 @@ func (cc *generateListCmd) prepareGenerator() error {
 		cc.generator.InsecureSkipVerify = !cc.tlsVerify.Value()
 	}
 	switch {
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.5"):
-		cc.generator.MinKubeVersion = ""
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.6"):
 		cc.generator.MinKubeVersion = "v1.21.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
 		cc.generator.MinKubeVersion = "v1.23.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
 		cc.generator.MinKubeVersion = "v1.25.0"
+	default:
+		cc.generator.MinKubeVersion = "v0.1.0"
 	}
 	if cc.kdm != "" {
 		if _, err := url.ParseRequestURI(cc.kdm); err != nil {
@@ -281,9 +281,20 @@ func (cc *generateListCmd) finish() error {
 	sort.Strings(imagesLinuxList)
 	sort.Strings(imagesWindowsList)
 	sort.Strings(imageSourcesList)
-	sort.Strings(rkeVersions)
-	sort.Strings(rke2Versions)
-	sort.Strings(k3sVersions)
+
+	sort.Slice(rkeVersions, func(i, j int) bool {
+		ok, _ := utils.SemverCompare(rkeVersions[i], rkeVersions[j])
+		return ok < 0
+	})
+	sort.Slice(rke2Versions, func(i, j int) bool {
+		ok, _ := utils.SemverCompare(rke2Versions[i], rke2Versions[j])
+		return ok < 0
+	})
+	sort.Slice(k3sVersions, func(i, j int) bool {
+		ok, _ := utils.SemverCompare(k3sVersions[i], k3sVersions[j])
+		return ok < 0
+	})
+
 	if cc.output != "" {
 		err := cc.saveSlice(signalContext, cc.output, imagesLinuxList)
 		if err != nil {
@@ -336,25 +347,8 @@ func getSourcesList(imageSources map[string]bool) string {
 }
 
 func (cc *generateListCmd) saveSlice(ctx context.Context, name string, data []string) error {
-	_, err := os.Stat(name)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	} else {
-		var s string
-		fmt.Printf("File %q already exists! Overwrite? [y/N] ", name)
-		if cc.autoYes {
-			fmt.Println("y")
-		} else {
-			if _, err := utils.Scanf(ctx, "%s", &s); err != nil {
-				return err
-			}
-			if len(s) == 0 || s[0] != 'y' && s[0] != 'Y' {
-				logrus.Warnf("Abort.")
-				return fmt.Errorf("file %q already exists", name)
-			}
-		}
+	if err := utils.CheckFileExistsPrompt(ctx, name, cc.autoYes); err != nil {
+		return err
 	}
 
 	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)

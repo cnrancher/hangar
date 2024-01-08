@@ -25,7 +25,9 @@ fi
 if [[ -n "${COMMIT}" ]]; then
     BUILD_LDFAGS="${BUILD_LDFAGS} -X 'github.com/cnrancher/hangar/pkg/utils.GitCommit=${COMMIT}'"
 fi
-BUILD_LDFAGS="${BUILD_LDFAGS} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"
+if [[ "${VERSION}" != v0.0.0* ]] && [[ -n "${VERSION}" ]]; then
+    BUILD_LDFAGS="${BUILD_LDFAGS} -X 'github.com/cnrancher/hangar/pkg/utils.Version=${VERSION}'"
+fi
 
 if [[ -n "${DISABLE_CGO:-}" ]]; then
     export CGO_ENABLED=0

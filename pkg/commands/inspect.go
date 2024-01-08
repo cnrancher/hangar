@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/manifest"
@@ -64,6 +65,16 @@ hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
 func (cc *inspectCmd) run(args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("image reference not provided")
+	}
+	switch {
+	case strings.HasPrefix(args[0], "docker:"):
+	case strings.HasPrefix(args[0], "docker-daemon:"):
+	case strings.HasPrefix(args[0], "docker-archive:"):
+	case strings.HasPrefix(args[0], "oci:"):
+	case strings.HasPrefix(args[0], "dir:"):
+	default:
+		args[0] = fmt.Sprintf("docker://%s", args[0])
+		logrus.Warnf("Image reference protocol not provided, use 'docker' as default: %v", args[0])
 	}
 
 	ctx := signalContext
