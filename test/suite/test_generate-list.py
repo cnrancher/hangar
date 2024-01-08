@@ -4,7 +4,6 @@
 Automatin tests for "hangar generate-list" command.
 """
 
-import pytest
 import os
 from .common import run_hangar, check
 
