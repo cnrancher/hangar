@@ -9,6 +9,8 @@ Automatin tests for following commands:
     "hangar load"
     "hangar load validate"
     "hangar archive ls"
+    "hangar archive merge"
+    "hangar archive export"
 """
 
 import os
@@ -17,6 +19,8 @@ from .common import run_hangar, check, REGISTRY_URL
 SAVE_FAILED_LIST = "save-failed.txt"
 SYNC_FAILED_LIST = "sync-failed.txt"
 LOAD_FAILED_LIST = "load-failed.txt"
+MERGE_FAILED_LIST = "merge-failed.txt"
+EXPORT_FAILED_LIST = "export-failed.txt"
 
 
 def prepare():
@@ -126,3 +130,78 @@ def test_archive_ls():
         "ls",
         "-f", "saved_test.zip",
     ]))
+
+
+def test_archive_export():
+    ret = run_hangar([
+        "archive",
+        "export",
+        "-f", "data/export1.txt",
+        "-s", "saved_test.zip",
+        "-d", "export1.zip",
+        "--source-registry", REGISTRY_URL,
+        "--auto-yes",
+    ])
+    check(ret, EXPORT_FAILED_LIST)
+
+    ret = run_hangar([
+        "archive",
+        "export",
+        "-f", "data/export2.txt",
+        "-s", "saved_test.zip",
+        "-d", "export2.zip",
+        "--source-registry", REGISTRY_URL,
+        "--auto-yes",
+    ])
+    check(ret, EXPORT_FAILED_LIST)
+
+    # Check the exported archive files.
+    check(run_hangar([
+        "archive",
+        "ls",
+        "-f", "export1.zip",
+    ]))
+    check(run_hangar([
+        "archive",
+        "ls",
+        "-f", "export2.zip",
+    ]))
+
+    # Load the exported archive file
+    ret = run_hangar([
+        "load",
+        "-s", "export1.zip",
+        "-d", REGISTRY_URL,
+        "-j=10",
+        "--tls-verify=false",
+    ])
+    check(ret, LOAD_FAILED_LIST)
+
+
+def test_archive_merge():
+    ret = run_hangar([
+        "archive",
+        "merge",
+        "-f", "export1.zip",
+        "-f", "export2.zip",
+        "-o", "merge.zip",
+        "--auto-yes",
+    ])
+    check(ret, MERGE_FAILED_LIST)
+
+    # Check the merged archive files.
+    check(run_hangar([
+        "archive",
+        "ls",
+        "-f", "merge.zip",
+    ]))
+
+    # Load the merged archive file
+    ret = run_hangar([
+        "load",
+        "-s", "merge.zip",
+        "-d", REGISTRY_URL,
+        "-j=10",
+        "--tls-verify=false",
+    ])
+    check(ret, LOAD_FAILED_LIST)

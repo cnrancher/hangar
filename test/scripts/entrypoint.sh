@@ -10,8 +10,7 @@ source scripts/env.sh
 # Set-up the registry server
 ${WORKINGDIR}/scripts/registry.sh
 
-export REGISTRY_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${HANGAR_REGISTRY_NAME})
-export REGISTRY_URL="${REGISTRY_IP}:${HANGAR_REGISTRY_PORT}"
+export REGISTRY_URL="127.0.0.1:${HANGAR_REGISTRY_PORT}"
 
 echo "REGISTRY_URL: ${REGISTRY_URL}"
 

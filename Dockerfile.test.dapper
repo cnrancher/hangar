@@ -12,4 +12,6 @@ RUN pip install pytest tox
 COPY bin/hangar /usr/local/bin/hangar
 COPY package/default-policy.json /etc/containers/policy.json
 
+ENV DAPPER_RUN_ARGS "--network=host"
+
 ENTRYPOINT [ "test/scripts/entrypoint.sh" ]

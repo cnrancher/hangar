@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-# Host IP address
-export HOST_IP=$(/sbin/ip route | awk '/default/ { print $3 }')
-
 # Configuration for Registry
 export HANGAR_REGISTRY_NAME="hangar-registry"
 export HANGAR_REGISTRY_PORT=5000
