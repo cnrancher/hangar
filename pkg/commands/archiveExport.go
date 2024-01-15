@@ -8,6 +8,7 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -101,6 +102,12 @@ func (cc *archiveExportCmd) export() error {
 		if l == "" || strings.HasPrefix(l, "#") || strings.HasPrefix(l, "//") {
 			continue
 		}
+		switch imagelist.Detect(l) {
+		case imagelist.TypeDefault:
+		default:
+			logrus.Warnf("Ignore image list line %q: invalid format", l)
+			continue
+		}
 		images = append(images, l)
 	}
 	if err := file.Close(); err != nil {
@@ -169,7 +176,9 @@ func (cc *archiveExportCmd) export() error {
 		if err != nil {
 			return fmt.Errorf("failed to write %q: %w", cc.failed, err)
 		}
-		logrus.Infof("Export failed images saved to %q", cc.failed)
+		logrus.Errorf("Export failed image list: \n%v", strings.Join(failed, "\n"))
+		logrus.Errorf("Export failed images saved to %q", cc.failed)
+		return fmt.Errorf("some images failed to export")
 	}
 
 	return nil
