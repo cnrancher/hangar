@@ -1,4 +1,3 @@
 # Documents
 
-- [简体中文-使用文档](./zh_CN/README.md)
-- [English](./en_US/README.md)
+Documents for hangar 1.6: <https://hangar.cnrancher.com/docs/v1.6>
