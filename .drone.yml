@@ -60,7 +60,6 @@ steps:
           - "refs/tags/*rc*"
           - "refs/tags/*alpha*"
   - name: docker-publish-amd64
-    pull: default
     image: rancher/dapper:v0.6.0
     environment:
       DOCKER_USERNAME:
@@ -87,6 +86,7 @@ node:
 
 ---
 kind: pipeline
+type: docker
 name: ci-arm64
 platform:
   os: linux
@@ -109,7 +109,6 @@ steps:
         - pull_request
         - tag
   - name: docker-publish-arm64
-    pull: default
     image: rancher/dapper:v0.6.0
     environment:
       DOCKER_USERNAME:
@@ -142,10 +141,10 @@ node:
 
 ---
 kind: pipeline
+type: docker
 name: manifest
 steps:
   - name: docker-publish-manifest
-    pull: default
     image: rancher/dapper:v0.6.0
     environment:
       DOCKER_USERNAME:
@@ -155,6 +154,7 @@ steps:
       REGISTRY: "docker.io/cnrancher"
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+      SKIP_LATEST_TAG: "1"
     commands:
       - dapper docker-manifest
     volumes:
@@ -170,7 +170,6 @@ steps:
           - "refs/tags/*rc*"
           - "refs/tags/*alpha*"
   - name: docker-publish-manifest-prerelease
-    pull: default
     image: rancher/dapper:v0.6.0
     environment:
       DOCKER_USERNAME:
