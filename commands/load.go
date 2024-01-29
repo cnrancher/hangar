@@ -54,10 +54,10 @@ func newLoadCmd() *loadCmd {
 					return err
 				}
 			}
-			if err := cc.decompressTarball(); err != nil {
+			if err := cc.baseCmd.processSkopeoLogin(); err != nil {
 				return err
 			}
-			if err := cc.baseCmd.processSkopeoLogin(); err != nil {
+			if err := cc.decompressTarball(); err != nil {
 				return err
 			}
 			if err := cc.prepareMirrorers(); err != nil {
