@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -127,10 +126,10 @@ func Copy(src, dst string, args ...string) error {
 	param = append(param, args...)
 	logrus.Debugf("running skopeo %v", param)
 	var out io.Writer = nil
-	if config.GetInt("jobs") == 1 {
-		// single thread (worker) mode
-		out = os.Stdout
-	}
+	// if config.GetInt("jobs") == 1 {
+	// 	// single thread (worker) mode
+	// 	out = os.Stdout
+	// }
 
 	if err := execCommandFunc(SkopeoName, nil, out, param...); err != nil {
 		return fmt.Errorf("SkopeoCopy %s => %s:\n%w", src, dst, err)
