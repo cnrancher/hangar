@@ -7,35 +7,33 @@
 Hangar is a tool for mirroring/copying multi-arch container images from the public registry to your registry with manifest list support, it also can generate an image list file according to Rancher KDM data and chart repositories for mirroring/saving images.
 
 It provides the following subcommands:
-- [mirror](docs/zh_CN/mirror.md): Mirror the container image to the private registry.
-- [save](docs/zh_CN/save.md): Download the container image to the local file and generate a compressed package.
-- [load](docs/zh_CN/load.md): Load the file created by [save](./docs/zh_CN/save.md) command onto the private registry.
-- [convert-list](docs/zh_CN/convert-list.md): Convert image list from `rancher-images.txt` to format used by [mirror](./docs/zh_CN/mirror.md) command.
-- [mirror-validate](docs/zh_CN/mirror-validate.md): Validate the mirrored images.
-- [load-validate](docs/zh_CN/load-validate.md): Validate the loaded images.
-- [sync](./docs/zh_CN/sync.md): Sync extra images into image cache folder.
-- [compress](./docs/zh_CN/compress.md): Compress the image cache folder.
-- [decompress](./docs/zh_CN/decompress.md): Decompress tarball created by [save](./save.md) command.
-- [generate-list](docs/zh_CN/generate-list.md): Generate an image-list by KDM data and Chart repositories.
+- [mirror](https://hangar.cnrancher.com/docs/v1.6/mirror/mirror): Mirror the container image to the private registry.
+- [save](https://hangar.cnrancher.com/docs/v1.6/save/save): Download the container image to the local file and generate a compressed package.
+- [load](https://hangar.cnrancher.com/docs/v1.6/load/load): Load the file created by [save](./docs/zh_CN/save.md) command onto the private registry.
+- [convert-list](https://hangar.cnrancher.com/docs/v1.6/advanced/convert-list): Convert image list from `rancher-images.txt` to format used by [mirror](https://hangar.cnrancher.com/docs/v1.6/mirror/mirror) command.
+- [mirror-validate](https://hangar.cnrancher.com/docs/v1.6/mirror/validate): Validate the mirrored images.
+- [load-validate](https://hangar.cnrancher.com/docs/v1.6/load/validate): Validate the loaded images.
+- [sync](https://hangar.cnrancher.com/docs/v1.6/advanced/sync): Sync extra images into image cache folder.
+- [compress](https://hangar.cnrancher.com/docs/v1.6/advanced/compress): Compress the image cache folder.
+- [decompress](https://hangar.cnrancher.com/docs/v1.6/advanced/decompress): Decompress tarball created by [save](./save.md) command.
+- [generate-list](https://hangar.cnrancher.com/docs/v1.6/advanced/generate-list): Generate an image-list by KDM data and Chart repositories.
 
 ## Docs
 
-For more detailed usage information about this project, please refer to the documents in [docs](docs/) folder.
-
-> [English](./docs/en_US/README.md) | [简体中文-使用文档](./docs/zh_CN/README.md)
+For more detailed usage information about this project, please refer to the hangar documents website <https://hangar.cnrancher.com>.
 
 ## QuickStart
 
-It's recommended to run `hangar` from the docker image without installing `skopeo` dependency manually, see [docker-images.md](./docs/zh_CN/docker-images.md).
+It's recommended to run `hangar` from the docker image without installing `skopeo` dependency manually, see [docker-images.md](https://hangar.cnrancher.com/docs/v1.6/docker-images).
 
 ```console
 $ docker pull cnrancher/hangar:${VERSION}
 
-$ docker run cnrancher/hangar:${VERSION} --help
+$ docker run cnrancher/hangar:${VERSION} hangar --help
 Usage:	hangar COMMAND [OPTIONS]
 ......
 
-$ docker run --entrypoint bash -v $(pwd):/images -it cnrancher/hangar:${VERSION}
+$ docker run -v $(pwd):/hangar -it cnrancher/hangar:${VERSION}
 ```
 
 ----
@@ -53,11 +51,11 @@ chmod +x ./hangar
 
 ## Build
 
-See [build.md](./docs/zh_CN/build.md) document.
+See [build.md](https://hangar.cnrancher.com/docs/v1.6/dev/build) document.
 
 ## LICENSE
 
-Copyright 2022-2023 [Rancher Labs, Inc](https://rancher.com).
+Copyright 2024 SUSE Rancher.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
