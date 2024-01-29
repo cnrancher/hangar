@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.19
+FROM registry.suse.com/bci/golang:1.21
 
 ARG DRONE_TAG
 ARG DRONE_COMMIT_SHA
@@ -21,7 +21,7 @@ RUN zypper in -y -f docker wget vim libbtrfs-devel libdevmapper1_03 && \
     zypper clean
 # Add docker-buildx & skopeo
 COPY --from=docker.io/docker/buildx-bin:latest /buildx /usr/libexec/docker/cli-plugins/docker-buildx
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.12.0 /usr/local/bin/skopeo /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.14.1 /usr/local/bin/skopeo /usr/local/bin/
 
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change

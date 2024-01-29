@@ -12,3 +12,6 @@ system-charts
 *.txt
 *.json
 .dapper*
+*.zip
+
+/registry
