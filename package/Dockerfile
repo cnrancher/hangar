@@ -1,17 +1,17 @@
 FROM registry.suse.com/bci/bci-base:latest
 
-WORKDIR /images
+WORKDIR /hangar
 
 # Add skopeo binary
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.14.1 /usr/local/bin/skopeo /usr/local/bin/
-COPY build/hangar-linux-${ARCH}-* /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.14.1 /usr/bin/skopeo /usr/bin/
 
 ARG ARCH
-RUN skopeo -v && \
-    RUN zypper up -y && \
+COPY build/hangar-linux-${ARCH}-* /usr/bin/
+RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 bash-completion vim && \
     zypper clean && \
-    mv /usr/local/bin/hangar-linux-${ARCH}-* /usr/local/bin/hangar && \
-    echo "source <(hangar completion bash)" >> /root/.bashrc
+    mv /usr/bin/hangar-linux-${ARCH}-* /usr/bin/hangar && \
+    echo "source <(hangar completion bash)" >> /root/.bashrc &&\
+    skopeo -v
 
-ENTRYPOINT ["hangar"]
+ENTRYPOINT ["/bin/bash"]

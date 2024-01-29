@@ -26,9 +26,7 @@ COPY --from=docker.io/cnrancher/hardened-skopeo:v1.14.1 /usr/bin/skopeo /usr/bin
 # pre-copy/cache go.mod for pre-downloading dependencies
 # and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
-RUN go env -w GO111MODULE=on && \
-    go env -w GOPROXY=${GOPROXY} && \
-    go mod download && go mod verify
+RUN go mod download && go mod verify
 
 ENTRYPOINT [ "./scripts/entry.sh" ]
 CMD ["ci"]
