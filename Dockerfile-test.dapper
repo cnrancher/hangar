@@ -7,7 +7,7 @@ ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
 # skopeo
-COPY --from=docker.io/cnrancher/hardened-skopeo:v1.12.0 /usr/local/bin/skopeo /usr/local/bin/
+COPY --from=docker.io/cnrancher/hardened-skopeo:v1.14.1 /usr/bin/skopeo /usr/bin/
 
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 vim wget git && \
