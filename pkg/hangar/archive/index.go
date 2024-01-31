@@ -3,6 +3,7 @@ package archive
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -119,6 +120,22 @@ func (i *Index) HasReference(project, name, tag string) bool {
 		if p == project && n == name && t == tag {
 			return true
 		}
+	}
+	return false
+}
+
+// IsSigstoreSignature detects whether the image is a sigstore signature.
+func (img *Image) IsSigstoreSignature() bool {
+	switch {
+	case len(img.Images) != 1,
+		len(img.ArchList) != 1,
+		len(img.OsList) != 1:
+		return false
+	}
+	spec := img.Images[0]
+	// The copied sigstore image signature does not have arch & OS information
+	if spec.Arch == "" && spec.OS == "" && strings.HasSuffix(img.Tag, ".sig") {
+		return true
 	}
 	return false
 }

@@ -1,0 +1,2 @@
+mirror-test/mirrored-mysql:5.7.5
+mirror-test/mirrored-skopeo:latest

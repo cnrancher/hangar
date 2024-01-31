@@ -8,6 +8,7 @@ import (
 var (
 	ErrValidateFailed = errors.New("some images failed to validate")
 	ErrCopyFailed     = errors.New("some images failed to copy")
+	ErrSignFailed     = errors.New("some images failed to sign")
 )
 
 type Hangar interface {

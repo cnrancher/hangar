@@ -1,16 +1,10 @@
 package utils
 
 import (
-	"io"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	logrus.SetOutput(io.Discard)
-}
 
 func Test_Sha256Sum(t *testing.T) {
 	s := Sha256Sum("123")
@@ -179,4 +173,18 @@ func Test_GetImageName(t *testing.T) {
 	assert.Equal(t, GetImageName("docker.io/nginx:latest"), "nginx")
 	assert.Equal(t, GetImageName("docker.io/library/nginx"), "nginx")
 	assert.Equal(t, GetImageName("docker.io/library/nginx:latest"), "nginx")
+}
+
+func Test_GetImageTag(t *testing.T) {
+	assert.Equal(t, GetImageTag(":"), "latest")
+	assert.Equal(t, GetImageTag("name"), "latest")
+	assert.Equal(t, GetImageTag("name:1.23"), "1.23")
+	assert.Equal(t, GetImageTag("library/name"), "latest")
+	assert.Equal(t, GetImageTag("library/name:1.23"), "1.23")
+	assert.Equal(t, GetImageTag("docker.io/library/name"), "latest")
+	assert.Equal(t, GetImageTag("docker.io/library/name:1.23"), "1.23")
+	assert.Equal(t, GetImageTag("127.0.0.1/library/name"), "latest")
+	assert.Equal(t, GetImageTag("127.0.0.1/library/name:1.23"), "1.23")
+	assert.Equal(t, GetImageTag("127.0.0.1:5000/library/name"), "latest")
+	assert.Equal(t, GetImageTag("127.0.0.1:5000/library/name:1.23"), "1.23")
 }

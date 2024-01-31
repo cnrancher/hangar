@@ -2,12 +2,12 @@ package commands
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
 	commonFlag "github.com/containers/common/pkg/flag"
@@ -24,12 +24,14 @@ type loadOpts struct {
 	sourceRegistry string
 	destination    string
 	failed         string
-	repoType       string
 	jobs           int
 	timeout        time.Duration
 	project        string
 	skipLogin      bool
 	tlsVerify      commonFlag.OptionalBool
+
+	sigstorePrivateKey     string
+	sigstorePassphraseFile string
 }
 
 type loadCmd struct {
@@ -48,21 +50,22 @@ func newLoadCmd() *loadCmd {
 
 The load command will create Harbor V2 projects for destination registry automatically.
 `,
-		Example: `# Load images from SAVED_ARCHIVE.zip to REGISTRY SERVER.
+		Example: `# Load images from SAVED_ARCHIVE.zip to REGISTRY server
+# and sign the loaded images by sigstore private key file.
 hangar load \
 	--file IMAGE_LIST.txt \
 	--source SAVED_ARCHIVE.zip \
 	--destination REGISTRY_URL \
 	--arch amd64,arm64 \
-	--os linux`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+	--os linux \
+	--sigstore-private-key SIGSTORE.key`,
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+				logrus.Debugf("Debug output enabled")
 			}
-
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			h, err := cc.prepareHangar()
 			if err != nil {
 				return err
@@ -87,13 +90,17 @@ hangar load \
 	flags.SetAnnotation("destination", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVarP(&cc.failed, "failed", "o", "load-failed.txt", "file name of the load failed image list")
 	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
 		"skip check the destination registry is logged in (used in shell script)")
+	flags.StringVarP(&cc.sigstorePrivateKey, "sigstore-private-key", "", "",
+		"sign images by sigstore private key when mirroring")
+	flags.StringVarP(&cc.sigstorePassphraseFile, "sigstore-passphrase-file", "", "",
+		"passphrase file of the sigstore private key")
 
 	addCommands(
 		cc.cmd,
@@ -110,7 +117,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 		return nil, fmt.Errorf("destination registry URL not provided, use '--destination' to provide the registry")
 	}
 	if cc.debug {
-		logrus.Infof("debug mode enabled, force worker number to 1")
+		logrus.Debugf("Debug mode enabled, force worker number to 1")
 		cc.jobs = 1
 	} else {
 		if cc.jobs > utils.MaxWorkerNum || cc.jobs < utils.MinWorkerNum {
@@ -160,6 +167,27 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get policy: %w", err)
 	}
+
+	var passphrase []byte
+	if cc.sigstorePrivateKey != "" && cc.sigstorePassphraseFile != "" {
+		b, err := os.ReadFile(cc.sigstorePassphraseFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %q: %w",
+				cc.sigstorePassphraseFile, err)
+		}
+		b = bytes.TrimSpace(b)
+		logrus.Infof("Read the passphrase for key %q from %q",
+			cc.sigstorePrivateKey, cc.sigstorePassphraseFile)
+		passphrase = b
+	} else if cc.sigstorePrivateKey != "" {
+		var err error
+		fmt.Printf("Enter the passphrase for key %q: ", cc.sigstorePrivateKey)
+		passphrase, err = utils.ReadPassword(signalContext)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	l, err := hangar.NewLoader(&hangar.LoaderOpts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
@@ -171,6 +199,8 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			FailedImageListName: cc.failed,
 			SystemContext:       sysCtx,
 			Policy:              policy,
+			SigstorePrivateKey:  cc.sigstorePrivateKey,
+			SigstorePassphrase:  passphrase,
 		},
 
 		SourceRegistry:      cc.sourceRegistry,

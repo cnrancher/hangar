@@ -14,6 +14,7 @@ if HANGAR is None:
         HANGAR = "../bin/hangar"
     else:
         raise Exception("hangar executable not found")
+    print('hangar is', HANGAR)
 
 
 REGISTRY_URL = os.getenv("REGISTRY_URL")

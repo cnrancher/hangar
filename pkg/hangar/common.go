@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/signature"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
+
+	signaturev5 "github.com/containers/image/v5/signature"
+	typesv5 "github.com/containers/image/v5/types"
 )
 
 const (
@@ -24,7 +26,7 @@ type common struct {
 	// images is the image list.
 	images []string
 	// imageSpecSet example: map["os"]map["linux"]true
-	imageSpecSet map[string]map[string]bool
+	imageSpecSet types.FilterSet
 	// timeout when copy image
 	timeout time.Duration
 	// workers is the number of wroker
@@ -48,9 +50,19 @@ type common struct {
 	// failedImageListName is the file name of the failed image list
 	failedImageListName string
 	// systemContext
-	systemContext *types.SystemContext
+	systemContext *typesv5.SystemContext
 	// policy
-	policy *signature.Policy
+	policy *signaturev5.Policy
+	// removeSignatures removes the image sinatures when copy
+	removeSignatures bool
+	// sigstoreKey is the file name of the sigstore private key
+	// (for signing the image when copy)
+	sigstorePrivateKey string
+	// sigstorePassphrase
+	sigstorePassphrase []byte
+	// sigstorePublicKey is the file name of the sigstore public key
+	// (for validating the signed image)
+	sigstorePublicKey string
 }
 
 type CommonOpts struct {
@@ -61,19 +73,19 @@ type CommonOpts struct {
 	Timeout             time.Duration
 	Workers             int
 	FailedImageListName string
-	SystemContext       *types.SystemContext
-	Policy              *signature.Policy
+	SystemContext       *typesv5.SystemContext
+	Policy              *signaturev5.Policy
+	RemoveSignatures    bool
+	SigstorePrivateKey  string
+	SigstorePassphrase  []byte
+	SigstorePublicKey   string
 }
 
 func newCommon(o *CommonOpts) (*common, error) {
 	c := &common{
 		images: make([]string, len(o.Images)),
 
-		imageSpecSet: map[string]map[string]bool{
-			"os":      make(map[string]bool),
-			"arch":    make(map[string]bool),
-			"variant": make(map[string]bool),
-		},
+		imageSpecSet: types.NewImageFilterSet(o.Arch, o.OS, o.Variant),
 
 		timeout:        o.Timeout,
 		workers:        o.Workers,
@@ -89,6 +101,11 @@ func newCommon(o *CommonOpts) (*common, error) {
 
 		systemContext: utils.CopySystemContext(o.SystemContext),
 		policy:        nil,
+
+		removeSignatures:   o.RemoveSignatures,
+		sigstorePrivateKey: o.SigstorePrivateKey,
+		sigstorePassphrase: o.SigstorePassphrase,
+		sigstorePublicKey:  o.SigstorePublicKey,
 	}
 	var err error
 	policy, err := utils.CopyPolicy(o.Policy)
@@ -97,15 +114,6 @@ func newCommon(o *CommonOpts) (*common, error) {
 	}
 	c.policy = policy
 	copy(c.images, o.Images)
-	for i := 0; i < len(o.OS); i++ {
-		c.imageSpecSet["os"][o.OS[i]] = true
-	}
-	for i := 0; i < len(o.Arch); i++ {
-		c.imageSpecSet["arch"][o.Arch[i]] = true
-	}
-	for i := 0; i < len(o.Variant); i++ {
-		c.imageSpecSet["variant"][o.Variant[i]] = true
-	}
 
 	return c, nil
 }
@@ -284,17 +292,19 @@ func (m *layerManager) decompressLayer(
 }
 
 // clean deletes blobs in shared directory.
-func (m *layerManager) clean(img *archive.ImageSpec) {
+func (m *layerManager) clean(img *archive.ImageSpec, set *types.FilterSet) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	if !set.Allow(img.Arch, img.OS, img.Variant) {
+		return
+	}
 	layers := m.getImageLayers(img)
 	for i := 0; i < len(layers); i++ {
 		layer := layers[i]
 		ref, ok := m.layersRefMap[layer]
 		if !ok {
-			logrus.Warnf(
-				"failed to cleanup [%v]: layer not exists in ref map", layer)
+			logrus.Warnf("failed to cleanup [%v]: layer not exists in ref map", layer)
 			continue
 		}
 		if ref > 0 {

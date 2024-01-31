@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
-	"github.com/cnrancher/hangar/pkg/manifest"
-	"github.com/cnrancher/hangar/pkg/source"
-	"github.com/cnrancher/hangar/pkg/types"
+	"github.com/cnrancher/hangar/pkg/image/destination"
+	"github.com/cnrancher/hangar/pkg/image/manifest"
+	"github.com/cnrancher/hangar/pkg/image/source"
+	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -40,6 +41,9 @@ type Mirrorer struct {
 	// Override the project of the copied destination image
 	DestinationProject string
 }
+
+// Mirrorer implements functions of Hanagr interface.
+var _ Hangar = &Mirrorer{}
 
 type MirrorerOpts struct {
 	CommonOpts
@@ -109,7 +113,8 @@ func (m *Mirrorer) Run(ctx context.Context) error {
 
 func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject, error) {
 	object := &mirrorObject{
-		image: line,
+		image:   line,
+		timeout: m.timeout,
 	}
 	sourceRegistry := utils.GetRegistryName(line)
 	if m.SourceRegistry != "" {
@@ -152,7 +157,8 @@ func (m *Mirrorer) mirrorObjectImageListTypeDefault(line string) (*mirrorObject,
 
 func (m *Mirrorer) mirrorObjectImageListTypeMirror(line string) (*mirrorObject, error) {
 	object := &mirrorObject{
-		image: line,
+		image:   line,
+		timeout: m.timeout,
 	}
 
 	spec, _ := imagelist.GetMirrorSpec(line)
@@ -234,6 +240,18 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 			obj.source.ReferenceName(), err)
 		return
 	}
+	if obj.source.IsSigstoreSignature() {
+		// Hangar do not support copy sigstore signature,
+		// use 'hangar sign' command to re-sign the mirrored signature instead.
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Warnf("Skip copy image [%v]: image is a sigstore signature, "+
+				"use the 'hangar sign' command to sign the image directly instead of "+
+				"copy the image signature.",
+				obj.source.ReferenceNameWithoutTransport())
+		err = utils.ErrIsSigstoreSignature
+		return
+	}
+
 	err = obj.destination.Init(copyContext)
 	if err != nil {
 		err = fmt.Errorf("failed to init [%v]: %w",
@@ -245,7 +263,14 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	}).Infof("Copying [%v] => [%v]",
 		obj.source.ReferenceNameWithoutTransport(),
 		obj.destination.ReferenceNameWithoutTransport())
-	err = obj.source.Copy(copyContext, obj.destination, m.imageSpecSet, m.policy)
+	err = obj.source.Copy(copyContext, &source.CopyOptions{
+		RemoveSignatures:   m.common.removeSignatures,
+		SigstorePrivateKey: m.common.sigstorePrivateKey,
+		SigstorePassphrase: m.common.sigstorePassphrase,
+		Destination:        obj.destination,
+		Set:                m.common.imageSpecSet,
+		Policy:             m.common.policy,
+	})
 	if err != nil {
 		if errors.Is(err, utils.ErrNoAvailableImage) {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).

@@ -1,0 +1,6 @@
+# Image list in DEFAULT format
+// COMMENT LINE
+
+TEST INVAID IMAGE LIST LINE
+
+cnrancher/hangar:latest

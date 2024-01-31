@@ -4,7 +4,17 @@
 Automatin tests for "hangar convert-list" command.
 """
 
+import os
 from .common import run_hangar, check, REGISTRY_URL
+
+
+def prepare():
+    lists = [
+        'converted.txt',
+    ]
+    for list in lists:
+        if os.path.exists(list):
+            os.remove(list)
 
 
 def test_convert_list_help():

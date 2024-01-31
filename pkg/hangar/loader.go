@@ -9,14 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/harbor"
-	"github.com/cnrancher/hangar/pkg/manifest"
-	"github.com/cnrancher/hangar/pkg/source"
-	"github.com/cnrancher/hangar/pkg/types"
+	"github.com/cnrancher/hangar/pkg/image/destination"
+	"github.com/cnrancher/hangar/pkg/image/manifest"
+	"github.com/cnrancher/hangar/pkg/image/source"
+	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -311,10 +312,18 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		return
 	}
 
-	var manifestImages = make(manifest.Images, 0)
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Loading [%v] => [%v]",
 			imageName, dest.ReferenceNameWithoutTransport())
+	if obj.image.IsSigstoreSignature() {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Warnf("Failed to load image [%v]: %v, "+
+				"use 'hangar sign' to sign the image instead of copy the signature directly",
+				imageName, utils.ErrIsSigstoreSignature)
+		err = utils.ErrIsSigstoreSignature
+		return
+	}
+	var manifestImages = make(manifest.Images, 0)
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
@@ -334,9 +343,11 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		// Register defer function to clean-up cache.
 		defer func(d string, img archive.ImageSpec) {
 			if d != "" {
-				os.RemoveAll(d)
+				if err := os.RemoveAll(d); err != nil {
+					logrus.Warnf("Failed to cleanup [%v]: %v", d, err)
+				}
 			}
-			l.layerManager.clean(&img)
+			l.layerManager.clean(&img, &l.imageSpecSet)
 		}(tmpDir, img)
 
 		if err != nil {
@@ -382,11 +393,18 @@ func (l *Loader) worker(ctx context.Context, o any) {
 				src.ReferenceName(), err)
 			return
 		}
-		err = src.Copy(copyContext, dest, l.common.imageSpecSet, l.policy)
+		err = src.Copy(copyContext, &source.CopyOptions{
+			RemoveSignatures:   false,
+			SigstorePrivateKey: l.common.sigstorePrivateKey,
+			SigstorePassphrase: l.common.sigstorePassphrase,
+			Destination:        dest,
+			Set:                l.common.imageSpecSet,
+			Policy:             l.common.policy,
+		})
 		if err != nil {
 			if errors.Is(err, utils.ErrNoAvailableImage) {
 				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
-					Warnf("Skip saving image [%v]: %v", imageName, err)
+					Warnf("Skip loading image [%v]: %v", imageName, err)
 				err = nil
 			} else {
 				err = fmt.Errorf("failed to copy [%v] to [%v]: %w",

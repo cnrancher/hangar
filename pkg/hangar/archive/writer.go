@@ -148,7 +148,7 @@ func (w *Writer) WriteIndex(index *Index) error {
 func (w *Writer) CopyImage(image *Image, ar *Reader) error {
 	for _, img := range image.Images {
 		// Copy all blobs files.
-		var fnames []string = make([]string, 0)
+		var fnames = make([]string, 0)
 		fnames = append(fnames, fmt.Sprintf("%s/", img.Digest.Encoded()))
 		fnames = append(fnames, fmt.Sprintf("%s/blobs/", img.Digest.Encoded()))
 		fnames = append(fnames, fmt.Sprintf("%s/index.json", img.Digest.Encoded()))

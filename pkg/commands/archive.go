@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
-	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -21,13 +19,13 @@ func newArchiveCmd() *archiveCmd {
 		Example: `
 # Show images in archive file:
 hangar archive ls -f SAVED_ARCHIVE.zip`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+				logrus.Debugf("Debug output enabled")
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 	})

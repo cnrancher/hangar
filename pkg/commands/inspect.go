@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
-	"github.com/cnrancher/hangar/pkg/manifest"
-	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,13 +34,13 @@ hangar inspect [image-reference]
 
 # Inspect RAW docker image maniefest:
 hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+				logrus.Debugf("Debug output enabled")
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cc.run(args); err != nil {
 				return err
 			}
