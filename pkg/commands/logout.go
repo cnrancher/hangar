@@ -4,7 +4,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/containers/common/pkg/auth"
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/common/pkg/retry"
@@ -28,12 +27,13 @@ func newLogoutCmd() *logoutCmd {
 		Use:     "logout registry-url",
 		Short:   "Logout from registry server",
 		Example: "  hangar logout docker.io",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
+				logrus.Debugf("Debug output enabled")
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := cc.baseCmd.ctxWithTimeout(cc.timeout)
 			defer cancel()
 			cc.logoutOpts.Stdout = os.Stdout

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +19,12 @@ func newVersionCmd() *versionCmd {
 		Use:     "version",
 		Short:   "Show version",
 		Example: "  hangar version",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
+				logrus.SetLevel(logrus.DebugLevel)
+				logrus.Debugf("Debug output enabled")
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("hangar version %s\n", getVersion())
 		},

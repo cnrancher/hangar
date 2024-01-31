@@ -18,11 +18,13 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
+	"golang.org/x/term"
 )
 
 var (
-	ErrVersionIsEmpty   = errors.New("version is empty string")
-	ErrNoAvailableImage = errors.New("no available image for specified arch and os")
+	ErrVersionIsEmpty      = errors.New("version is empty string")
+	ErrNoAvailableImage    = errors.New("no available image for specified arch and os")
+	ErrIsSigstoreSignature = errors.New("image is a sigstore signature")
 
 	cacheDir string
 )
@@ -256,12 +258,16 @@ func GetImageName(image string) string {
 // GetImageTag gets the image tag, example:
 //
 //	nginx:latest -> latest
+//	nginx:1.22 -> 1.22
 //	reg.io/nginx:1.22 -> 1.22
 //	library/nginx -> latest
 //	reg.io/library/nginx -> latest
 func GetImageTag(image string) string {
-	spec := strings.Split(image, ":")
-	var s = make([]string, 0)
+	spec := strings.Split(image, "/")
+	var (
+		s  = make([]string, 0)
+		s1 = make([]string, 0)
+	)
 	for _, v := range spec {
 		if len(v) > 0 {
 			s = append(s, v)
@@ -269,9 +275,39 @@ func GetImageTag(image string) string {
 	}
 	switch len(s) {
 	case 1:
-		return "latest"
+		if strings.Contains(s[0], ":") {
+			// Example: name:tag
+			spec1 := strings.Split(s[0], ":")
+			for _, v := range spec1 {
+				if len(v) > 0 {
+					s1 = append(s1, v)
+				}
+			}
+		}
 	case 2:
-		return s[1]
+		if strings.Contains(s[1], ":") {
+			// Example: library/name:tag
+			spec1 := strings.Split(s[1], ":")
+			for _, v := range spec1 {
+				if len(v) > 0 {
+					s1 = append(s1, v)
+				}
+			}
+		}
+	case 3:
+		if strings.Contains(s[2], ":") {
+			// Example: docker.io/library/name:tag
+			spec1 := strings.Split(s[2], ":")
+			for _, v := range spec1 {
+				if len(v) > 0 {
+					s1 = append(s1, v)
+				}
+			}
+		}
+	}
+
+	if len(s1) == 2 {
+		return s1[1]
 	}
 	return "latest"
 }
@@ -405,6 +441,25 @@ func Scanf(ctx context.Context, format string, a ...any) (int, error) {
 		return n, nil
 	case <-ctx.Done():
 		return 0, ctx.Err()
+	}
+}
+
+func ReadPassword(ctx context.Context) ([]byte, error) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil, fmt.Errorf("failed to read password: stdin is is not a interactive terminal")
+	}
+
+	bCh := make(chan []byte)
+	go func() {
+		b, _ := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		bCh <- b
+	}()
+	select {
+	case b := <-bCh:
+		return b, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 

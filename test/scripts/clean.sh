@@ -10,6 +10,8 @@ source ./scripts/env.sh
 files=(
     "*.zip"
     "*-failed.txt"
+    "*.key"
+    "*.pub"
     ".pytest_cache"
     ".tox"
     "suite/converted.txt"

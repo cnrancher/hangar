@@ -3,8 +3,8 @@ package hangar
 import (
 	"fmt"
 
-	"github.com/cnrancher/hangar/pkg/destination"
-	"github.com/cnrancher/hangar/pkg/source"
+	"github.com/cnrancher/hangar/pkg/image/destination"
+	"github.com/cnrancher/hangar/pkg/image/source"
 )
 
 type Error struct {

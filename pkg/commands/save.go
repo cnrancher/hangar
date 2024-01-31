@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
 	commonFlag "github.com/containers/common/pkg/flag"
@@ -49,13 +48,13 @@ hangar save \
 	--destination SAVED_ARCHIVE.zip \
 	--arch amd64,arm64 \
 	--os linux`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+				logrus.Debugf("Debug output enabled")
 			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			h, err := cc.prepareHangar()
 			if err != nil {
 				return err
@@ -98,7 +97,7 @@ func (cc *saveCmd) prepareHangar() (hangar.Hangar, error) {
 		return nil, fmt.Errorf("image list not provided, use '--file' to specify the image list file")
 	}
 	if cc.debug {
-		logrus.Infof("debug mode enabled, force worker number to 1")
+		logrus.Debugf("Debug mode enabled, force worker number to 1")
 		cc.jobs = 1
 	} else {
 		if cc.jobs > utils.MaxWorkerNum || cc.jobs < utils.MinWorkerNum {
@@ -146,6 +145,11 @@ func (cc *saveCmd) prepareHangar() (hangar.Hangar, error) {
 			FailedImageListName: cc.failed,
 			SystemContext:       sysCtx,
 			Policy:              policy,
+			// Hangar does not support to save image signatures into
+			// local archive file yet.
+			RemoveSignatures:   true,
+			SigstorePrivateKey: "",
+			SigstorePublicKey:  "",
 		},
 
 		SourceRegistry:    cc.source,

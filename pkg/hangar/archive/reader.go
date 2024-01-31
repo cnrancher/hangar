@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/STARRY-S/zip"
+	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -154,12 +155,9 @@ func (r *Reader) DecompressTmp(name string) (string, error) {
 
 func (r *Reader) DecompressImageTmp(
 	img *ImageSpec,
-	imageSpecSet map[string]map[string]bool,
+	set types.FilterSet,
 ) (string, error) {
-	if len(imageSpecSet["os"]) != 0 && !imageSpecSet["os"][img.OS] {
-		return "", utils.ErrNoAvailableImage
-	}
-	if len(imageSpecSet["arch"]) != 0 && !imageSpecSet["arch"][img.Arch] {
+	if !set.AllowArch(img.Arch) || !set.AllowOS(img.OS) || !set.AllowVariant(img.Variant) {
 		return "", utils.ErrNoAvailableImage
 	}
 

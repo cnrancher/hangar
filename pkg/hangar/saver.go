@@ -10,15 +10,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/destination"
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
-	"github.com/cnrancher/hangar/pkg/source"
-	"github.com/cnrancher/hangar/pkg/types"
+	"github.com/cnrancher/hangar/pkg/image/destination"
+	"github.com/cnrancher/hangar/pkg/image/source"
+	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	imagemanifest "github.com/containers/image/v5/manifest"
-	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+
+	manifestv5 "github.com/containers/image/v5/manifest"
+	"github.com/opencontainers/go-digest"
 )
 
 // saveObject is the object for sending to worker pool when saving image
@@ -94,8 +95,9 @@ func (s *Saver) copy(ctx context.Context) {
 			continue
 		}
 		object := &saveObject{
-			id:    i + 1,
-			image: img,
+			id:      i + 1,
+			image:   img,
+			timeout: s.timeout,
 		}
 		sourceRegistry := utils.GetRegistryName(img)
 		if s.SourceRegistry != "" {
@@ -144,6 +146,8 @@ func (s *Saver) copy(ctx context.Context) {
 		object.destination = dest
 		if err = s.handleObject(object); err != nil {
 			os.RemoveAll(cd)
+			s.handleError(fmt.Errorf("failed to handle object: %w", err))
+			s.recordFailedImage(img)
 		}
 	}
 	s.waitWorkers()
@@ -229,23 +233,42 @@ func (s *Saver) worker(ctx context.Context, o any) {
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Saving [%v]", obj.source.ReferenceNameWithoutTransport())
+
+	// Skip to copy sigstore signature image.
+	if obj.source.IsSigstoreSignature() {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Warnf("Skip copy image [%v]: image is a sigstore signature, "+
+				"use the 'hangar sign' command to sign the image directly instead of "+
+				"copy the image signature.",
+				obj.source.ReferenceNameWithoutTransport())
+		err = utils.ErrIsSigstoreSignature
+		return
+	}
+
 	err = obj.destination.Init(copyContext)
 	if err != nil {
 		err = fmt.Errorf("failed to init destination: %w", err)
 		return
 	}
-	err = obj.source.Copy(copyContext, obj.destination, s.imageSpecSet, s.policy)
+	err = obj.source.Copy(copyContext, &source.CopyOptions{
+		// Saver does not supports saving image with signatures
+		// into local OCI transport.
+		RemoveSignatures: true,
+		Destination:      obj.destination,
+		Set:              s.common.imageSpecSet,
+		Policy:           s.common.policy,
+	})
 	if err != nil {
 		if errors.Is(err, utils.ErrNoAvailableImage) {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 				Warnf("Skip save image [%v]: %v",
 					obj.source.ReferenceNameWithoutTransport(), err)
 			err = nil
-		} else {
-			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-				obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
 			return
 		}
+		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
+		return
 	}
 
 	// Images copied to cache folder, write to archive file.
@@ -408,8 +431,8 @@ func (s *Saver) validateWorker(ctx context.Context, o any) {
 	}
 	var fail bool
 	switch obj.source.MIME() {
-	case imagemanifest.DockerV2Schema1MediaType,
-		imagemanifest.DockerV2Schema1SignedMediaType:
+	case manifestv5.DockerV2Schema1MediaType,
+		manifestv5.DockerV2Schema1SignedMediaType:
 		// Could not compare image digest since the destination mediaType
 		// was changed during copy.
 		if !s.index.HasReference(

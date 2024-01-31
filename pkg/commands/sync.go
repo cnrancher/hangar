@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cnrancher/hangar/pkg/cmdconfig"
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
 	commonFlag "github.com/containers/common/pkg/flag"
@@ -48,14 +47,13 @@ hangar sync \
 	--destination SAVED_ARCHIVE.zip \
 	--arch amd64,arm64 \
 	--os linux`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			initializeFlagsConfig(cmd, cmdconfig.DefaultProvider)
-			if cc.baseCmd.debug {
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
-				logrus.Debugf("debug output enabled")
-				logrus.Debugf("%v", utils.PrintObject(cmdconfig.Get("")))
+				logrus.Debugf("Debug output enabled")
 			}
-
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			h, err := cc.prepareHangar()
 			if err != nil {
 				return err
@@ -78,7 +76,7 @@ hangar sync \
 	flags.SetAnnotation("destination", cobra.BashCompFilenameExt, []string{"zip"})
 	flags.StringVarP(&cc.failed, "failed", "o", "sync-failed.txt", "file name of the sync failed image list")
 	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number,copy images parallelly (1-20)")
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
@@ -94,7 +92,7 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 		return nil, fmt.Errorf("image list not provided, use '--file' to specify the image list file")
 	}
 	if cc.debug {
-		logrus.Infof("debug mode enabled, force worker number to 1")
+		logrus.Debugf("Debug mode enabled, force worker number to 1")
 		cc.jobs = 1
 	} else {
 		if cc.jobs > utils.MaxWorkerNum || cc.jobs < utils.MinWorkerNum {
