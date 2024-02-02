@@ -13,8 +13,9 @@ import (
 type archiveLsCmd struct {
 	*baseCmd
 
-	file string
-	json bool
+	file      string
+	json      bool
+	imageOnly bool
 }
 
 func newArchiveLsCmd() *archiveLsCmd {
@@ -46,6 +47,7 @@ hangar archive ls -f SAVED_ARCHIVE.zip`,
 	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"zip"})
 	flags.SetAnnotation("file", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.BoolVarP(&cc.json, "json", "", false, "Output in json format")
+	flags.BoolVarP(&cc.imageOnly, "image-only", "", false, "Only output image list")
 
 	return cc
 }
@@ -80,6 +82,12 @@ func (cc *archiveLsCmd) run(args []string) error {
 	if cc.json {
 		b, _ := json.MarshalIndent(index, "", "  ")
 		fmt.Print(string(b))
+		return nil
+	}
+	if cc.imageOnly {
+		for _, image := range index.List {
+			fmt.Printf("%s:%s\n", image.Source, image.Tag)
+		}
 		return nil
 	}
 	logrus.Infof("Created time: %v", index.Time)
