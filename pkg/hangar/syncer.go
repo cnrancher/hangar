@@ -274,11 +274,11 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 				Warnf("Skip copy image [%v]: %v",
 					obj.source.ReferenceNameWithoutTransport(), err)
 			err = nil
-		} else {
-			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-				obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
 			return
 		}
+		err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+			obj.source.ReferenceName(), obj.destination.ReferenceName(), err)
+		return
 	}
 
 	// Images copied to cache folder, write to archive file.

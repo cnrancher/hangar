@@ -406,11 +406,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 				logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 					Warnf("Skip loading image [%v]: %v", imageName, err)
 				err = nil
-			} else {
-				err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
-					src.ReferenceName(), dest.ReferenceName(), err)
-				return
 			}
+			err = fmt.Errorf("failed to copy [%v] to [%v]: %w",
+				src.ReferenceName(), dest.ReferenceName(), err)
+			return
 		}
 
 		var mi *manifest.Image
