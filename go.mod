@@ -2,34 +2,24 @@ module github.com/cnrancher/hangar
 
 go 1.21.3
 
-replace (
-	k8s.io/api => k8s.io/api v0.28.4
-	k8s.io/apimachinery => k8s.io/apimachinery v0.28.4
-	k8s.io/apiserver => k8s.io/apiserver v0.28.4
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.28.4
-	k8s.io/client-go => k8s.io/client-go v0.28.4
-	k8s.io/component-base => k8s.io/component-base v0.28.4
-	k8s.io/kubernetes => k8s.io/kubernetes v1.28.4
-)
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/STARRY-S/zip v0.1.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
-	github.com/containers/common v0.57.2
-	github.com/containers/image/v5 v5.29.1
+	github.com/containers/common v0.57.4
+	github.com/containers/image/v5 v5.29.2
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/moby/term v0.5.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/opencontainers/image-spec v1.1.0-rc6
-	github.com/rancher/rke v1.5.3
+	github.com/opencontainers/image-spec v1.1.0
+	github.com/rancher/rke v1.5.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/mod v0.14.0
-	golang.org/x/term v0.16.0
+	golang.org/x/mod v0.15.0
+	golang.org/x/term v0.17.0
 	gopkg.in/yaml.v2 v2.4.0
-	helm.sh/helm/v3 v3.14.0
+	helm.sh/helm/v3 v3.14.2
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -127,7 +117,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/opencontainers/runc v1.1.10 // indirect
+	github.com/opencontainers/runc v1.1.12 // indirect
 	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/opencontainers/selinux v1.11.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
@@ -173,7 +163,7 @@ require (
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/oauth2 v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect

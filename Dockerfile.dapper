@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/golang:1.21
+FROM registry.suse.com/bci/golang:1.22
 
 ENV DAPPER_ENV REPO TAG DRONE_TAG DRONE_COMMIT_SHA DISABLE_CGO
 ENV DAPPER_SOURCE /go/src/github.com/cnrancher/hangar/
@@ -7,7 +7,7 @@ ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
 RUN if [ "${DAPPER_HOST_ARCH}" == "amd64" ]; then \
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2; \
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.56.2; \
     fi
 
 RUN zypper ref && \
