@@ -1,6 +1,8 @@
 module github.com/cnrancher/hangar
 
-go 1.21.3
+go 1.22
+
+replace github.com/rancher/norman => github.com/rancher/norman v0.0.0-20240207153100-3bb70b772b52
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -130,8 +132,8 @@ require (
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
-	github.com/rancher/lasso v0.0.0-20230830164424-d684fdeb6f29 // indirect
-	github.com/rancher/norman v0.0.0-20230831160711-5de27f66385d // indirect
+	github.com/rancher/lasso v0.0.0-20240123150939-7055397d6dfa // indirect
+	github.com/rancher/norman v0.0.0-20240207153100-3bb70b772b52 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
@@ -166,7 +168,7 @@ require (
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.14.0 // indirect
+	golang.org/x/tools v0.16.1 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
 	google.golang.org/grpc v1.58.3 // indirect
