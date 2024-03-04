@@ -463,6 +463,14 @@ func CopyPolicy(src *signature.Policy) (*signature.Policy, error) {
 	return dest, err
 }
 
+func HTTPClientDo(
+	ctx context.Context, client *http.Client, req *http.Request,
+) (*http.Response, error) {
+	logrus.Debugf("client.Do: %v", req.URL.String())
+	resp, err := client.Do(req)
+	return resp, err
+}
+
 func HTTPClientDoWithRetry(
 	ctx context.Context, client *http.Client, req *http.Request,
 ) (*http.Response, error) {

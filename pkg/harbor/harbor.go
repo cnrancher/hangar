@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -22,8 +23,10 @@ var (
 	ErrRegistryIsNotHarbor = errors.New("registry server is not harbor V2")
 )
 
-func GetRegistryURL(
-	ctx context.Context, registry string, tlsVerify bool,
+func GetURL(
+	ctx context.Context,
+	registry string,
+	tlsVerify bool,
 ) (string, error) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
@@ -38,33 +41,48 @@ func GetRegistryURL(
 	ubase := fmt.Sprintf("https://%s", registry)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+		return "", fmt.Errorf("harbor.GetURL: %w", err)
 	}
-	resp, err := utils.HTTPClientDoWithRetry(ctx, client, req)
-	if err != nil {
+
+	pingFunc := func() (*http.Response, error) {
+		resp, err := utils.HTTPClientDo(ctx, client, req)
+		if err == nil {
+			defer resp.Body.Close()
+			return resp, nil
+		}
 		if tlsVerify {
-			return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+			return resp, err
 		}
 
-		if errors.Is(err, http.ErrSchemeMismatch) {
-			logrus.Debugf("ping %s: %v", u, err)
-			// The tlsVerify not enabled, try re-ping registry using HTTP.
-			u = fmt.Sprintf("http://%s/api/v2.0/ping", registry)
-			ubase = fmt.Sprintf("http://%s", registry)
-			req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-			if err != nil {
-				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
-			}
-			resp, err = utils.HTTPClientDoWithRetry(ctx, client, req)
-			if err != nil {
-				return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
-			}
-		} else {
-			return "", fmt.Errorf("harbor.GetRegistryURL: %w", err)
+		logrus.Debugf("ping %s: %v", u, err)
+		// The tlsVerify not enabled, try re-ping registry using HTTP.
+		u = fmt.Sprintf("http://%s/api/v2.0/ping", registry)
+		ubase = fmt.Sprintf("http://%s", registry)
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err != nil {
+			return nil, err
 		}
+		resp, err = utils.HTTPClientDo(ctx, client, req)
+		if err != nil {
+			return nil, err
+		}
+
+		defer resp.Body.Close()
+		logrus.Debugf("ping %s: %v", u, resp.Status)
+		return resp, nil
 	}
-	defer resp.Body.Close()
-	logrus.Debugf("ping %s: %v", u, resp.Status)
+
+	var resp *http.Response
+	err = retry.IfNecessary(ctx, func() error {
+		resp, err = pingFunc()
+		return err
+	}, &retry.Options{
+		MaxRetry: 3,
+		Delay:    time.Millisecond,
+	})
+	if err != nil {
+		return "", fmt.Errorf("harbor.GetURL: %w", err)
+	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
