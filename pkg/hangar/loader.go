@@ -197,7 +197,10 @@ func (l *Loader) copy(ctx context.Context) {
 // Run loads images from hangar archive to destination image registry
 func (l *Loader) Run(ctx context.Context) error {
 	if err := l.initHarborProject(ctx); err != nil {
-		return fmt.Errorf("initHarborProject: %w", err)
+		// Harbor Project error should not block the loading process
+		// since users can create the Harbor Project manually if failed.
+		logrus.Warnf("Failed to init Harbor Project: %v", err)
+		logrus.Warnf("Please create the Harbor Project manually.")
 	}
 	l.copy(ctx)
 	if len(l.failedImageSet) != 0 {
@@ -212,7 +215,7 @@ func (l *Loader) Run(ctx context.Context) error {
 }
 
 func (l *Loader) initHarborProject(ctx context.Context) error {
-	harborURL, err := harbor.GetRegistryURL(ctx, l.DestinationRegistry,
+	harborURL, err := harbor.GetURL(ctx, l.DestinationRegistry,
 		!l.systemContext.OCIInsecureSkipTLSVerify)
 	if err != nil {
 		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
