@@ -53,15 +53,10 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	if systemContext == nil {
 		systemContext = &types.SystemContext{}
 	}
-	source, err := ref.NewImageSource(ctx, systemContext)
-	if err != nil {
-		return nil, err
-	}
-
 	ins := &Inspector{
 		name:          o.ReferenceName,
 		systemContext: systemContext,
-		source:        source,
+		source:        nil,
 		maxRetry:      o.MaxRetry,
 		delay:         o.Delay,
 	}
@@ -71,6 +66,21 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	if o.Delay == 0 {
 		ins.delay = defaultRetryDelay
 	}
+
+	var source types.ImageSource
+	retry.IfNecessary(ctx, func() error {
+		// NewImageSource requires network connection
+		source, err = ref.NewImageSource(ctx, systemContext)
+		return err
+	}, &retry.Options{
+		MaxRetry: ins.maxRetry,
+		Delay:    ins.delay,
+	})
+	if err != nil {
+		return nil, err
+	}
+	ins.source = source
+
 	return ins, nil
 }
 
