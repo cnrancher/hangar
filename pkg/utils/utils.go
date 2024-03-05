@@ -418,9 +418,7 @@ func CopySystemContext(src *types.SystemContext) *types.SystemContext {
 		dest.ShortNameMode = &m
 	}
 	if src.DockerArchiveAdditionalTags != nil {
-		for _, tag := range src.DockerArchiveAdditionalTags {
-			dest.DockerArchiveAdditionalTags = append(dest.DockerArchiveAdditionalTags, tag)
-		}
+		dest.DockerArchiveAdditionalTags = append(dest.DockerArchiveAdditionalTags, src.DockerArchiveAdditionalTags...)
 	}
 	if src.DockerAuthConfig != nil {
 		var c = *src.DockerAuthConfig

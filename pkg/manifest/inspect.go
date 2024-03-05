@@ -21,7 +21,6 @@ type Inspector struct {
 	name          string
 	systemContext *types.SystemContext
 	source        types.ImageSource
-	mime          string
 	maxRetry      int
 	delay         time.Duration
 }
@@ -58,16 +57,11 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, mime, err := source.GetManifest(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
 
 	ins := &Inspector{
 		name:          o.ReferenceName,
 		systemContext: systemContext,
 		source:        source,
-		mime:          mime,
 		maxRetry:      o.MaxRetry,
 		delay:         o.Delay,
 	}
