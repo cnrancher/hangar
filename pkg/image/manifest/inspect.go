@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
-
 	"github.com/containers/common/pkg/retry"
 	imagev5 "github.com/containers/image/v5/image"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
@@ -46,20 +45,27 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	if systemContext == nil {
 		systemContext = &typesv5.SystemContext{}
 	}
-	source, err := ref.NewImageSource(ctx, systemContext)
-	if err != nil {
-		return nil, err
-	}
-
 	p := &Inspector{
 		name:          o.ReferenceName,
 		systemContext: systemContext,
-		source:        source,
+		source:        nil,
 		retryOpts:     o.RetryOpts,
 	}
 	if p.retryOpts == nil {
 		p.retryOpts = private.RetryOptions()
 	}
+
+	var source typesv5.ImageSource
+	retry.IfNecessary(ctx, func() error {
+		// NewImageSource requires network connection
+		source, err = ref.NewImageSource(ctx, systemContext)
+		return err
+	}, p.retryOpts)
+	if err != nil {
+		return nil, err
+	}
+	p.source = source
+
 	return p, nil
 }
 
