@@ -2,6 +2,7 @@ FROM registry.suse.com/bci/bci-base:15.5
 
 WORKDIR /hangar
 COPY bin/hangar /usr/local/bin/hangar
+COPY package/entrypoint.sh /
 
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 bash-completion vim wget && \
@@ -13,4 +14,4 @@ RUN zypper up -y && \
 
 COPY package/default-policy.json /etc/containers/policy.json
 
-ENTRYPOINT [ "/bin/bash" ]
+ENTRYPOINT [ "/entrypoint.sh" ]
