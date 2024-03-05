@@ -252,9 +252,8 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 				Warnf("Skip copy image [%v]: %v",
 					obj.source.ReferenceNameWithoutTransport(), err)
 			err = nil
-		} else {
-			return
 		}
+		return
 	}
 
 	copiedImage := obj.source.GetCopiedImage()
