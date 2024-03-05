@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [[ $# -gt 1 ]]; then
+if [[ $# -gt 0 ]]; then
     exec "$@"
 else
     bash
