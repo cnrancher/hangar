@@ -11,15 +11,26 @@ echo "-------------------------"
 
 echo "Test build non-debug binary file."
 DEBUG=0 ./scripts/build.sh > /dev/null
+ls -alh bin/hangar*
+bin/hangar version
+echo "-------------------------"
 
 echo "Test build debug binary file."
 DEBUG=true ./scripts/build.sh > /dev/null
+ls -alh bin/hangar*
+bin/hangar version
+echo "-------------------------"
 
 echo "Test build non-debug binary file with CGO disabled."
 DISABLE_CGO=1 DEBUG=0 ./scripts/build.sh > /dev/null
+ls -alh bin/hangar*
+bin/hangar version
+echo "-------------------------"
 
 echo "Test build debug binary file with CGO disabled."
 DISABLE_CGO=1 DEBUG=true ./scripts/build.sh > /dev/null
+ls -alh bin/hangar*
+bin/hangar version
 echo "-------------------------"
 echo "Build test PASSED."
 echo "-------------------------"

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -129,7 +129,7 @@ func (s *Saver) copy(ctx context.Context) {
 			s.recordFailedImage(img)
 			continue
 		}
-		sd := path.Join(cd, s.SharedBlobDirPath)
+		sd := filepath.Join(cd, s.SharedBlobDirPath)
 		dest, err := destination.NewDestination(&destination.Option{
 			Type:          types.TypeOci,
 			Directory:     cd,
@@ -293,13 +293,13 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		imageBlobs[image.Digest] = true
 		if s.layersSet[image.Digest] {
 			// The image already exists in archive, delete OCI image directory.
-			d := path.Join(destDir, image.Digest.Encoded())
+			d := filepath.Join(destDir, image.Digest.Encoded())
 			filesToDelete[d] = true
 		}
 	}
 	for blob := range imageBlobs {
 		if s.layersSet[blob] {
-			d := path.Join(destDir, archive.SharedBlobDir,
+			d := filepath.Join(destDir, archive.SharedBlobDir,
 				string(blob.Algorithm()), blob.Encoded())
 			filesToDelete[d] = true
 		} else {

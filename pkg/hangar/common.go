@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -282,7 +282,7 @@ func (m *layerManager) decompressLayer(
 	img *archive.ImageSpec, ar *archive.Reader,
 ) error {
 	for _, layer := range m.getImageLayers(img) {
-		p := path.Join(archive.SharedBlobDir, "sha256", layer)
+		p := filepath.Join(archive.SharedBlobDir, "sha256", layer)
 		err := ar.Decompress(p, m.blobDir())
 		if err != nil {
 			return fmt.Errorf("failed to decompress [%v]: %w", p, err)
@@ -312,7 +312,7 @@ func (m *layerManager) clean(img *archive.ImageSpec, set *types.FilterSet) {
 		}
 		if m.layersRefMap[layer] == 0 {
 			m.layersRefMap[layer]--
-			p := path.Join(m.blobDir(), layer)
+			p := filepath.Join(m.blobDir(), layer)
 			if _, err := os.Stat(p); err != nil {
 				logrus.Warnf("failed to cleanup [%v]: stat %v", p, err)
 			}
@@ -330,9 +330,9 @@ func (m *layerManager) cleanAll() {
 }
 
 func (m *layerManager) sharedBlobDir() string {
-	return path.Join(m.cacheDir, archive.SharedBlobDir)
+	return filepath.Join(m.cacheDir, archive.SharedBlobDir)
 }
 
 func (m *layerManager) blobDir() string {
-	return path.Join(m.cacheDir, archive.SharedBlobDir, "sha256")
+	return filepath.Join(m.cacheDir, archive.SharedBlobDir, "sha256")
 }

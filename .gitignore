@@ -13,6 +13,7 @@
 *.zip
 *.key
 *.pub
+scan-report.*
 tmp*
 data.json
 charts-repo-cache

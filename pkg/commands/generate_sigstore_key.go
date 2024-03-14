@@ -60,7 +60,7 @@ func newgenerateSigstoreKeyCmd() *generateSigstoreKeyCmd {
 func (cc *generateSigstoreKeyCmd) run() error {
 	if cc.outputPrefix == "" {
 		logrus.Errorf("Sigstore key-pair name prefix not provided")
-		return fmt.Errorf("Usage: generate-key --prefix PREFIX")
+		return fmt.Errorf("usage: generate-key --prefix PREFIX")
 	}
 
 	publicKeyPath := cc.outputPrefix + ".pub"
@@ -114,14 +114,4 @@ func (cc *generateSigstoreKeyCmd) run() error {
 	}
 	logrus.Infof("Write sigstore key-pair to %q, %q", publicKeyPath, privateKeyPath)
 	return nil
-}
-
-func (cc *generateSigstoreKeyCmd) fileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-		logrus.Warnf("Failed to detect file %q exists: %v", name, err)
-	}
-	return true
 }
