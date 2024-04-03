@@ -17,7 +17,10 @@ files=(
     "suite/converted.txt"
     "suite/*-failed.txt"
     "suite/*.zip"
+    "suite/scan-report.*"
+    "suite/*.csv"
     "suite/__pycache__"
+    "suite/.pytest_cache"
 )
 
 for f in ${files[@]}; do

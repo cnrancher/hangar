@@ -13,6 +13,7 @@ system-charts
 *.txt
 !requirements.txt
 *.json
+*.csv
 
 # binary files
 .dapper*

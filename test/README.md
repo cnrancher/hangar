@@ -27,6 +27,11 @@ To run validation tests on your local machine:
 
 1. Run `scripts/registry.sh`, this will create a temporary *private registry server* for tests.
 
+    > Since the macOS system uses the port `5000` for other service, you can change the 
+    > [distribution registry server configuration](https://distribution.github.io/distribution/about/configuration/) 
+    > option `http.addr` to another port or use other methods to setup 
+    > a private registry server for test.
+
     ```sh
     ./scripts/registry.sh
     ```
