@@ -28,6 +28,7 @@ def prepare():
 
 
 def test_generate_sigstore_key_help():
+    prepare()
     check(run_hangar(["generate-sigstore-key", "--help"]))
 
 
