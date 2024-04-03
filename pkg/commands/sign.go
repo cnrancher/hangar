@@ -86,7 +86,7 @@ hangar sign \
 	flags.StringVarP(&cc.registry, "registry", "", "", "override all image registry URL in image list")
 	flags.StringVarP(&cc.project, "project", "", "", "override all image projects in image list")
 	flags.StringVarP(&cc.failed, "failed", "o", "sign-failed.txt", "file name of the sign failed image list")
-	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
+	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, sign images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
@@ -198,7 +198,7 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 			SigstorePassphrase:  passphrase,
 		},
 
-		ExactRepository: "", // ExactRepository is used for verifying.
+		ExactRepository: "", // ExactRepository is only used for verifying.
 		Registry:        cc.registry,
 		Project:         cc.project,
 	})

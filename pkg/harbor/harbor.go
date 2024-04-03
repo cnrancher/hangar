@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/common/pkg/retry"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
@@ -28,62 +27,23 @@ func GetURL(
 	registry string,
 	tlsVerify bool,
 ) (string, error) {
-	client := &http.Client{
-		Timeout: time.Second * 5,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
-			Proxy:           http.ProxyFromEnvironment,
-		},
-	}
-	// Try ping registry using HTTPS protocol.
 	registry = strings.TrimSuffix(registry, "/")
-	u := fmt.Sprintf("https://%s/api/v2.0/ping", registry)
-	ubase := fmt.Sprintf("https://%s", registry)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	u := fmt.Sprintf("%s/api/v2.0/ping", registry)
+	// Detect registry is using HTTPS protocol or not.
+	detectURL, resp, err := utils.DetectURL(ctx, u, !tlsVerify)
 	if err != nil {
 		return "", fmt.Errorf("harbor.GetURL: %w", err)
 	}
+	if resp == nil {
+		return "", ErrRegistryIsNotHarbor
+	}
 
-	pingFunc := func() (*http.Response, error) {
-		resp, err := utils.HTTPClientDo(ctx, client, req)
-		if err == nil {
-			defer resp.Body.Close()
-			return resp, nil
-		}
-		if tlsVerify {
-			return resp, err
-		}
-
-		logrus.Debugf("ping %s: %v", u, err)
-		// The tlsVerify not enabled, try re-ping registry using HTTP.
-		u = fmt.Sprintf("http://%s/api/v2.0/ping", registry)
+	var ubase string
+	if strings.HasPrefix(detectURL, "https://") {
+		ubase = fmt.Sprintf("https://%s", registry)
+	} else {
 		ubase = fmt.Sprintf("http://%s", registry)
-		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-		if err != nil {
-			return nil, err
-		}
-		resp, err = utils.HTTPClientDo(ctx, client, req)
-		if err != nil {
-			return nil, err
-		}
-
-		defer resp.Body.Close()
-		logrus.Debugf("ping %s: %v", u, resp.Status)
-		return resp, nil
 	}
-
-	var resp *http.Response
-	err = retry.IfNecessary(ctx, func() error {
-		resp, err = pingFunc()
-		return err
-	}, &retry.Options{
-		MaxRetry: 3,
-		Delay:    time.Millisecond,
-	})
-	if err != nil {
-		return "", fmt.Errorf("harbor.GetURL: %w", err)
-	}
-
 	switch resp.StatusCode {
 	case http.StatusOK:
 		b, _ := io.ReadAll(resp.Body)
@@ -98,7 +58,6 @@ func GetURL(
 			}
 		}
 	}
-
 	return "", ErrRegistryIsNotHarbor
 }
 

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -165,7 +165,7 @@ func (d *Destination) ReferenceNameMultiArch(
 	switch d.imageType {
 	case types.TypeDir,
 		types.TypeOci:
-		return path.Join(d.referenceName, sha256sum)
+		return filepath.Join(d.referenceName, sha256sum)
 	default:
 		return d.MultiArchTag(os, osVersion, arch, variant)
 	}

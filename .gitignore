@@ -13,6 +13,9 @@
 *.zip
 *.key
 *.pub
+*.spdx
+*.spdx.json
+scan-report.*
 tmp*
 data.json
 charts-repo-cache
