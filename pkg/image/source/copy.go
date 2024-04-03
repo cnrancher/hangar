@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -492,8 +492,8 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	}
 	updateSpecDockerV2Schema2(&spec, schema2)
 	if opts.Destination.Type() == types.TypeOci {
-		o := path.Join(opts.Destination.Directory(), "UNKNOW")
-		n := path.Join(opts.Destination.Directory(), manifestDigest.Encoded())
+		o := filepath.Join(opts.Destination.Directory(), "UNKNOW")
+		n := filepath.Join(opts.Destination.Directory(), manifestDigest.Encoded())
 		err = os.Rename(o, n)
 		if err != nil {
 			return fmt.Errorf("failed to rename [%v] to [%v]: %w",

@@ -3,13 +3,14 @@ package utils
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,12 +39,10 @@ const (
 )
 
 func init() {
-	if os.Getenv("HOME") == "" {
-		// Use /var/tmp/hangar_cache as cache folder.
-		cacheDir = path.Join("/", "var", "tmp", "hangar_cache")
-	} else {
-		// Use ${HOME}/.cache/hangar_cache as cache folder
-		cacheDir = path.Join(os.Getenv("HOME"), ".cache", "hangar_cache")
+	var err error
+	cacheDir, err = os.UserCacheDir()
+	if err != nil {
+		cacheDir = os.TempDir()
 	}
 	os.MkdirAll(cacheDir, 0755)
 }
@@ -53,7 +52,11 @@ func init() {
 // The default cache dir is `${HOME}/.cache/hangar_cache`.
 // Or using `/var/tmp/hangar_cache` as cache dir if the $HOME env is missing.
 func CacheDir() string {
-	return cacheDir
+	return filepath.Join(cacheDir, "hangar")
+}
+
+func TrivyCacheDir() string {
+	return filepath.Join(cacheDir, "trivy")
 }
 
 func Sha256Sum(s string) string {
@@ -473,9 +476,7 @@ func CopySystemContext(src *types.SystemContext) *types.SystemContext {
 		dest.ShortNameMode = &m
 	}
 	if src.DockerArchiveAdditionalTags != nil {
-		for _, tag := range src.DockerArchiveAdditionalTags {
-			dest.DockerArchiveAdditionalTags = append(dest.DockerArchiveAdditionalTags, tag)
-		}
+		dest.DockerArchiveAdditionalTags = append(dest.DockerArchiveAdditionalTags, src.DockerArchiveAdditionalTags...)
 	}
 	if src.DockerAuthConfig != nil {
 		var c = *src.DockerAuthConfig
@@ -540,6 +541,69 @@ func HTTPClientDoWithRetry(
 		Delay:    time.Microsecond * 100,
 	})
 	return resp, err
+}
+
+// DetectURL detects whether the server is using HTTPS or HTTP (if in insecure mode)
+func DetectURL(
+	ctx context.Context, s string, insecure bool,
+) (string, *http.Response, error) {
+	if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+		return s, nil, nil
+	}
+
+	client := &http.Client{
+		Timeout: time.Second * 5,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+			Proxy:           http.ProxyFromEnvironment,
+		},
+	}
+
+	u := fmt.Sprintf("https://%s", s)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return "", nil, fmt.Errorf("utils.DetectURL: %w", err)
+	}
+
+	pingFunc := func() (*http.Response, error) {
+		resp, err := HTTPClientDo(ctx, client, req)
+		if err == nil {
+			defer resp.Body.Close()
+			return resp, nil
+		}
+		if !insecure {
+			return resp, err
+		}
+
+		logrus.Debugf("ping %s: %v", u, err)
+		// Insecure provided, try ping in HTTP mode
+		u = fmt.Sprintf("http://%s", s)
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = HTTPClientDo(ctx, client, req)
+		if err != nil {
+			return nil, err
+		}
+
+		defer resp.Body.Close()
+		logrus.Debugf("ping %s: %v", u, resp.Status)
+		return resp, nil
+	}
+
+	var resp *http.Response
+	err = retry.IfNecessary(ctx, func() error {
+		resp, err = pingFunc()
+		return err
+	}, &retry.Options{
+		MaxRetry: 3,
+		Delay:    time.Millisecond,
+	})
+	if err != nil {
+		return "", resp, fmt.Errorf("utils.DetectURL: %w", err)
+	}
+	return u, resp, nil
 }
 
 func CheckFileExistsPrompt(

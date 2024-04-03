@@ -83,7 +83,7 @@ func (s *Source) signDockerV2ListMediaType(
 	ctx context.Context,
 	opts *SignOptions,
 ) (int, error) {
-	var copiedNum int
+	var signedNum int
 	var errs []error
 	for _, m := range s.schema2List.Manifests {
 		arch := m.Platform.Architecture
@@ -116,17 +116,17 @@ func (s *Source) signDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
-		copiedNum++
+		signedNum++
 	}
 
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
-		return copiedNum, fmt.Errorf(
+		return signedNum, fmt.Errorf(
 			"error occurred when sign image [%v]: %w",
 			s.referenceName, err,
 		)
 	}
-	return copiedNum, nil
+	return signedNum, nil
 }
 
 func (s *Source) signMediaTypeImageIndex(

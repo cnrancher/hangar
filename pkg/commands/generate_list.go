@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -217,7 +217,7 @@ func (cc *generateListCmd) run(ctx context.Context) error {
 	err := cc.generator.Generate(ctx)
 
 	// Cleanup cache (if exists) after generate image list.
-	cacheDir := path.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory)
+	cacheDir := filepath.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory)
 	if err1 := os.RemoveAll(cacheDir); err1 != nil {
 		logrus.Warnf("Failed to delete %q: %v", cacheDir, err1)
 	}
