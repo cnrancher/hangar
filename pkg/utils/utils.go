@@ -27,7 +27,8 @@ var (
 	ErrNoAvailableImage    = errors.New("no available image for specified arch and os")
 	ErrIsSigstoreSignature = errors.New("image is a sigstore signature")
 
-	cacheDir string
+	hangarCacheDir string // $HOME/.cache/hangar/<random>
+	trivyCacheDir  string // $HOME/.cache/trivy
 )
 
 const (
@@ -39,24 +40,40 @@ const (
 )
 
 func init() {
-	var err error
-	cacheDir, err = os.UserCacheDir()
+	var (
+		base string
+		err  error
+	)
+	base, err = os.UserCacheDir()
 	if err != nil {
-		cacheDir = os.TempDir()
+		base = os.TempDir()
 	}
-	os.MkdirAll(cacheDir, 0755)
+
+	hangarCacheDir = filepath.Join(base, "hangar")
+	trivyCacheDir = filepath.Join(base, "trivy")
+	if err = os.MkdirAll(hangarCacheDir, 0755); err != nil {
+		logrus.Warnf("mkdir %q: %v", hangarCacheDir, err)
+	}
+	if err = os.MkdirAll(trivyCacheDir, 0755); err != nil {
+		logrus.Warnf("mkdir %q: %v", trivyCacheDir, err)
+	}
+
+	hangarCacheDir, err = os.MkdirTemp(hangarCacheDir, "*")
+	if err != nil {
+		logrus.Warnf("os.MkdirTemp %q: %v", hangarCacheDir, err)
+	}
 }
 
 // Get the hangar cache dir.
 //
-// The default cache dir is `${HOME}/.cache/hangar_cache`.
-// Or using `/var/tmp/hangar_cache` as cache dir if the $HOME env is missing.
-func CacheDir() string {
-	return filepath.Join(cacheDir, "hangar")
+// The default cache dir is `${HOME}/.cache/hangar/<random>`.
+func HangarCacheDir() string {
+	return hangarCacheDir
 }
 
+// Get the teivy cache dir for trivy databases.
 func TrivyCacheDir() string {
-	return filepath.Join(cacheDir, "trivy")
+	return trivyCacheDir
 }
 
 func Sha256Sum(s string) string {

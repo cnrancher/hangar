@@ -217,7 +217,7 @@ func (cc *generateListCmd) run(ctx context.Context) error {
 	err := cc.generator.Generate(ctx)
 
 	// Cleanup cache (if exists) after generate image list.
-	cacheDir := filepath.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory)
+	cacheDir := filepath.Join(utils.HangarCacheDir(), utils.CacheCloneRepoDirectory)
 	if err1 := os.RemoveAll(cacheDir); err1 != nil {
 		logrus.Warnf("Failed to delete %q: %v", cacheDir, err1)
 	}

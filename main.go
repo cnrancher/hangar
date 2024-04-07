@@ -8,6 +8,7 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/cnrancher/hangar/pkg/commands"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
@@ -16,9 +17,17 @@ import (
 func main() {
 	setup()
 	if err := commands.Execute(os.Args[1:]); err != nil {
-		logrus.Error(err)
-		os.Exit(1)
+		cleanup()
+		logrus.Fatal(err)
 	}
+	cleanup()
+}
+
+func cleanup() {
+	if err := os.RemoveAll(utils.HangarCacheDir()); err != nil {
+		logrus.Warnf("failed to delete %q: %v", utils.HangarCacheDir(), err)
+	}
+	logrus.Debugf("cleanup %q", utils.HangarCacheDir())
 }
 
 func setup() {

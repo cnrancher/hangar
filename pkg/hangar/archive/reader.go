@@ -142,7 +142,7 @@ func (r *Reader) Decompress(name string, destination string) error {
 }
 
 func (r *Reader) DecompressTmp(name string) (string, error) {
-	tmpDir, err := os.MkdirTemp(utils.CacheDir(), "*")
+	tmpDir, err := os.MkdirTemp(utils.HangarCacheDir(), "*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create tmp dir: %w", err)
 	}
@@ -161,7 +161,7 @@ func (r *Reader) DecompressImageTmp(
 		return "", utils.ErrNoAvailableImage
 	}
 
-	tmpDir, err := os.MkdirTemp(utils.CacheDir(), "*")
+	tmpDir, err := os.MkdirTemp(utils.HangarCacheDir(), "*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create tmp dir: %w", err)
 	}
