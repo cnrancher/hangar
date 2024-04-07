@@ -157,7 +157,7 @@ func (s *Syncer) copy(ctx context.Context) {
 }
 
 func (s *Syncer) newSaveCacheDir() (string, error) {
-	cd, err := os.MkdirTemp(utils.CacheDir(), "*")
+	cd, err := os.MkdirTemp(utils.HangarCacheDir(), "*")
 	if err != nil {
 		return "", fmt.Errorf("os.MkdirTemp: %w", err)
 	}

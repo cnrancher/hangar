@@ -36,8 +36,10 @@ func SetupSignalContext() context.Context {
 		<-shutdownHandler
 
 		// second signal. Exit directly.
-		logrus.Warnf("Hangar was forced to stop, please clean up %q manually!",
-			utils.CacheDir())
+		logrus.Warnf("Hangar was forced to stop.")
+		if err := os.RemoveAll(utils.HangarCacheDir()); err != nil {
+			logrus.Warnf("failed to delete %q: %v", utils.HangarCacheDir(), err)
+		}
 		os.Exit(130)
 	}()
 
