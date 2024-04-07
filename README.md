@@ -11,32 +11,27 @@
 
 > English | [简体中文](https://hangar.cnrancher.com/zh/)
 
-Hangar is a **simple** and **easy-to-use** command line utility for mirroring multi-architecture & multi-platform container images between container image registries. Aiming to simplify the process of copying container images between image registries.
+Hangar is a command line utility for container images, it's main features are:
+- Copy multi-platform container images between registry servers.
+- Save and load multi-platform container images between archive files.
+- Container image signing functions with sigstore key-pairs.
+- Container image vulnerability scanning.
 
-- Hangar allows to copy container images without container runtime (daemon).
-- Not restricted by the architecture and OS of the runtime system, it supports running on Linux/Unix systems.
-- Supports both docker images and [OCI images](https://github.com/opencontainers/image-spec).
-- Hangar supports to copy container images parallelly to improve performance.
-- Save and load images with archive files to allow the setup of registry server in Air-Gapped installation.
+## Why use hangar?
 
-Hangar provides following functions：
+- Hangar does not require any container runtime (daemon) to copy container images.
+- Hangar is not restricted by the platform of the runtime system, it supports Linux/Unix systems.
+- Hangar supports both [docker images](https://github.com/moby/docker-image-spec/blob/main/README.md) and [OCI images](https://github.com/opencontainers/image-spec).
+- Hangar supports copy/save/load/sign/scan multi-platform images parallelly to increase speed.
+- Hanagr is designed to save/load multi-platform container images with archve files in Air-Gapped environments.
 
-- Mirror container images between image registries (see [mirror](https://hangar.cnrancher.com/docs/v1.7/mirror/mirror) subcommand).
-- Save container images into an archive file, and then upload them to the image registry server (see [save](https://hangar.cnrancher.com/docs/v1.7/save/save) and [load](https://hangar.cnrancher.com/docs/v1.7/load/load) subcommands). Designed to use for Air-Gapped (offline) installation.
-- Validate commands to verify that the container images were copied correctly (see [validate](https://hangar.cnrancher.com/docs/v1.7/advanced/validate) subcommands).
-- Other advanced commands for image list files and archive files (see [advanced usage](https://hangar.cnrancher.com/docs/v1.7/advanced/)).
+## Getting started
 
-## Documents
-
-The detailed usage of Hangar and getting started instruction is available in [hangar.cnrancher.com](https://hangar.cnrancher.com).
-
-## Dependencies
-
-Starting from `v1.7.0`, Hangar has removed all third-party executable binary dependencies to improve the speed of container image copying and reduce performance consumption.
+The getting started instruction of Hangar is available in [documents](https://hangar.cnrancher.com/docs/v1.8/).
 
 ## Contributing
 
-If you encounter any issues or have suggestions for improvement while using Hangar, feel free to open an [issue](https://github.com/cnrancher/hangar/issues) or [pull request](https://github.com/cnrancher/hangar/pulls). Your contributions are welcomed!
+Hangar is open-source and any [issues](https://github.com/cnrancher/hangar/issues) or [pull requests](https://github.com/cnrancher/hangar/pulls) are welcomed if you have any suggestions while using Hangar.
 
 ## License
 
