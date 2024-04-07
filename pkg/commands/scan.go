@@ -56,7 +56,7 @@ func newScanCmd() *scanCmd {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "scan -f IMAGE_LIST.txt",
-		Short: "Scan multiple container image vulnerabilities",
+		Short: "Scan container image vulnerabilities",
 		Long:  ``,
 		Example: `# Scan images by image list file and output CSV result.
 hangar scan \
@@ -100,7 +100,7 @@ hangar scan \
 	flags.StringVarP(&cc.project, "project", "", "", "override all image projects in image list")
 	flags.StringVarP(&cc.failed, "failed", "o", "scan-failed.txt", "file name of the scan failed image list")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, scan images parallelly (1-20)")
-	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
+	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when scan each images")
 	flags.StringVarP(&cc.cacheDir, "cache", "", utils.TrivyCacheDir(), "trivy database cache directory")
 	flags.StringVarP(&cc.dbRepo, "trivy-db-repo", "", scan.DefaultDBRepository,
 		"trivy vulnerability database repository")

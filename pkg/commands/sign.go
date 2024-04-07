@@ -49,7 +49,7 @@ func newSignCmd() *signCmd {
 hangar sign \
 	--file IMAGE_LIST.txt \
 	--sigstore-key SIGSTORE.key \
-	--sigstore-passphrase-file "/path/to/passphrase/file"
+	--sigstore-passphrase-file "/path/to/passphrase/file" \
 	--arch amd64,arm64 \
 	--os linux`,
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -87,7 +87,7 @@ hangar sign \
 	flags.StringVarP(&cc.project, "project", "", "", "override all image projects in image list")
 	flags.StringVarP(&cc.failed, "failed", "o", "sign-failed.txt", "file name of the sign failed image list")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, sign images parallelly (1-20)")
-	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
+	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when sign each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
