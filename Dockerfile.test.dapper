@@ -11,6 +11,7 @@ RUN pip install pytest tox
 
 COPY bin/hangar /usr/local/bin/hangar
 COPY package/default-policy.json /etc/containers/policy.json
+COPY package/registries.d/default.yaml /etc/containers/registries.d/default.yaml
 
 ENV DAPPER_RUN_ARGS "--network=host"
 
