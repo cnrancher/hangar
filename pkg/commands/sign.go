@@ -79,7 +79,7 @@ hangar sign \
 	flags.StringSliceVarP(&cc.arch, "arch", "a", []string{"amd64", "arm64"}, "architecture list of images")
 	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux"}, "OS list of images")
 	flags.StringVarP(&cc.privateKey, "sigstore-key", "k", "", "sigstore private key file")
-	flags.SetAnnotation("sigstore-key", cobra.BashCompOneRequiredFlag, []string{"key", "private"})
+	flags.SetAnnotation("sigstore-key", cobra.BashCompFilenameExt, []string{"key", "private"})
 	flags.SetAnnotation("sigstore-key", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVar(&cc.passphraseFile, "sigstore-passphrase-file", "",
 		"read the passphrase for the private key from file")
