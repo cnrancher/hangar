@@ -206,14 +206,14 @@ var (
 	}
 )
 
-func addRPMCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMCharts(v string, o *listgenerator.GeneratorOption, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RancherPrimeManagerCharts
 	if dev {
 		chartsMap = RancherPrimeManagerChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
-		g.ChartURLs[url] = struct {
+		o.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
@@ -223,14 +223,14 @@ func addRPMCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func addRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMSystemCharts(v string, o *listgenerator.GeneratorOption, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	systemChartsMap := RancherPrimeManagerSystemCharts
 	if dev {
 		systemChartsMap = RancherPrimeManagerSystemChartsDEV
 	}
 	for url := range systemChartsMap[majorMinor] {
-		g.ChartURLs[url] = struct {
+		o.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
@@ -240,14 +240,14 @@ func addRPMSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func addRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMGCCharts(v string, o *listgenerator.GeneratorOption, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RancherPrimeManagerGCCharts
 	if dev {
 		chartsMap = RancherPrimeManagerGCChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
-		g.ChartURLs[url] = struct {
+		o.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
@@ -257,14 +257,14 @@ func addRPMGCCharts(v string, g *listgenerator.Generator, dev bool) {
 	}
 }
 
-func addRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
+func addRPMGCSystemCharts(v string, o *listgenerator.GeneratorOption, dev bool) {
 	majorMinor := semver.MajorMinor(v)
 	chartsMap := RancherPrimeManagerGCSystemCharts
 	if dev {
 		chartsMap = RancherPrimeManagerGCSystemChartsDEV
 	}
 	for url := range chartsMap[majorMinor] {
-		g.ChartURLs[url] = struct {
+		o.ChartURLs[url] = struct {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}{
@@ -275,7 +275,7 @@ func addRPMGCSystemCharts(v string, g *listgenerator.Generator, dev bool) {
 }
 
 func addRancherPrimeManagerKontainerDriverMetadata(
-	v string, g *listgenerator.Generator, dev bool,
+	v string, o *listgenerator.GeneratorOption, dev bool,
 ) {
 	majorMinor := semver.MajorMinor(v)
 	urlMap := KontainerDriverMetadataURLs
@@ -287,11 +287,11 @@ func addRancherPrimeManagerKontainerDriverMetadata(
 		logrus.Warnf("KDM URL of version %q not found!", majorMinor)
 		return
 	}
-	g.KDMURL = url
+	o.KDMURL = url
 }
 
 func addRancherPrimeManagerGCKontainerDriverMetadata(
-	v string, g *listgenerator.Generator, dev bool,
+	v string, o *listgenerator.GeneratorOption, dev bool,
 ) {
 	majorMinor := semver.MajorMinor(v)
 	urlMap := KontainerDriverMetadataGCURLs
@@ -303,5 +303,5 @@ func addRancherPrimeManagerGCKontainerDriverMetadata(
 		logrus.Warnf("KDM URL of version %q not found!", majorMinor)
 		return
 	}
-	g.KDMURL = url
+	o.KDMURL = url
 }

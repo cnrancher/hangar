@@ -6,19 +6,12 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types"
-	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
 )
 
-type RKEGetterOpts struct {
-	RancherVersion string
-	Data           *kdm.Data
-}
-
-// RKEGetter is the object to get RKE images and versions.
-type RKEGetter struct {
+// rkeGetter is the object to get RKE images and versions.
+type rkeGetter struct {
 	rancherVersion    string
 	rkeSysImages      map[string]types.RKESystemImages
 	linuxSvcOptions   map[string]types.KubernetesServicesOptions
@@ -35,21 +28,21 @@ type RKEGetter struct {
 	versionSet map[string]bool
 }
 
-func NewRKEGetter(rancherVersion string, data *kdm.Data) (*RKEGetter, error) {
-	if _, err := utils.EnsureSemverValid(rancherVersion); err != nil {
+func newRKEGetter(o *GetterOptions) (*rkeGetter, error) {
+	if _, err := utils.EnsureSemverValid(o.RancherVersion); err != nil {
 		return nil, err
 	}
 
-	return &RKEGetter{
-		rancherVersion:    rancherVersion,
-		rkeSysImages:      data.K8sVersionRKESystemImages,
-		linuxSvcOptions:   data.K8sVersionServiceOptions,
-		windowsSvcOptions: data.K8sVersionWindowsServiceOptions,
-		rancherVersions:   data.K8sVersionInfo,
+	return &rkeGetter{
+		rancherVersion:    o.RancherVersion,
+		rkeSysImages:      o.KDMData.K8sVersionRKESystemImages,
+		linuxSvcOptions:   o.KDMData.K8sVersionServiceOptions,
+		windowsSvcOptions: o.KDMData.K8sVersionWindowsServiceOptions,
+		rancherVersions:   o.KDMData.K8sVersionInfo,
 	}, nil
 }
 
-func (g *RKEGetter) Get(ctx context.Context) error {
+func (g *rkeGetter) Get(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -65,15 +58,16 @@ func (g *RKEGetter) Get(ctx context.Context) error {
 	}
 
 	logrus.Infof("Generating RKE images.")
+
+	// RKE1 images already removed the deprecated k8s patch release so the
+	// ignoreDeprecated option is not needed here.
 	if err := g.getK8sVersionInfo(); err != nil {
 		return err
 	}
-
-	if err := fetchImages(g.linuxInfo, g.linuxImageSet); err != nil {
+	if err := fetchImages(g.linuxInfo, g.linuxImageSet, "linux"); err != nil {
 		return err
 	}
-
-	if err := fetchImages(g.windowsInfo, g.windowsImageSet); err != nil {
+	if err := fetchImages(g.windowsInfo, g.windowsImageSet, "windows"); err != nil {
 		return err
 	}
 	// Remove images begins with noiro
@@ -89,12 +83,11 @@ func (g *RKEGetter) Get(ctx context.Context) error {
 			delete(g.windowsImageSet, image)
 		}
 	}
-
 	return nil
 }
 
 func discardImage(image string) bool {
-	project := u.GetProjectName(image)
+	project := utils.GetProjectName(image)
 	switch project {
 	case "rancher", "cnrancher", "library":
 		return false
@@ -105,6 +98,7 @@ func discardImage(image string) bool {
 func fetchImages(
 	versionInfo *versionInfo,
 	imageSet map[string]map[string]bool,
+	os string,
 ) error {
 	if versionInfo == nil || len(versionInfo.RKESystemImages) <= 0 {
 		return nil
@@ -118,7 +112,7 @@ func fetchImages(
 		if imageSet[image] == nil {
 			imageSet[image] = make(map[string]bool)
 		}
-		imageSet[image]["rke-system"] = true
+		imageSet[image]["rke-system-"+os] = true
 	}
 	return nil
 }
@@ -128,7 +122,7 @@ func flatImagesFromCollections(
 ) (images []string, err error) {
 	for _, col := range cols {
 		colObj := map[string]any{}
-		if err := u.ToObj(col, &colObj); err != nil {
+		if err := utils.ToObj(col, &colObj); err != nil {
 			return []string{}, err
 		}
 		images = append(images, fetchImagesFromCollection(colObj)...)
@@ -148,7 +142,7 @@ func fetchImagesFromCollection(obj map[string]any) (images []string) {
 	return images
 }
 
-func (g *RKEGetter) getK8sVersionInfo() error {
+func (g *rkeGetter) getK8sVersionInfo() error {
 	linuxInfo := newVersionInfo()
 	windowsInfo := newVersionInfo()
 	g.linuxInfo = linuxInfo
@@ -166,7 +160,7 @@ func (g *RKEGetter) getK8sVersionInfo() error {
 			continue
 		}
 		curr, ok := maxVersionForMajorK8sVersion[majorVersion]
-		res, err := u.SemverCompare(k8sVersion, curr)
+		res, err := utils.SemverCompare(k8sVersion, curr)
 		if err != nil || !ok || res > 0 {
 			maxVersionForMajorK8sVersion[majorVersion] = k8sVersion
 		}
@@ -230,7 +224,7 @@ func toIgnoreForAllK8s(
 	rancherVersion string,
 ) bool {
 	if rancherVersionInfo.DeprecateRancherVersion != "" {
-		res, err := u.SemverCompare(
+		res, err := utils.SemverCompare(
 			rancherVersion, rancherVersionInfo.DeprecateRancherVersion)
 		if err != nil {
 			logrus.Warn(err)
@@ -239,7 +233,7 @@ func toIgnoreForAllK8s(
 		}
 	}
 	if rancherVersionInfo.MinRancherVersion != "" {
-		res, err := u.SemverCompare(
+		res, err := utils.SemverCompare(
 			rancherVersion, rancherVersionInfo.MinRancherVersion)
 		if err != nil {
 			logrus.Warn(err)
@@ -257,7 +251,7 @@ func toIgnoreForK8sCurrent(
 	rancherVersion string,
 ) bool {
 	if majorVersionInfo.MaxRancherVersion != "" {
-		res, err := u.SemverCompare(
+		res, err := utils.SemverCompare(
 			rancherVersion, majorVersionInfo.MaxRancherVersion)
 		if err != nil {
 			logrus.Warn(err)
@@ -269,18 +263,18 @@ func toIgnoreForK8sCurrent(
 	return false
 }
 
-func (g *RKEGetter) LinuxImageSet() map[string]map[string]bool {
+func (g *rkeGetter) LinuxImageSet() map[string]map[string]bool {
 	return g.linuxImageSet
 }
 
-func (g *RKEGetter) WindowsImageSet() map[string]map[string]bool {
+func (g *rkeGetter) WindowsImageSet() map[string]map[string]bool {
 	return g.windowsImageSet
 }
 
-func (g *RKEGetter) VersionSet() map[string]bool {
+func (g *rkeGetter) VersionSet() map[string]bool {
 	return g.versionSet
 }
 
-func (g *RKEGetter) Source() ClusterType {
+func (g *rkeGetter) Source() ClusterType {
 	return RKE
 }

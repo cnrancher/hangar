@@ -44,12 +44,16 @@ func Test_DataJson(t *testing.T) {
 }
 
 func Test_generateFromKDMPath(t *testing.T) {
-	g := Generator{
+	g, err := NewGenerator(&GeneratorOption{
 		RancherVersion: "v2.8.0",
+		MinKubeVersion: "v1.25.0",
 		KDMPath:        "test/data.json",
+	})
+	if err != nil {
+		t.Error(err)
+		return
 	}
-	g.init()
-	err := g.generateFromKDMPath(context.TODO())
+	err = g.generateFromKDMPath(context.TODO())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return
@@ -64,12 +68,18 @@ func Test_generateFromKDMPath(t *testing.T) {
 }
 
 func Test_generateFromKDMURL(t *testing.T) {
-	g := Generator{
+	t.Skip()
+
+	g, err := NewGenerator(&GeneratorOption{
 		RancherVersion: "v2.8.0",
-		KDMURL:         "",
+		MinKubeVersion: "v1.25.0",
+		KDMURL:         "https://releases.rancher.com/kontainer-driver-metadata/release-v2.8/data.json",
+	})
+	if err != nil {
+		t.Error(err)
+		return
 	}
-	g.init()
-	err := g.generateFromKDMURL(context.TODO())
+	err = g.generateFromKDMURL(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}

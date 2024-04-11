@@ -1,6 +1,11 @@
 package kdmimages
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	"github.com/rancher/rke/types/kdm"
+)
 
 type ClusterType string
 
@@ -30,4 +35,26 @@ type Getter interface {
 
 	// Source method gets the cluster type of getter.
 	Source() ClusterType
+}
+
+type GetterOptions struct {
+	Type           ClusterType
+	RancherVersion string
+	MinKubeVersion string
+	KDMData        kdm.Data
+
+	// RemoveDeprecated removes the old deprecated k8s versions and
+	// only outputs the highest k8s patch version
+	RemoveDeprecated bool
+	InsecureSkipTLS  bool
+}
+
+func NewGetter(o *GetterOptions) (Getter, error) {
+	switch o.Type {
+	case K3S, RKE2:
+		return newK3sRKE2Getter(o)
+	case RKE:
+		return newRKEGetter(o)
+	}
+	return nil, fmt.Errorf("unrecognized cluster type: %q", o.Type)
 }
