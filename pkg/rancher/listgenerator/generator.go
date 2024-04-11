@@ -7,22 +7,18 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/kdmimages"
 	"github.com/cnrancher/hangar/pkg/utils"
-	u "github.com/cnrancher/hangar/pkg/utils"
 	"github.com/rancher/rke/types/kdm"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/mod/semver"
 )
 
-// Generator is a generator to generate image list from charts, KDM data, etc.
-type Generator struct {
-	RancherVersion string // Rancher version, should be va.b.c
-	MinKubeVersion string // Minimum kube verision, should be va.b.c
+type GeneratorOption struct {
+	RancherVersion string
+	MinKubeVersion string
 
 	ChartsPaths map[string]chartimages.ChartRepoType // map[url]type
 	ChartURLs   map[string]struct {
@@ -33,88 +29,102 @@ type Generator struct {
 	KDMPath string // The path of KDM data.json file.
 	KDMURL  string // The remote URL of KDM data.json.
 
-	InsecureSkipVerify bool // Skip TLS Verify.
+	InsecureSkipTLS     bool
+	RemoveDeprecatedKDM bool
+}
 
-	// Generated linux images, map[image]map[source]true
-	LinuxImages map[string]map[string]bool
-	// Generated windows images, map[image]map[source]true
+// Generator is a generator to generate image list from charts, KDM data, etc.
+type Generator struct {
+	rancherVersion string // Rancher version, should be va.b.c
+	minKubeVersion string // Minimum kube verision, should be va.b.c
+
+	chartsPaths map[string]chartimages.ChartRepoType // map[url]type
+	chartURLs   map[string]struct {
+		Type   chartimages.ChartRepoType
+		Branch string
+	}
+
+	kdmPath string
+	kdmURL  string
+
+	insecureSkipTLS     bool
+	removeDeprecatedKDM bool
+
+	// All generated images, map[image]map[source]true
+	LinuxImages   map[string]map[string]bool
 	WindowsImages map[string]map[string]bool
 
-	RKE1Versions map[string]bool // Generated RKE1 versions
-	RKE2Versions map[string]bool // Generated RKE2 versions
-	K3sVersions  map[string]bool // Generated K3s versions
+	RKE1LinuxImages   map[string]map[string]bool
+	RKE2LinuxImages   map[string]map[string]bool
+	K3sLinuxImages    map[string]map[string]bool
+	RKE2WindowsImages map[string]map[string]bool
+
+	RKE1Versions map[string]bool
+	RKE2Versions map[string]bool
+	K3sVersions  map[string]bool
 }
 
-func (g *Generator) init() {
-	if g.LinuxImages == nil {
-		g.LinuxImages = make(map[string]map[string]bool)
+func NewGenerator(o *GeneratorOption) (*Generator, error) {
+	if o.RancherVersion == "" {
+		return nil, fmt.Errorf("invalid rancher version")
 	}
-	if g.WindowsImages == nil {
-		g.WindowsImages = make(map[string]map[string]bool)
+	rancherVersion, err := utils.EnsureSemverValid(o.RancherVersion)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rancher version: %v", o.RancherVersion)
 	}
-	if g.K3sVersions == nil {
-		g.K3sVersions = make(map[string]bool)
+	if o.ChartURLs == nil && o.ChartsPaths == nil &&
+		o.KDMPath == "" && o.KDMURL == "" {
+		return nil, fmt.Errorf("no input source provided")
 	}
-	if g.RKE1Versions == nil {
-		g.RKE1Versions = make(map[string]bool)
+
+	g := &Generator{
+		rancherVersion:      rancherVersion,
+		minKubeVersion:      o.MinKubeVersion,
+		chartsPaths:         o.ChartsPaths,
+		chartURLs:           o.ChartURLs,
+		kdmPath:             o.KDMPath,
+		kdmURL:              o.KDMURL,
+		insecureSkipTLS:     o.InsecureSkipTLS,
+		removeDeprecatedKDM: o.RemoveDeprecatedKDM,
+
+		LinuxImages:       make(map[string]map[string]bool),
+		WindowsImages:     make(map[string]map[string]bool),
+		K3sLinuxImages:    make(map[string]map[string]bool),
+		K3sVersions:       make(map[string]bool),
+		RKE1LinuxImages:   make(map[string]map[string]bool),
+		RKE1Versions:      make(map[string]bool),
+		RKE2LinuxImages:   make(map[string]map[string]bool),
+		RKE2WindowsImages: make(map[string]map[string]bool),
+		RKE2Versions:      make(map[string]bool),
 	}
-	if g.RKE2Versions == nil {
-		g.RKE2Versions = make(map[string]bool)
-	}
+	return g, nil
 }
 
-func (g *Generator) selfCheck() error {
-	if g.RancherVersion == "" {
-		return fmt.Errorf("RancherVersion is empty")
-	}
-	if !strings.HasPrefix(g.RancherVersion, "v") {
-		g.RancherVersion = "v" + g.RancherVersion
-	}
-	if !semver.IsValid(g.RancherVersion) {
-		return fmt.Errorf("%q is not a valid Rancher version", g.RancherVersion)
-	}
-	if g.ChartURLs == nil && g.ChartsPaths == nil &&
-		g.KDMPath == "" && g.KDMURL == "" {
-		return fmt.Errorf("no input source provided")
-	}
-
-	return nil
-}
-
-func (g *Generator) Generate(ctx context.Context) error {
-	g.init()
-	if err := g.selfCheck(); err != nil {
-		return err
-	}
-
+func (g *Generator) Run(ctx context.Context) error {
 	if err := g.generateFromChartPaths(ctx); err != nil {
 		return err
 	}
-
 	if err := g.generateFromChartURLs(ctx); err != nil {
 		return err
 	}
-
 	if err := g.generateFromKDMPath(ctx); err != nil {
 		return err
 	}
-
 	if err := g.generateFromKDMURL(ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (g *Generator) generateFromChartPaths(ctx context.Context) error {
-	if g.ChartsPaths == nil || len(g.ChartsPaths) == 0 {
+	if g.chartsPaths == nil || len(g.chartsPaths) == 0 {
 		return nil
 	}
-	for path := range g.ChartsPaths {
+	for path := range g.chartsPaths {
 		c := chartimages.Chart{
-			RancherVersion: g.RancherVersion,
+			RancherVersion: g.rancherVersion,
 			OS:             chartimages.Linux,
-			Type:           g.ChartsPaths[path],
+			Type:           g.chartsPaths[path],
 			Path:           path,
 		}
 		if err := c.FetchImages(ctx); err != nil {
@@ -122,7 +132,7 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.LinuxImages, image, source)
+				utils.AddSourceToImage(g.LinuxImages, image, source)
 			}
 		}
 		// fetch windows images
@@ -133,7 +143,7 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 		}
 		for image := range c.ImageSet {
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.WindowsImages, image, source)
+				utils.AddSourceToImage(g.WindowsImages, image, source)
 			}
 		}
 	}
@@ -141,17 +151,17 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 }
 
 func (g *Generator) generateFromChartURLs(ctx context.Context) error {
-	if g.ChartURLs == nil || len(g.ChartURLs) == 0 {
+	if g.chartURLs == nil || len(g.chartURLs) == 0 {
 		return nil
 	}
-	for url := range g.ChartURLs {
+	for url := range g.chartURLs {
 		c := chartimages.Chart{
-			RancherVersion:  g.RancherVersion,
+			RancherVersion:  g.rancherVersion,
 			OS:              chartimages.Linux,
-			Type:            g.ChartURLs[url].Type,
-			Branch:          g.ChartURLs[url].Branch,
+			Type:            g.chartURLs[url].Type,
+			Branch:          g.chartURLs[url].Branch,
 			URL:             url,
-			InsecureSkipTLS: g.InsecureSkipVerify,
+			InsecureSkipTLS: g.insecureSkipTLS,
 		}
 		if err := c.FetchImages(ctx); err != nil {
 			return err
@@ -161,7 +171,7 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 				continue
 			}
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.LinuxImages, image, source)
+				utils.AddSourceToImage(g.LinuxImages, image, source)
 			}
 		}
 		// fetch windows images
@@ -175,7 +185,7 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 				continue
 			}
 			for source := range c.ImageSet[image] {
-				u.AddSourceToImage(g.WindowsImages, image, source)
+				utils.AddSourceToImage(g.WindowsImages, image, source)
 			}
 		}
 	}
@@ -183,10 +193,10 @@ func (g *Generator) generateFromChartURLs(ctx context.Context) error {
 }
 
 func (g *Generator) generateFromKDMPath(ctx context.Context) error {
-	if g.KDMPath == "" {
+	if g.kdmPath == "" {
 		return nil
 	}
-	b, err := os.ReadFile(g.KDMPath)
+	b, err := os.ReadFile(g.kdmPath)
 	if err != nil {
 		return err
 	}
@@ -194,21 +204,21 @@ func (g *Generator) generateFromKDMPath(ctx context.Context) error {
 }
 
 func (g *Generator) generateFromKDMURL(ctx context.Context) error {
-	if g.KDMURL == "" {
+	if g.kdmURL == "" {
 		return nil
 	}
-	logrus.Infof("Get KDM data from URL: %q", g.KDMURL)
+	logrus.Infof("Get KDM data from URL: %q", g.kdmURL)
 
 	client := &http.Client{
 		Timeout: time.Second * 15,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: g.InsecureSkipVerify,
+				InsecureSkipVerify: g.insecureSkipTLS,
 			},
 			Proxy: http.ProxyFromEnvironment,
 		},
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.KDMURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, g.kdmURL, nil)
 	if err != nil {
 		return fmt.Errorf("generateFromKDMURL: %w", err)
 	}
@@ -229,46 +239,42 @@ func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	if err != nil {
 		return fmt.Errorf("generateFromKDMData: %w", err)
 	}
-
-	getters := []kdmimages.Getter{}
-	var getter kdmimages.Getter
-	// K3s images getter
-	getter, err = kdmimages.NewK3sRKE2Getter(
-		kdmimages.K3S, g.RancherVersion, g.MinKubeVersion, data.K3S, g.InsecureSkipVerify)
-	if err != nil {
-		return err
+	clusters := []kdmimages.ClusterType{
+		kdmimages.K3S,
+		kdmimages.RKE,
+		kdmimages.RKE2,
 	}
-	getters = append(getters, getter)
+	for _, t := range clusters {
+		getter, err := kdmimages.NewGetter(&kdmimages.GetterOptions{
+			Type:             t,
+			RancherVersion:   g.rancherVersion,
+			MinKubeVersion:   g.minKubeVersion,
+			KDMData:          data,
+			InsecureSkipTLS:  g.insecureSkipTLS,
+			RemoveDeprecated: g.removeDeprecatedKDM,
+		})
+		if err != nil {
+			return err
+		}
 
-	// RKE2 images getter
-	getter, err = kdmimages.NewK3sRKE2Getter(
-		kdmimages.RKE2, g.RancherVersion, g.MinKubeVersion, data.RKE2, g.InsecureSkipVerify)
-	if err != nil {
-		return err
-	}
-	getters = append(getters, getter)
-
-	// RKE images getter
-	getter, err = kdmimages.NewRKEGetter(g.RancherVersion, &data)
-	if err != nil {
-		return err
-	}
-	getters = append(getters, getter)
-
-	for _, getter := range getters {
 		if err = getter.Get(ctx); err != nil {
 			return err
 		}
 		utils.MergeImageSourceSet(g.LinuxImages, getter.LinuxImageSet())
 		utils.MergeImageSourceSet(g.WindowsImages, getter.WindowsImageSet())
-		// Merge version sets
+		// Merge sets
 		switch getter.Source() {
 		case kdmimages.RKE:
 			utils.MergeSets(g.RKE1Versions, getter.VersionSet())
+			utils.MergeImageSourceSet(g.RKE1LinuxImages, getter.LinuxImageSet())
 		case kdmimages.RKE2:
 			utils.MergeSets(g.RKE2Versions, getter.VersionSet())
+			utils.MergeImageSourceSet(g.RKE2LinuxImages, getter.LinuxImageSet())
+			// RKE2 supports Windows
+			utils.MergeImageSourceSet(g.RKE2WindowsImages, getter.WindowsImageSet())
 		case kdmimages.K3S:
 			utils.MergeSets(g.K3sVersions, getter.VersionSet())
+			utils.MergeImageSourceSet(g.K3sLinuxImages, getter.LinuxImageSet())
 		}
 	}
 	return nil

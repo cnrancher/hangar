@@ -26,42 +26,44 @@ const (
 	K3SImageURLCN      = "https://rancher-mirror.rancher.cn/k3s/%s/k3s-images.txt"
 )
 
-// K3sRKE2Getter is the object to get RKE2 and K3s release & upgrade images
-type K3sRKE2Getter struct {
+// k3sRKE2Getter is the object to get RKE2 and K3s release & upgrade images
+type k3sRKE2Getter struct {
 	source             ClusterType
 	rancherVersion     string
 	minKubeVersion     string
 	data               map[string]any
 	insecureSkipVerify bool
+	removeDeprecated   bool
 
 	linuxImageSet   map[string]map[string]bool
 	windowsImageSet map[string]map[string]bool
 	versionSet      map[string]bool
 }
 
-func NewK3sRKE2Getter(
-	source ClusterType,
-	rancherVersion string,
-	minKubeVersion string,
-	data map[string]any,
-	skipTLS bool,
-) (*K3sRKE2Getter, error) {
-	if source == "" || source == RKE {
-		return nil, fmt.Errorf("invalid cluster type: %v", source)
+func newK3sRKE2Getter(o *GetterOptions) (*k3sRKE2Getter, error) {
+	var data map[string]any
+	switch o.Type {
+	case K3S:
+		data = o.KDMData.K3S
+	case RKE2:
+		data = o.KDMData.RKE2
+	default:
+		return nil, fmt.Errorf("invalid cluster type: %v", o.Type)
 	}
-	if _, err := utils.EnsureSemverValid(rancherVersion); err != nil {
+	if _, err := utils.EnsureSemverValid(o.RancherVersion); err != nil {
 		return nil, err
 	}
-	if _, err := utils.EnsureSemverValid(minKubeVersion); err != nil {
+	if _, err := utils.EnsureSemverValid(o.MinKubeVersion); err != nil {
 		return nil, err
 	}
 
-	return &K3sRKE2Getter{
-		source:             source,
-		rancherVersion:     rancherVersion,
-		minKubeVersion:     minKubeVersion,
+	return &k3sRKE2Getter{
+		source:             o.Type,
+		rancherVersion:     o.RancherVersion,
+		minKubeVersion:     o.MinKubeVersion,
 		data:               data,
-		insecureSkipVerify: skipTLS,
+		insecureSkipVerify: o.InsecureSkipTLS,
+		removeDeprecated:   o.RemoveDeprecated,
 
 		linuxImageSet:   make(map[string]map[string]bool),
 		windowsImageSet: make(map[string]map[string]bool),
@@ -69,7 +71,7 @@ func NewK3sRKE2Getter(
 	}, nil
 }
 
-func (g *K3sRKE2Getter) Get(ctx context.Context) error {
+func (g *k3sRKE2Getter) Get(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -137,6 +139,11 @@ func (g *K3sRKE2Getter) Get(ctx context.Context) error {
 		return nil
 	}
 
+	if g.removeDeprecated {
+		compatibleVersions = filterDeprecatedVersions(compatibleVersions)
+		logrus.Debugf("Removed deprecated k8s versions: %v", compatibleVersions)
+	}
+
 	rs := fmt.Sprintf("[%s-release(rancher)]", g.source)
 	us := fmt.Sprintf("[%s-upgrade(rancher)]", g.source)
 	for _, version := range compatibleVersions {
@@ -191,7 +198,7 @@ func (g *K3sRKE2Getter) Get(ctx context.Context) error {
 	return nil
 }
 
-func (g *K3sRKE2Getter) getLinuxExternalList(ctx context.Context, release string) ([]string, error) {
+func (g *k3sRKE2Getter) getLinuxExternalList(ctx context.Context, release string) ([]string, error) {
 	var link string
 	switch g.source {
 	case RKE2:
@@ -204,7 +211,7 @@ func (g *K3sRKE2Getter) getLinuxExternalList(ctx context.Context, release string
 	return getImageListFromURL(ctx, g.insecureSkipVerify, link)
 }
 
-func (g *K3sRKE2Getter) getWindowsExternalList(ctx context.Context, release string) ([]string, error) {
+func (g *k3sRKE2Getter) getWindowsExternalList(ctx context.Context, release string) ([]string, error) {
 	var link string
 	switch g.source {
 	case RKE2:
@@ -256,18 +263,48 @@ func getImageListFromURL(ctx context.Context, tlsVerify bool, link string) ([]st
 	return list, nil
 }
 
-func (g *K3sRKE2Getter) LinuxImageSet() map[string]map[string]bool {
+func (g *k3sRKE2Getter) LinuxImageSet() map[string]map[string]bool {
 	return g.linuxImageSet
 }
 
-func (g *K3sRKE2Getter) WindowsImageSet() map[string]map[string]bool {
+func (g *k3sRKE2Getter) WindowsImageSet() map[string]map[string]bool {
 	return g.windowsImageSet
 }
 
-func (g *K3sRKE2Getter) VersionSet() map[string]bool {
+func (g *k3sRKE2Getter) VersionSet() map[string]bool {
 	return g.versionSet
 }
 
-func (g *K3sRKE2Getter) Source() ClusterType {
+func (g *k3sRKE2Getter) Source() ClusterType {
 	return g.source
+}
+
+// filterDeprecatedVersions removes the deprecated k8s versions and only
+// keeps the latest patch version of each minor release.
+func filterDeprecatedVersions(versions []string) []string {
+	if len(versions) == 0 {
+		return versions
+	}
+	set := map[string]string{}
+	for _, v := range versions {
+		var err error
+		v, err = utils.EnsureSemverValid(v)
+		if err != nil {
+			continue
+		}
+		mm := semver.MajorMinor(v)
+		if set[mm] == "" {
+			set[mm] = v
+		} else {
+			// Update the highest patch version
+			if n, _ := utils.SemverCompare(v, set[mm]); n > 0 {
+				set[mm] = v
+			}
+		}
+	}
+	filteredVersions := []string{}
+	for _, v := range set {
+		filteredVersions = append(filteredVersions, v)
+	}
+	return filteredVersions
 }
