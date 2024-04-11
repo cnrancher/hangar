@@ -13,7 +13,6 @@ import (
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/listgenerator"
 	"github.com/cnrancher/hangar/pkg/utils"
-	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
@@ -28,10 +27,16 @@ type generateListOpts struct {
 	outputVersions string
 	rancherVersion string
 	dev            bool
-	tlsVerify      commonFlag.OptionalBool
+	tlsVerify      bool
 	charts         []string
 	systemCharts   []string
 	autoYes        bool
+
+	rke1Images          string
+	rke2Images          string
+	rke2WindowsImages   string
+	k3sImages           string
+	kdmRemoveDeprecated bool
 }
 
 type generateListCmd struct {
@@ -82,7 +87,6 @@ You can also download the KDM JSON file and clone chart repos manually:
 			if err := cc.finish(); err != nil {
 				return err
 			}
-
 			return nil
 		},
 	})
@@ -98,7 +102,12 @@ You can also download the KDM JSON file and clone chart repos manually:
 	flags.StringVarP(&cc.kdm, "kdm", "", "", "KDM file path or URL")
 	flags.StringSliceVarP(&cc.charts, "chart", "", nil, "cloned chart repo path (URL not supported)")
 	flags.StringSliceVarP(&cc.systemCharts, "system-chart", "", nil, "cloned system chart repo path (URL not supported)")
-	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
+	flags.BoolVarP(&cc.kdmRemoveDeprecated, "kdm-remove-deprecated", "", true, "remove deprecated k3s/rke2 k8s versions from KDM")
+	flags.StringVarP(&cc.rke1Images, "rke-images", "", "", "output KDM RKE linux image list if specified")
+	flags.StringVarP(&cc.rke2Images, "rke2-images", "", "", "output KDM RKE2 linux image list if specified")
+	flags.StringVarP(&cc.rke2WindowsImages, "rke2-windows-images", "", "", "output KDM RKE2 Windows image list if specified")
+	flags.StringVarP(&cc.k3sImages, "k3s-images", "", "", "output KDM K3s linux image list if specified")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", false, "require HTTPS and verify certificates")
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 
 	return cc
@@ -131,7 +140,7 @@ func (cc *generateListCmd) setupFlags() error {
 }
 
 func (cc *generateListCmd) prepareGenerator() error {
-	cc.generator = &listgenerator.Generator{
+	option := &listgenerator.GeneratorOption{
 		RancherVersion: cc.rancherVersion,
 		MinKubeVersion: "",
 		ChartsPaths:    make(map[string]chartimages.ChartRepoType),
@@ -139,25 +148,25 @@ func (cc *generateListCmd) prepareGenerator() error {
 			Type   chartimages.ChartRepoType
 			Branch string
 		}),
+		InsecureSkipTLS:     !cc.tlsVerify,
+		RemoveDeprecatedKDM: cc.kdmRemoveDeprecated,
 	}
-	if cc.tlsVerify.Present() {
-		cc.generator.InsecureSkipVerify = !cc.tlsVerify.Value()
-	}
+
 	switch {
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.6"):
-		cc.generator.MinKubeVersion = "v1.21.0"
+		option.MinKubeVersion = "v1.21.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
-		cc.generator.MinKubeVersion = "v1.23.0"
+		option.MinKubeVersion = "v1.23.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
-		cc.generator.MinKubeVersion = "v1.25.0"
+		option.MinKubeVersion = "v1.25.0"
 	default:
-		cc.generator.MinKubeVersion = "v0.1.0"
+		option.MinKubeVersion = "v0.1.0"
 	}
 	if cc.kdm != "" {
 		if _, err := url.ParseRequestURI(cc.kdm); err != nil {
-			cc.generator.KDMPath = cc.kdm
+			option.KDMPath = cc.kdm
 		} else {
-			cc.generator.KDMURL = cc.kdm
+			option.KDMURL = cc.kdm
 		}
 	}
 
@@ -166,7 +175,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 		for _, chart := range charts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
 				logrus.Debugf("Add chart path to load images: %q", chart)
-				cc.generator.ChartsPaths[chart] = chartimages.RepoTypeDefault
+				option.ChartsPaths[chart] = chartimages.RepoTypeDefault
 			} else {
 				// cc.generator.ChartURLs[chart] = struct {
 				// 	Type   chartimages.ChartRepoType
@@ -184,7 +193,7 @@ func (cc *generateListCmd) prepareGenerator() error {
 		for _, chart := range systemCharts {
 			if _, err := url.ParseRequestURI(chart); err != nil {
 				logrus.Debugf("Add system chart path to load images: %q", chart)
-				cc.generator.ChartsPaths[chart] = chartimages.RepoTypeSystem
+				option.ChartsPaths[chart] = chartimages.RepoTypeSystem
 			} else {
 				return fmt.Errorf("chart url is not supported, please provide the cloned chart path")
 			}
@@ -199,23 +208,28 @@ func (cc *generateListCmd) prepareGenerator() error {
 		}
 		if cc.isRPMGC {
 			logrus.Debugf("Add Rancher Prime Manager GC charts & KDM to generate list")
-			addRPMCharts(cc.rancherVersion, cc.generator, dev)
-			addRPMGCCharts(cc.rancherVersion, cc.generator, dev)
-			addRPMGCSystemCharts(cc.rancherVersion, cc.generator, dev)
-			addRancherPrimeManagerGCKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
+			addRPMCharts(cc.rancherVersion, option, dev)
+			addRPMGCCharts(cc.rancherVersion, option, dev)
+			addRPMGCSystemCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeManagerGCKontainerDriverMetadata(cc.rancherVersion, option, dev)
 		} else {
 			logrus.Debugf("Add Rancher Prime Manager charts & KDM to generate list")
-			addRPMCharts(cc.rancherVersion, cc.generator, dev)
-			addRPMSystemCharts(cc.rancherVersion, cc.generator, dev)
-			addRancherPrimeManagerKontainerDriverMetadata(cc.rancherVersion, cc.generator, dev)
+			addRPMCharts(cc.rancherVersion, option, dev)
+			addRPMSystemCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeManagerKontainerDriverMetadata(cc.rancherVersion, option, dev)
 		}
 	}
+	g, err := listgenerator.NewGenerator(option)
+	if err != nil {
+		return err
+	}
+	cc.generator = g
 
 	return nil
 }
 
 func (cc *generateListCmd) run(ctx context.Context) error {
-	err := cc.generator.Generate(ctx)
+	err := cc.generator.Run(ctx)
 
 	// Cleanup cache (if exists) after generate image list.
 	cacheDir := path.Join(utils.CacheDir(), utils.CacheCloneRepoDirectory)
@@ -231,24 +245,33 @@ func (cc *generateListCmd) finish() error {
 		imagesWindowsList = make([]string, 0)
 		imageSourcesList  = make([]string, 0)
 
+		rke1LinuxImageList   = make([]string, 0)
+		rke2LinuxImageList   = make([]string, 0)
+		rke2WindowsImageList = make([]string, 0)
+		k3sLinuxImageList    = make([]string, 0)
+
 		rkeVersions  = make([]string, 0)
 		rke2Versions = make([]string, 0)
 		k3sVersions  = make([]string, 0)
 	)
 
-	for img := range cc.generator.LinuxImages {
+	var needUpdateWebhook bool
+
+	if cc.isRPMGC {
 		res, err := utils.SemverCompare(cc.rancherVersion, "v2.7.2")
 		if err != nil {
 			return fmt.Errorf("failed to compare version [%v] with [v2.7.2]: %w",
 				cc.rancherVersion, err)
 		}
-		if cc.isRPMGC && res >= 0 {
-			if utils.GetImageName(img) == "rancher-webhook" &&
-				utils.GetProjectName(img) == "rancher" {
-				oldImg := img
-				img = utils.ReplaceProjectName(img, "cnrancher")
-				logrus.Infof("Replaced %q to %q", oldImg, img)
-			}
+		needUpdateWebhook = res > 0
+	}
+	for img := range cc.generator.LinuxImages {
+		if needUpdateWebhook &&
+			utils.GetImageName(img) == "rancher-webhook" &&
+			utils.GetProjectName(img) == "rancher" {
+			oldImg := img
+			img = utils.ReplaceProjectName(img, "cnrancher")
+			logrus.Infof("Replaced %q to %q", oldImg, img)
 		}
 		imgWithRegistry := img
 		if cc.registry != "" {
@@ -269,6 +292,34 @@ func (cc *generateListCmd) finish() error {
 			fmt.Sprintf("%s %s", imgWithRegistry,
 				getSourcesList(cc.generator.WindowsImages[img])))
 	}
+	for img := range cc.generator.RKE1LinuxImages {
+		imgWithRegistry := img
+		if cc.registry != "" {
+			imgWithRegistry = utils.ConstructRegistry(img, cc.registry)
+		}
+		rke1LinuxImageList = append(rke1LinuxImageList, imgWithRegistry)
+	}
+	for img := range cc.generator.RKE2LinuxImages {
+		imgWithRegistry := img
+		if cc.registry != "" {
+			imgWithRegistry = utils.ConstructRegistry(img, cc.registry)
+		}
+		rke2LinuxImageList = append(rke2LinuxImageList, imgWithRegistry)
+	}
+	for img := range cc.generator.RKE2WindowsImages {
+		imgWithRegistry := img
+		if cc.registry != "" {
+			imgWithRegistry = utils.ConstructRegistry(img, cc.registry)
+		}
+		rke2WindowsImageList = append(rke2WindowsImageList, imgWithRegistry)
+	}
+	for img := range cc.generator.K3sLinuxImages {
+		imgWithRegistry := img
+		if cc.registry != "" {
+			imgWithRegistry = utils.ConstructRegistry(img, cc.registry)
+		}
+		k3sLinuxImageList = append(k3sLinuxImageList, imgWithRegistry)
+	}
 	for v := range cc.generator.RKE1Versions {
 		rkeVersions = append(rkeVersions, v)
 	}
@@ -281,6 +332,10 @@ func (cc *generateListCmd) finish() error {
 	sort.Strings(imagesLinuxList)
 	sort.Strings(imagesWindowsList)
 	sort.Strings(imageSourcesList)
+	sort.Strings(rke1LinuxImageList)
+	sort.Strings(rke2LinuxImageList)
+	sort.Strings(rke2WindowsImageList)
+	sort.Strings(k3sLinuxImageList)
 
 	sort.Slice(rkeVersions, func(i, j int) bool {
 		ok, _ := utils.SemverCompare(rkeVersions[i], rkeVersions[j])
@@ -333,6 +388,34 @@ func (cc *generateListCmd) finish() error {
 			return fmt.Errorf("failed to write file %q: %w", cc.outputVersions, err)
 		}
 		logrus.Infof("Exported Rancher supported versions into %v", cc.outputVersions)
+	}
+	if cc.rke1Images != "" {
+		err := cc.saveSlice(signalContext, cc.rke1Images, rke1LinuxImageList)
+		if err != nil {
+			return fmt.Errorf("failed to write file %q: %w", cc.rke1Images, err)
+		}
+		logrus.Infof("Exported RKE1 Linux images into %v", cc.rke1Images)
+	}
+	if cc.k3sImages != "" {
+		err := cc.saveSlice(signalContext, cc.k3sImages, k3sLinuxImageList)
+		if err != nil {
+			return fmt.Errorf("failed to write file %q: %w", cc.k3sImages, err)
+		}
+		logrus.Infof("Exported K3s Linux images into %v", cc.k3sImages)
+	}
+	if cc.rke2Images != "" {
+		err := cc.saveSlice(signalContext, cc.rke2Images, rke2LinuxImageList)
+		if err != nil {
+			return fmt.Errorf("failed to write file %q: %w", cc.rke2Images, err)
+		}
+		logrus.Infof("Exported RKE2 Linux images into %v", cc.rke2Images)
+	}
+	if cc.rke2WindowsImages != "" {
+		err := cc.saveSlice(signalContext, cc.rke2WindowsImages, rke2WindowsImageList)
+		if err != nil {
+			return fmt.Errorf("failed to write file %q: %w", cc.rke2WindowsImages, err)
+		}
+		logrus.Infof("Exported RKE2 Linux images into %v", cc.rke2WindowsImages)
 	}
 	return nil
 }
