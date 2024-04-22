@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/bci-base:15.5
+FROM registry.suse.com/bci/bci-base:15.6
 
 WORKDIR /hangar
 COPY package/entrypoint.sh /
@@ -9,7 +9,6 @@ COPY package/registries.d/default.yaml /etc/containers/registries.d/default.yaml
 RUN zypper up -y && \
     zypper in -y -f libdevmapper1_03 bash-completion vim wget && \
     zypper clean && \
-    mkdir -p /etc/containers/ && \
     hangar version && \
     echo "# Add hangar bash completion" >> /root/.bashrc && \
     echo "source <(hangar completion bash)" >> /root/.bashrc
