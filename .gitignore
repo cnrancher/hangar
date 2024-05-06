@@ -11,6 +11,8 @@
 *.part*
 *.tar
 *.zip
+*.key
+*.pub
 tmp*
 data.json
 charts-repo-cache
