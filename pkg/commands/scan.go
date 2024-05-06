@@ -236,11 +236,12 @@ func (cc *scanCmd) prepareHangar() (hangar.Hangar, error) {
 
 func (cc *scanCmd) prepareScanner() error {
 	if cc.trivyServerURL != "" {
-		u, _, err := utils.DetectURL(signalContext, cc.trivyServerURL, !cc.tlsVerify)
+		u, resp, err := utils.DetectURL(signalContext, cc.trivyServerURL, !cc.tlsVerify)
 		if err != nil {
 			logrus.Errorf("failed to ping trivy server: %v", err)
 			return err
 		}
+		resp.Body.Close()
 		cc.trivyServerURL = u
 	}
 	// Disable the trivy log output by default.

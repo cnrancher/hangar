@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -37,6 +36,7 @@ func GetURL(
 	if resp == nil {
 		return "", ErrRegistryIsNotHarbor
 	}
+	defer resp.Body.Close()
 
 	var ubase string
 	if strings.HasPrefix(detectURL, "https://") {
@@ -46,17 +46,7 @@ func GetURL(
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		b, _ := io.ReadAll(resp.Body)
-		if len(b) > 0 {
-			if len(b) > 20 {
-				b = b[:20]
-			}
-			logrus.Debugf("server response: %v", string(b))
-			content := strings.ToLower(string(b))
-			if strings.Contains(content, "pong") {
-				return ubase, nil
-			}
-		}
+		return ubase, nil
 	}
 	return "", ErrRegistryIsNotHarbor
 }

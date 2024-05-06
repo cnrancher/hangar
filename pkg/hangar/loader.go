@@ -219,10 +219,12 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 		!l.systemContext.OCIInsecureSkipTLSVerify)
 	if err != nil {
 		if errors.Is(err, harbor.ErrRegistryIsNotHarbor) {
+			logrus.Debugf("registry %q is not harbor", l.DestinationRegistry)
 			return nil
 		}
 		return err
 	}
+	logrus.Infof("Harbor V2 detected, creating project")
 	credential, err := config.GetCredentials(nil, l.DestinationRegistry)
 	if err != nil {
 		return fmt.Errorf("failed to get credential of %q: %w",
@@ -242,19 +244,19 @@ func (l *Loader) initHarborProject(ctx context.Context) error {
 			ctx, project, harborURL, &credential,
 			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to detect project %q exists: %w", project, err)
 		}
 		if exists {
+			logrus.Infof("Project %q already exists", project)
 			continue
 		}
 		err = harbor.CreateProject(
 			ctx, project, harborURL, &credential,
 			!l.systemContext.OCIInsecureSkipTLSVerify)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create project %q: %w", project, err)
 		}
-		logrus.Infof("Created Harbor V2 project %q for registry %q",
-			project, l.DestinationRegistry)
+		logrus.Infof("Created Harbor V2 project %q", project)
 	}
 	return nil
 }

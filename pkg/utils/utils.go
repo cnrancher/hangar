@@ -561,6 +561,7 @@ func HTTPClientDoWithRetry(
 }
 
 // DetectURL detects whether the server is using HTTPS or HTTP (if in insecure mode)
+// User need to call resp.Body.Close after usage.
 func DetectURL(
 	ctx context.Context, s string, insecure bool,
 ) (string, *http.Response, error) {
@@ -585,7 +586,6 @@ func DetectURL(
 	pingFunc := func() (*http.Response, error) {
 		resp, err := HTTPClientDo(ctx, client, req)
 		if err == nil {
-			defer resp.Body.Close()
 			return resp, nil
 		}
 		if !insecure {
@@ -604,7 +604,6 @@ func DetectURL(
 			return nil, err
 		}
 
-		defer resp.Body.Close()
 		logrus.Debugf("ping %s: %v", u, resp.Status)
 		return resp, nil
 	}
