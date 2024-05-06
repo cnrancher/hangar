@@ -158,28 +158,28 @@ steps:
     when:
       event:
         - tag
-  - name: manifest-latest
-    image: plugins/manifest
-    settings:
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
-      platforms:
-        - linux/amd64
-        - linux/arm64
-      target: "cnrancher/hangar:latest"
-      template: "cnrancher/hangar:${DRONE_TAG}-ARCH"
-    when:
-      event:
-        - tag
-      ref:
-        include:
-          - refs/tags/v*
-        exclude:
-          - refs/tags/*-rc*
-          - refs/tags/*-alpha*
-          - refs/tags/*-beta*
+  # - name: manifest-latest
+  #   image: plugins/manifest
+  #   settings:
+  #     username:
+  #       from_secret: docker_username
+  #     password:
+  #       from_secret: docker_password
+  #     platforms:
+  #       - linux/amd64
+  #       - linux/arm64
+  #     target: "cnrancher/hangar:latest"
+  #     template: "cnrancher/hangar:${DRONE_TAG}-ARCH"
+  #   when:
+  #     event:
+  #       - tag
+  #     ref:
+  #       include:
+  #         - refs/tags/v*
+  #       exclude:
+  #         - refs/tags/*-rc*
+  #         - refs/tags/*-alpha*
+  #         - refs/tags/*-beta*
 volumes:
   - name: docker
     host:
