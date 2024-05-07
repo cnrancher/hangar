@@ -34,7 +34,9 @@ To run validation tests on your local machine:
     > a private registry server for test.
 
     ```sh
-    ./scripts/registry.sh
+    source ./scripts/env.sh
+    source ./scripts/distribution.sh
+    setup_distribution_registry
     ```
 
 1. To run specific test file:
