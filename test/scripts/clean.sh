@@ -6,6 +6,8 @@ cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
 source ./scripts/env.sh
+source ./scripts/harbor.sh
+source ./scripts/distribution.sh
 
 files=(
     "*.zip"
@@ -30,11 +32,6 @@ for f in ${files[@]}; do
     fi
 done
 
-# Registry server.
-if [[ $(docker ps -a -f "name=${HANGAR_REGISTRY_NAME}" --format=json) != "" ]]; then
-    docker kill ${HANGAR_REGISTRY_NAME} > /dev/null || true
-    docker rm ${HANGAR_REGISTRY_NAME} > /dev/null || true
-    echo Delete ${HANGAR_REGISTRY_NAME}.
-fi
+
 
 exit 0

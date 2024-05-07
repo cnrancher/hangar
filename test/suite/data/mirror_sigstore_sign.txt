@@ -1,6 +1,6 @@
 # Image list in MIRROR format
 // COMMENT LINE
 
-TEST INVAID IMAGE LIST LINE
+TEST INVALID IMAGE LIST LINE
 
-cnrancher/hangar mirror-test/mirrored-cnrancher-hangar latest
+alpine mirror-test/mirrored-alpine 3

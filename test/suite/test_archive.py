@@ -53,9 +53,8 @@ def test_save():
     ret = run_hangar([
         "save",
         "-f=data/default_format.txt",
-        "-s", REGISTRY_URL,
         "-d", "saved_test.zip",
-        "-j=10",
+        "-j=3",
         "-y",
         "--tls-verify=false",
     ])
@@ -67,9 +66,8 @@ def test_save_validate():
         "save",
         "validate",
         "-f=data/default_format.txt",
-        "-s", REGISTRY_URL,
         "-d", "saved_test.zip",
-        "-j=10",
+        "-j=3",
         "-y",
         "--tls-verify=false",
     ])
@@ -80,9 +78,8 @@ def test_sync():
     ret = run_hangar([
         "sync",
         "-f=data/sync.txt",
-        "-s", REGISTRY_URL,
         "-d", "saved_test.zip",
-        "-j=10",
+        "-j=3",
         "--tls-verify=false",
     ])
     check(ret, SYNC_FAILED_LIST)
@@ -93,9 +90,8 @@ def test_sync_validate():
         "sync",
         "validate",
         "-f=data/sync.txt",
-        "-s", REGISTRY_URL,
         "-d", "saved_test.zip",
-        "-j=10",
+        "-j=3",
         "--tls-verify=false",
     ])
     check(ret, SYNC_FAILED_LIST)
@@ -106,7 +102,7 @@ def test_load():
         "load",
         "-s", "saved_test.zip",
         "-d", REGISTRY_URL,
-        "-j=10",
+        "-j=3",
         "--tls-verify=false",
     ])
     check(ret, LOAD_FAILED_LIST)
@@ -118,7 +114,7 @@ def test_load_validate():
         "validate",
         "-s", "saved_test.zip",
         "-d", REGISTRY_URL,
-        "-j=10",
+        "-j=3",
         "--tls-verify=false",
     ])
     check(ret, LOAD_FAILED_LIST)
@@ -139,7 +135,6 @@ def test_archive_export():
         "-f", "data/export1.txt",
         "-s", "saved_test.zip",
         "-d", "export1.zip",
-        "--source-registry", REGISTRY_URL,
         "--auto-yes",
     ])
     check(ret, EXPORT_FAILED_LIST)
@@ -150,7 +145,6 @@ def test_archive_export():
         "-f", "data/export2.txt",
         "-s", "saved_test.zip",
         "-d", "export2.zip",
-        "--source-registry", REGISTRY_URL,
         "--auto-yes",
     ])
     check(ret, EXPORT_FAILED_LIST)
@@ -201,6 +195,7 @@ def test_archive_merge():
         "load",
         "-s", "merge.zip",
         "-d", REGISTRY_URL,
+        "--project=mirror-test",  # Auto create 'mirror-test' project
         "-j=10",
         "--tls-verify=false",
     ])

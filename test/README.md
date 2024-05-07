@@ -6,10 +6,11 @@ Validation tests for Hangar commands.
 
 ### In Container
 
-Use following commands to run hangar validation tests in a container.
+Use following commands to run hangar validation tests in docker container.
 
 1. Run `make build` to build hangar executable binary in container.
 1. Run `make validation-test` to run validation tests for all hangar subcommands.
+    This will seutp a temporary k3s cluster and install harbor for test.
 
 ### Without Container
 
@@ -27,9 +28,9 @@ To run validation tests on your local machine:
 
 1. Run `scripts/registry.sh`, this will create a temporary *private registry server* for tests.
 
-    > Since the macOS system uses the port `5000` for other service, you can change the 
-    > [distribution registry server configuration](https://distribution.github.io/distribution/about/configuration/) 
-    > option `http.addr` to another port or use other methods to setup 
+    > Since the macOS system uses the port `5000` for other service, you can change the
+    > [distribution registry server configuration](https://distribution.github.io/distribution/about/configuration/)
+    > option `http.addr` to another port or use other methods to setup
     > a private registry server for test.
 
     ```sh

@@ -25,6 +25,7 @@ def test_mirror_default_format():
         "mirror",
         "-f=data/default_format.txt",
         "-j=4",
+        "-s", REGISTRY_URL,
         "-d", REGISTRY_URL,
         "--arch=amd64,arm64",
         "--os=linux",
@@ -39,6 +40,7 @@ def test_mirror_validate_default_format():
         "validate",
         "-f=data/default_format.txt",
         "-j=4",
+        "-s", REGISTRY_URL,
         "-d", REGISTRY_URL,
         "--arch=amd64,arm64",
         "--os=linux",
@@ -56,6 +58,7 @@ def test_mirror_mirror_format():
         "-d", REGISTRY_URL,
         "--arch=amd64,arm64",
         "--os=linux",
+        "--remove-signatures",  # Hangar does not support sign for harbor
         "--tls-verify=false",
     ], timeout=600)
     check(ret, MIRROR_FAILED_LIST)

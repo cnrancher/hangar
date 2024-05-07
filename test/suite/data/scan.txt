@@ -3,4 +3,4 @@
 
 TEST INVALID IMAGE LIST LINE
 
-cnrancher/hangar:latest
+alpine mirror-test/mirrored-alpine 3

@@ -4,6 +4,8 @@ import subprocess
 import sys
 import os
 import shutil
+import random
+import string
 
 
 HANGAR = shutil.which("hangar")
@@ -19,17 +21,18 @@ if HANGAR is None:
 
 REGISTRY_URL = os.getenv("REGISTRY_URL")
 if REGISTRY_URL is None:
-    print("Please run validation test by executing 'scripts/entrypoint.sh'",
+    print("Please run validation test by executing 'scripts/run.sh'",
           file=sys.stderr)
     raise Exception("REGISTRY_URL env not specified")
 
 
-def run_hangar(args=[], timeout=1200) -> int:
+def run_hangar(args=[], timeout=1200, stdout=None) -> int:
     args.insert(0, HANGAR)
     # args.append("--insecure-policy")
     process = subprocess.Popen(
         args,
         text=True,
+        stdout=stdout,
     )
     return process.wait(timeout=timeout)
 
@@ -45,3 +48,10 @@ def check(ret: int, p=None):
         raise Exception("Failed images:", images)
     else:
         raise Exception("hangar run failed:", ret)
+
+
+REGISTRY_PASSWORD = os.getenv("REGISTRY_PASSWORD")
+if REGISTRY_PASSWORD is None:
+    print("registry password not specified, will use random string")
+    REGISTRY_PASSWORD = ''.join(
+        random.choices(string.ascii_uppercase + string.digits, k=8))

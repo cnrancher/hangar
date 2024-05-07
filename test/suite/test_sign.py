@@ -109,7 +109,7 @@ def test_load_sigstore_sign():
         "-d", REGISTRY_URL,
         "--arch=amd64,arm64",
         "--os=linux",
-        "--source-registry", REGISTRY_URL,
+        "--source-registry", "docker.io",
         "--sigstore-private-key=sigstore.key",
         "--sigstore-passphrase-file=data/sigstore_passphrase.txt",
         "--tls-verify=false",

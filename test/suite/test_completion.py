@@ -5,6 +5,7 @@ Automatin tests for "hangar completion" command.
 """
 
 from .common import run_hangar, check
+import subprocess
 
 
 def test_completion_help():
@@ -16,7 +17,7 @@ def test_completion_help():
 
 
 def test_completion():
-    check(run_hangar(["completion", "bash"]))
-    check(run_hangar(["completion", "zsh"]))
-    check(run_hangar(["completion", "fish"]))
-    check(run_hangar(["completion", "powershell"]))
+    check(run_hangar(["completion", "bash"], stdout=subprocess.DEVNULL))
+    check(run_hangar(["completion", "zsh"], stdout=subprocess.DEVNULL))
+    check(run_hangar(["completion", "fish"], stdout=subprocess.DEVNULL))
+    check(run_hangar(["completion", "powershell"], stdout=subprocess.DEVNULL))

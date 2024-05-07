@@ -3,5 +3,4 @@
 
 TEST INVALID IMAGE LIST LINE
 
-mirror-test/mirrored-cas:6.5.6
-mirror-test/mirrored-mysql:5.7.5
+library/alpine:3.2

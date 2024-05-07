@@ -5,8 +5,13 @@ ENV DAPPER_DOCKER_SOCKET=true
 WORKDIR ${DAPPER_SOURCE}
 
 RUN zypper ref && \
-    zypper in -y -f libdevmapper1_03 vim wget docker awk && \
-    zypper clean
+    zypper in -y -f libdevmapper1_03 vim wget docker awk unzip jq && \
+    zypper clean && \
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash && \
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && \
+    curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl && \
+    chmod +x kubectl && mv kubectl /usr/local/bin
+
 RUN pip install pytest tox
 
 COPY bin/hangar /usr/local/bin/hangar
@@ -15,4 +20,5 @@ COPY package/registries.d/default.yaml /etc/containers/registries.d/default.yaml
 
 ENV DAPPER_RUN_ARGS "--network=host"
 
-ENTRYPOINT [ "test/scripts/entrypoint.sh" ]
+ENTRYPOINT [ "test/scripts/run.sh" ]
+CMD [ "--all" ]

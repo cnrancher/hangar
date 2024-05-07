@@ -4,7 +4,7 @@
 Automatin tests for 'hangar login', 'hangar logout' commands.
 """
 
-from .common import run_hangar, check, REGISTRY_URL
+from .common import run_hangar, check, REGISTRY_URL, REGISTRY_PASSWORD
 
 
 def test_login_logout_help():
@@ -13,12 +13,12 @@ def test_login_logout_help():
 
 
 def test_login_logout():
-    # The test registry server can be login with any password.
+    print("login via password", REGISTRY_PASSWORD)
     check(run_hangar([
         "login",
         REGISTRY_URL,
         "-u=admin",
-        "-p=123",
+        "-p", REGISTRY_PASSWORD,
         "--tls-verify=false",
     ]))
     check(run_hangar([
@@ -30,6 +30,6 @@ def test_login_logout():
         "login",
         REGISTRY_URL,
         "-u=admin",
-        "-p=000",
+        "-p", REGISTRY_PASSWORD,
         "--tls-verify=false",
     ]))

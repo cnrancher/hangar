@@ -1,6 +1,6 @@
 # Image list in DEFAULT format
 // COMMENT LINE
 
-TEST INVAID IMAGE LIST LINE
+TEST INVALID IMAGE LIST LINE
 
-cnrancher/hangar:latest
+docker.io/library/alpine:3

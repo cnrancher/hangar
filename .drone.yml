@@ -21,6 +21,21 @@ steps:
         - push
         - pull_request
         - tag
+  - name: validation-test
+    image: rancher/dapper:v0.6.0
+    environment:
+      DRONE_TAG: ${DRONE_TAG}
+      DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+    commands:
+      - dapper -f Dockerfile.test.dapper
+    volumes:
+      - name: docker
+        path: /var/run/docker.sock
+    when:
+      event:
+        - push
+        - pull_request
+        - tag
   - name: github_release
     image: plugins/github-release
     settings:
