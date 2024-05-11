@@ -32,10 +32,9 @@ steps:
       - name: docker
         path: /var/run/docker.sock
     when:
-      event:
-        - push
-        - pull_request
-        - tag
+      ref:
+        include:
+          - "refs/tags/v*"
   - name: github_release
     image: plugins/github-release
     settings:
