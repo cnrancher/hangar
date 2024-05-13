@@ -28,7 +28,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/rancher/rke v1.5.8
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spdx/tools-golang v0.5.4-0.20231108154018-0c0f394b5e1a
+	github.com/spdx/tools-golang v0.5.4
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/mod v0.17.0
