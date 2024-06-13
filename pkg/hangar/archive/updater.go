@@ -97,10 +97,10 @@ func (u *Updater) UpdateIndex() error {
 	if err != nil {
 		return fmt.Errorf("updateIndex: %w", err)
 	}
-	writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
+	writer, err := u.zu.AppendHeader(&zip.FileHeader{
 		Name:   IndexFileName,
 		Method: zip.Store,
-	}, u.getIndexOffset())
+	}, zip.APPEND_MODE_OVERWRITE)
 	if err != nil {
 		return fmt.Errorf("updateIndex: failed to append file in zip: %w", err)
 	}
@@ -111,18 +111,6 @@ func (u *Updater) UpdateIndex() error {
 	logrus.Infof("Updated index file %q of %q, size %.2fK",
 		IndexFileName, u.f.Name(), float32(len(data))/1024)
 	return nil
-}
-
-// If index.json exists in zip archive, getIndexOffset will return the
-// offset of index.json header.
-// If index.json does not exists in zip archive, getIndexOffset will return -1.
-func (u *Updater) getIndexOffset() int64 {
-	for _, dir := range u.zu.Directory() {
-		if dir.Name == IndexFileName {
-			return dir.HeaderOffset()
-		}
-	}
-	return -1
 }
 
 // Append will overwrite from the existing index.json file in zip archive.
@@ -139,11 +127,11 @@ func (u *Updater) Append(name string) error {
 }
 
 func (u *Updater) appendFile(name string, fi fs.FileInfo) error {
-	writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
+	writer, err := u.zu.AppendHeader(&zip.FileHeader{
 		Name:     name,
 		Method:   zip.Store,
 		Modified: fi.ModTime(),
-	}, u.getIndexOffset())
+	}, zip.APPEND_MODE_OVERWRITE)
 	if err != nil {
 		return fmt.Errorf("zip append failed: %w", err)
 	}
@@ -175,11 +163,11 @@ func (u *Updater) appendDir(base string) error {
 		if fi.IsDir() && !strings.HasSuffix(fname, string(os.PathSeparator)) {
 			fname += string(os.PathSeparator)
 		}
-		writer, err := u.zu.AppendHeaderAt(&zip.FileHeader{
+		writer, err := u.zu.AppendHeader(&zip.FileHeader{
 			Name:     fname,
 			Method:   zip.Store,
 			Modified: fi.ModTime(),
-		}, u.getIndexOffset())
+		}, zip.APPEND_MODE_OVERWRITE)
 		if err != nil {
 			return fmt.Errorf("zip append failed: %w", err)
 		}

@@ -1,6 +1,8 @@
 module github.com/cnrancher/hangar
 
-go 1.22
+go 1.22.2
+
+toolchain go1.22.4
 
 // ref: https://github.com/testcontainers/testcontainers-go/issues/1782
 replace github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.23.0
@@ -15,7 +17,7 @@ replace (
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
-	github.com/STARRY-S/zip v0.1.0
+	github.com/STARRY-S/zip v0.2.0-beta.1
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.50.1
 	github.com/aquasecurity/trivy-db v0.0.0-20231005141211-4fc651f7ac8d

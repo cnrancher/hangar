@@ -165,7 +165,7 @@ func (w *Writer) CopyImage(image *Image, ar *Reader) error {
 		}
 
 		for _, fname := range fnames {
-			if w.fileNameSet[fname] == true {
+			if w.fileNameSet[fname] {
 				continue
 			}
 

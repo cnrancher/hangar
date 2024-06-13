@@ -256,8 +256,8 @@ github.com/OneOfOne/xxhash v1.2.8 h1:31czK/TI9sNkxIKfaUfGlU47BAxQ0ztGgd9vPyqimf8
 github.com/OneOfOne/xxhash v1.2.8/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/ProtonMail/go-crypto v1.1.0-alpha.0 h1:nHGfwXmFvJrSR9xu8qL7BkO4DqTHXE9N5vPhgY2I+j0=
 github.com/ProtonMail/go-crypto v1.1.0-alpha.0/go.mod h1:rA3QumHc/FZ8pAHreoekgiAbzpNsfQAosU5td4SnOrE=
-github.com/STARRY-S/zip v0.1.0 h1:eUER3jKmHKXjv+iy3BekLa+QnNSo1Lqz4eTzYBcGDqo=
-github.com/STARRY-S/zip v0.1.0/go.mod h1:qj/mTZkvb3AvfGQ2e775/3AODRvB4peSw8KNMvrM8/I=
+github.com/STARRY-S/zip v0.2.0-beta.1 h1:o4EXXvvKpPow7CjjVdjh859g0XiEn8kuaudqzXYNxjY=
+github.com/STARRY-S/zip v0.2.0-beta.1/go.mod h1:xNvshLODWtC4EJ702g7cTYn13G53o1+X9BWnPFpcWV4=
 github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d h1:UrqY+r/OJnIp5u0s1SbQ8dVfLCZJsnvazdBP5hS4iRs=
 github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d/go.mod h1:HI8ITrYtUY+O+ZhtlqUnD8+KwNPOyugEhfP9fdUIaEQ=
 github.com/VividCortex/ewma v1.2.0 h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=
