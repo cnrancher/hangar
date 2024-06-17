@@ -28,7 +28,7 @@ require (
 	github.com/moby/term v0.5.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/rancher/rke v1.5.9
+	github.com/rancher/rke v1.5.10
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.4
 	github.com/spf13/cobra v1.8.0
