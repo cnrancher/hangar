@@ -31,7 +31,7 @@ require (
 	github.com/rancher/rke v1.5.9
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.4
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/mod v0.17.0
 	golang.org/x/term v0.21.0
