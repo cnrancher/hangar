@@ -14,6 +14,7 @@ SCAN_REPORT_JSON = SCAN_REPORT_PREFIX + ".json"
 SCAN_REPORT_YAML = SCAN_REPORT_PREFIX + ".yaml"
 SCAN_REPORT_CSV = SCAN_REPORT_PREFIX + ".csv"
 SCAN_REPORT_SPDX_JSON = SCAN_REPORT_PREFIX + ".spdx.json"
+SCAN_REPORT_SPDX_CSV = SCAN_REPORT_PREFIX + ".spdx.csv"
 SCAM_REPORT_CUSTOM_NAME = "custom-report.csv"
 
 
@@ -99,6 +100,19 @@ def test_scan_image_spdx_json():
     ])
     check(ret, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_SPDX_JSON)
+
+
+def test_scan_image_spdx_csv():
+    ret = run_hangar([
+        "scan",
+        "--file", "data/scan.txt",
+        "--format", "spdx-csv",
+        "--registry", REGISTRY_URL,
+        "--tls-verify=false",
+        "--auto-yes",
+    ])
+    check(ret, SCAN_FAILED_LIST)
+    check_report(SCAN_REPORT_SPDX_CSV)
 
 
 def test_scan_image_custom_report():
