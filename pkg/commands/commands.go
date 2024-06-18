@@ -66,15 +66,6 @@ func (cc *baseCmd) getPolicy() (*signature.Policy, error) {
 	return policy, nil
 }
 
-// getPolicyContext returns a *signature.PolicyContext based on baseCmd.
-func (cc *baseCmd) getPolicyContext() (*signature.PolicyContext, error) {
-	policy, err := cc.getPolicy()
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
-}
-
 func (cc *baseCmd) ctxWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
 	var (
 		ctx                       = signalContext

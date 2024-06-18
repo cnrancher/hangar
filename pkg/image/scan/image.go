@@ -20,6 +20,8 @@ import (
 	"github.com/aquasecurity/trivy/pkg/utils/fsutils"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/image/v5/pkg/docker/config"
+	imagetypes "github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -112,7 +114,7 @@ func (s *imageScanner) scanOptions() types.ScanOptions {
 	switch s.format {
 	// Disable scanners and set ListAllPackes to true if the output format is
 	// SBOM instead of vulnerabilities.
-	case "spdx-json":
+	case "spdx-json", "spdx-csv":
 		so.ListAllPackages = true
 		so.Scanners = types.Scanners{
 			types.NoneScanner,
@@ -129,8 +131,16 @@ func (s *imageScanner) Scan(
 	if !dbInitialized {
 		return nil, ErrDBNotInitialized
 	}
+	registry := utils.GetRegistryName(opt.ReferenceName)
+	authConfig, _ := config.GetCredentials(&imagetypes.SystemContext{}, registry)
 	typesImage, cleanup, err := image.NewContainerImage(ctx, opt.ReferenceName, ftypes.ImageOptions{
 		RegistryOptions: ftypes.RegistryOptions{
+			Credentials: []ftypes.Credential{
+				{
+					Username: authConfig.Username,
+					Password: authConfig.Password,
+				},
+			},
 			Insecure: s.insecureSkipTLSVerify,
 			Platform: ftypes.Platform{},
 		},

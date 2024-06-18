@@ -80,7 +80,7 @@ hangar scan \
 				return err
 			}
 			if err := run(h); err != nil {
-				return err
+				logrus.Warn(err)
 			}
 			if err := cc.saveReport(); err != nil {
 				return err
@@ -114,7 +114,7 @@ hangar scan \
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 	flags.StringVarP(&cc.reportFile, "report", "r", "scan-report.[FORMAT]", "scan report output file")
 	flags.StringSliceVarP(&cc.scanners, "scanner", "", []string{"vuln"}, "list of scanners (available: vuln,misconfig,secret,license)")
-	flags.StringVarP(&cc.format, "format", "", "csv", "output report format (available: json/yaml/csv/spdx-json)")
+	flags.StringVarP(&cc.format, "format", "", "csv", "output report format (available: json/yaml/csv/spdx-csv/spdx-json)")
 
 	return cc
 }
@@ -150,12 +150,12 @@ func (cc *scanCmd) prepareHangar() (hangar.Hangar, error) {
 		logrus.Warnf("Output report format not specified, set to default: 'json'")
 		cc.format = "json"
 	}
-	var availableFormat = []string{"json", "yaml", "csv", "spdx-json"}
+	var availableFormat = []string{"json", "yaml", "csv", "spdx-json", "spdx-csv"}
 	if !slices.Contains(availableFormat, cc.format) {
 		return nil, fmt.Errorf("invalid output format %q, available [%v]",
 			cc.format, strings.Join(availableFormat, ","))
 	}
-	if cc.format == "spdx-json" {
+	if cc.format == "spdx-json" || cc.format == "spdx-csv" {
 		logrus.Infof("SPDX SBOM output format disables security scanning")
 		cc.scanners = []string{"none"}
 	}
@@ -276,9 +276,12 @@ func (cc *scanCmd) prepareScanner() error {
 
 func (cc *scanCmd) saveReport() error {
 	var reportFile string
-	if cc.format == "spdx-json" {
+	switch cc.format {
+	case "spdx-json":
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.json")
-	} else {
+	case "spdx-csv":
+		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.csv")
+	default:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", cc.format)
 	}
 	err := utils.CheckFileExistsPrompt(signalContext, reportFile, cc.autoYes)
@@ -327,6 +330,10 @@ func (cc *scanCmd) saveReport() error {
 		_, err = f.Write(b)
 		if err != nil {
 			return fmt.Errorf("failed to write report to file: %w", err)
+		}
+	case "spdx-csv":
+		if err = cc.report.WriteSPDX_CSV(f); err != nil {
+			return fmt.Errorf("report write csv failed: %w", err)
 		}
 	default:
 		return fmt.Errorf("unrecognized output format: %v", cc.format)

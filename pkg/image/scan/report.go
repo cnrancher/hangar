@@ -11,6 +11,7 @@ import (
 	"github.com/aquasecurity/trivy/pkg/sbom/spdx"
 	"github.com/aquasecurity/trivy/pkg/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/spdx/tools-golang/spdx/v2/common"
 	gospdx "github.com/spdx/tools-golang/spdx/v2/v2_3"
 )
 
@@ -163,6 +164,65 @@ func (r *Report) WriteCSV(f io.Writer) error {
 	return nil
 }
 
+func (r *Report) WriteSPDX_CSV(f io.Writer) error {
+	line := []string{
+		"image",       // 0
+		"arch",        // 1
+		"os",          // 2
+		"package",     // 3
+		"license",     // 4
+		"versionInfo", // 5
+		"supplier",    // 6
+		"originator",  // 7
+		"SPDXID",      // 8
+	}
+	cw := csv.NewWriter(f)
+	defer cw.Flush()
+	if err := cw.Write(line); err != nil {
+		return err
+	}
+	if len(r.Results) == 0 {
+		return nil
+	}
+	for _, result := range r.Results {
+		if len(result.Images) == 0 {
+			continue
+		}
+		reference := result.Reference
+		for _, image := range result.Images {
+			s := image.SBOM_SPDX
+			if len(s.Packages) == 0 {
+				continue
+			}
+			for _, p := range s.Packages {
+				if p.PackageSupplier == nil {
+					p.PackageSupplier = &common.Supplier{}
+				}
+				if p.PackageOriginator == nil {
+					p.PackageOriginator = &common.Originator{}
+				}
+				supplier, _ := p.PackageSupplier.MarshalJSON()
+				originator, _ := p.PackageOriginator.MarshalJSON()
+				line = []string{
+					reference,                       // 0
+					image.Platform.Arch,             // 1
+					image.Platform.OS,               // 2
+					p.PackageName,                   // 3
+					p.PackageLicenseDeclared,        // 4
+					p.PackageVersion,                // 5
+					string(supplier),                // 6
+					string(originator),              // 7
+					string(p.PackageSPDXIdentifier), // 8
+				}
+				if err := cw.Write(line); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (r *Result) Append(image *ImageResult) {
 	if image == nil {
 		return
@@ -180,7 +240,7 @@ func NewImageResult(
 		Vulnerabilities: nil,
 	}
 	switch format {
-	case "spdx-json":
+	case "spdx-json", "spdx-csv":
 		// Only generate SPDX for SBOM outputs.
 		var err error
 		m := spdx.NewMarshaler("")
