@@ -30,7 +30,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/rancher/rke v1.5.10
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spdx/tools-golang v0.5.4
+	github.com/spdx/tools-golang v0.5.5
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/mod v0.18.0
