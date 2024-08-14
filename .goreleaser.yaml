@@ -1,0 +1,53 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+- id: hangar
+  main: ./main.go
+  env:
+    - CGO_ENABLED=0
+  goos:
+    - linux
+    - darwin
+  goarch:
+    - amd64
+    - arm64
+  tags:
+    - containers_image_openpgp
+    - exclude_graphdriver_btrfs
+    - exclude_graphdriver_devicemapper
+  flags:
+    - -buildmode=pie
+  ldflags:
+    - -extldflags -static
+    - -s -w
+    - -X github.com/cnrancher/hangar/pkg/utils.Version={{.Version}}
+  binary: hangar
+
+release:
+  prerelease: auto
+
+archives:
+  - format: tar.gz
+    wrap_in_directory: true
+    files:
+      - LICENSE
+      - README.md
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

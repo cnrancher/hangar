@@ -1,4 +1,4 @@
-TARGETS := ci build test validate
+TARGETS := ci build test verify
 .PHONY: $(TARGETS) $(TEST_TARGETS) validation-test clean help
 
 .dapper:
