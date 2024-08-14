@@ -162,6 +162,28 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
 		}
+		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
+			c, err := inspector.Config(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
+				continue
+			}
+			ociConfig := &imgspecv1.Image{}
+			err = json.Unmarshal(c, ociConfig)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
+				continue
+			}
+			if osVersion == "" {
+				osVersion = ociConfig.OSVersion
+			}
+			if len(osFeatures) == 0 {
+				osFeatures = ociConfig.OSFeatures
+			}
+			if variant == "" {
+				variant = ociConfig.Variant
+			}
+		}
 		manifestDigest, err := manifestv5.Digest(b)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to get digest: %w", err))
@@ -293,6 +315,28 @@ func (s *Source) copyMediaTypeImageIndex(
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
+		}
+		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
+			c, err := inspector.Config(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
+				continue
+			}
+			ociConfig := &imgspecv1.Image{}
+			err = json.Unmarshal(c, ociConfig)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
+				continue
+			}
+			if osVersion == "" {
+				osVersion = ociConfig.OSVersion
+			}
+			if len(osFeatures) == 0 {
+				osFeatures = ociConfig.OSFeatures
+			}
+			if variant == "" {
+				variant = ociConfig.Variant
+			}
 		}
 		manifestDigest, err := manifestv5.Digest(b)
 		if err != nil {
@@ -679,4 +723,19 @@ func updateSpecImageManifest(
 		}
 		spec.Layers = append(spec.Layers, layer.Digest)
 	}
+}
+
+func needInspectConfig(
+	osInfo, arch, variant, osVersion string, osFeatures []string,
+) bool {
+	switch osInfo {
+	case "windows":
+		return osVersion == "" || len(osFeatures) == 0
+	case "linux":
+		if arch == "arm" {
+			return variant == ""
+		}
+	}
+
+	return false
 }
