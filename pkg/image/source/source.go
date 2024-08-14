@@ -9,6 +9,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
+	"github.com/cnrancher/hangar/pkg/utils"
 
 	manifestv5 "github.com/containers/image/v5/manifest"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
@@ -277,14 +278,14 @@ func newSourceFromDocker(o *Option) (*Source, error) {
 		if o.Digest != "" {
 			s.digest = o.Digest
 		} else {
-			s.tag = "latest"
+			s.tag = utils.DefaultTag
 		}
 	}
 	if s.project == "" {
-		s.project = "library"
+		s.project = utils.DefaultProject
 	}
 	if s.registry == "" {
-		s.registry = "docker.io"
+		s.registry = utils.DockerHubRegistry
 	}
 
 	return s, nil
@@ -303,13 +304,13 @@ func newSourceFromDockerDaemon(o *Option) (*Source, error) {
 		systemCtx: o.SystemContext,
 	}
 	if s.tag == "" {
-		s.tag = "latest"
+		s.tag = utils.DefaultTag
 	}
 	if s.project == "" {
-		s.project = "library"
+		s.project = utils.DefaultProject
 	}
 	if s.registry == "" {
-		s.registry = "docker.io"
+		s.registry = utils.DockerHubRegistry
 	}
 
 	return s, nil

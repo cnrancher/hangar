@@ -114,7 +114,7 @@ func (s *imageScanner) scanOptions() types.ScanOptions {
 	switch s.format {
 	// Disable scanners and set ListAllPackes to true if the output format is
 	// SBOM instead of vulnerabilities.
-	case "spdx-json", "spdx-csv":
+	case FormatSPDXCSV, FormatJSON:
 		so.ListAllPackages = true
 		so.Scanners = types.Scanners{
 			types.NoneScanner,
@@ -125,7 +125,7 @@ func (s *imageScanner) scanOptions() types.ScanOptions {
 }
 
 func (s *imageScanner) Scan(
-	ctx context.Context, opt *ScanOption,
+	ctx context.Context, opt *Option,
 ) (*ImageResult, error) {
 	logrus.Debugf("Start to scan image %q", opt.ReferenceName)
 	if !dbInitialized {

@@ -3,7 +3,6 @@ package archive
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -105,7 +104,7 @@ func (r *Reader) Decompress(name string, destination string) error {
 	target := filepath.Join(destination, strings.TrimPrefix(file.Name, baseDir))
 	switch {
 	case file.Mode().IsDir():
-		if err = os.MkdirAll(target, fs.FileMode(file.Mode())); err != nil {
+		if err = os.MkdirAll(target, file.Mode()); err != nil {
 			return err
 		}
 		// Decompress all files inside the directory.
@@ -122,7 +121,7 @@ func (r *Reader) Decompress(name string, destination string) error {
 			return err
 		}
 		f, err := os.OpenFile(
-			target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(file.Mode()))
+			target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return fmt.Errorf("os.OpenFile: %w", err)
 		}

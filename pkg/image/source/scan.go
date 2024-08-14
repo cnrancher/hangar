@@ -83,7 +83,7 @@ func (s *Source) scanDockerV2ListMediaType(
 ) (*scan.Result, int, error) {
 	var scannedNum int
 	var errs []error
-	var imageResults []*scan.ImageResult
+	var imageResults = []*scan.ImageResult{}
 	for _, m := range s.schema2List.Manifests {
 		arch := m.Platform.Architecture
 		osInfo := m.Platform.OS
@@ -98,7 +98,7 @@ func (s *Source) scanDockerV2ListMediaType(
 			continue
 		}
 		refName := fmt.Sprintf("%s/%s/%s@%s", s.registry, s.project, s.name, dig)
-		imageResult, err := scanImage(ctx, &scan.ScanOption{
+		imageResult, err := scanImage(ctx, &scan.Option{
 			ReferenceName: refName,
 			Digest:        dig,
 			Platform: scan.Platform{
@@ -134,7 +134,7 @@ func (s *Source) scanMediaTypeImageIndex(
 ) (*scan.Result, int, error) {
 	var copiedNum int
 	var errs []error
-	var imageResults []*scan.ImageResult
+	var imageResults = []*scan.ImageResult{}
 	for _, m := range s.ociIndex.Manifests {
 		// mime := m.MediaType
 		arch := m.Platform.Architecture
@@ -150,7 +150,7 @@ func (s *Source) scanMediaTypeImageIndex(
 		}
 		// sourceRef, err := alltransportsv5.ParseImageName()
 		refName := fmt.Sprintf("%s/%s/%s@%s", s.registry, s.project, s.name, dig)
-		imageResult, err := scanImage(ctx, &scan.ScanOption{
+		imageResult, err := scanImage(ctx, &scan.Option{
 			ReferenceName: refName,
 			Digest:        dig,
 			Platform: scan.Platform{
@@ -193,7 +193,7 @@ func (s *Source) scanDockerV2Schema2MediaType(
 		return nil, utils.ErrNoAvailableImage
 	}
 	refName := s.ReferenceNameWithoutTransport()
-	imageResult, err := scanImage(ctx, &scan.ScanOption{
+	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
 		Digest:        s.digest,
 		Platform: scan.Platform{
@@ -226,7 +226,7 @@ func (s *Source) scanDockerV2Schema1MediaType(
 	}
 
 	refName := s.ReferenceNameWithoutTransport()
-	imageResult, err := scanImage(ctx, &scan.ScanOption{
+	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
 		Digest:        s.digest,
 		Platform: scan.Platform{
@@ -258,7 +258,7 @@ func (s *Source) scanMediaTypeImageManifest(
 	}
 
 	refName := s.ReferenceNameWithoutTransport()
-	imageResult, err := scanImage(ctx, &scan.ScanOption{
+	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
 		Digest:        s.digest,
 		Platform: scan.Platform{
@@ -279,7 +279,7 @@ func (s *Source) scanMediaTypeImageManifest(
 
 func scanImage(
 	ctx context.Context,
-	o *scan.ScanOption,
+	o *scan.Option,
 ) (*scan.ImageResult, error) {
 	return scan.Scan(ctx, o)
 }

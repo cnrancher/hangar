@@ -81,7 +81,7 @@ func (g *k3sRKE2Getter) Get(ctx context.Context) error {
 	if !ok {
 		return fmt.Errorf("UpgradeGetter: failed to get 'releases' from data")
 	}
-	var compatibleVersions []string
+	var compatibleVersions = []string{}
 	for _, release := range releases {
 		releaseMap, ok := release.(map[string]any)
 		if !ok {

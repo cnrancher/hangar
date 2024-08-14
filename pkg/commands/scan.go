@@ -114,7 +114,8 @@ hangar scan \
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 	flags.StringVarP(&cc.reportFile, "report", "r", "scan-report.[FORMAT]", "scan report output file")
 	flags.StringSliceVarP(&cc.scanners, "scanner", "", []string{"vuln"}, "list of scanners (available: vuln,misconfig,secret,license)")
-	flags.StringVarP(&cc.format, "format", "", "csv", "output report format (available: json/yaml/csv/spdx-csv/spdx-json)")
+	flags.StringVarP(&cc.format, "format", "", "csv",
+		fmt.Sprintf("output report format (available: %v)", strings.Join(scan.AvailableFormats, ",")))
 
 	return cc
 }
@@ -147,15 +148,15 @@ func (cc *scanCmd) prepareHangar() (hangar.Hangar, error) {
 		}
 	}
 	if cc.format == "" {
-		logrus.Warnf("Output report format not specified, set to default: 'json'")
-		cc.format = "json"
+		logrus.Warnf("Output report format not specified, set to default: %v",
+			scan.FormatJSON)
+		cc.format = scan.FormatJSON
 	}
-	var availableFormat = []string{"json", "yaml", "csv", "spdx-json", "spdx-csv"}
-	if !slices.Contains(availableFormat, cc.format) {
+	if !slices.Contains(scan.AvailableFormats, cc.format) {
 		return nil, fmt.Errorf("invalid output format %q, available [%v]",
-			cc.format, strings.Join(availableFormat, ","))
+			cc.format, strings.Join(scan.AvailableFormats, ","))
 	}
-	if cc.format == "spdx-json" || cc.format == "spdx-csv" {
+	if cc.format == scan.FormatSPDXCSV || cc.format == scan.FormatJSON {
 		logrus.Infof("SPDX SBOM output format disables security scanning")
 		cc.scanners = []string{"none"}
 	}
@@ -277,9 +278,9 @@ func (cc *scanCmd) prepareScanner() error {
 func (cc *scanCmd) saveReport() error {
 	var reportFile string
 	switch cc.format {
-	case "spdx-json":
+	case scan.FormatSPDXJSON:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.json")
-	case "spdx-csv":
+	case scan.FormatCSV:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.csv")
 	default:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", cc.format)
@@ -300,7 +301,7 @@ func (cc *scanCmd) saveReport() error {
 	logrus.Debugf("Save report time %v", cc.report.Time)
 	var b []byte
 	switch cc.format {
-	case "json":
+	case scan.FormatJSON:
 		b, err = json.MarshalIndent(cc.report, "", "  ")
 		if err != nil {
 			return fmt.Errorf("report marshal json failed: %w", err)
@@ -309,7 +310,7 @@ func (cc *scanCmd) saveReport() error {
 		if err != nil {
 			return fmt.Errorf("failed to write report to file: %w", err)
 		}
-	case "yaml":
+	case scan.FormatYAML:
 		b, err = yaml.Marshal(cc.report)
 		if err != nil {
 			return fmt.Errorf("report marshal yaml failed: %w", err)
@@ -318,11 +319,11 @@ func (cc *scanCmd) saveReport() error {
 		if err != nil {
 			return fmt.Errorf("failed to write report to file: %w", err)
 		}
-	case "csv":
+	case scan.FormatCSV:
 		if err = cc.report.WriteCSV(f); err != nil {
 			return fmt.Errorf("report write csv failed: %w", err)
 		}
-	case "spdx-json":
+	case scan.FormatSPDXJSON:
 		b, err = json.MarshalIndent(cc.report, "", "  ")
 		if err != nil {
 			return fmt.Errorf("report marshal json failed: %w", err)
@@ -331,8 +332,8 @@ func (cc *scanCmd) saveReport() error {
 		if err != nil {
 			return fmt.Errorf("failed to write report to file: %w", err)
 		}
-	case "spdx-csv":
-		if err = cc.report.WriteSPDX_CSV(f); err != nil {
+	case scan.FormatSPDXCSV:
+		if err = cc.report.WriteSPDXCSV(f); err != nil {
 			return fmt.Errorf("report write csv failed: %w", err)
 		}
 	default:

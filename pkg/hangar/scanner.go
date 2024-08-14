@@ -186,6 +186,6 @@ func (s *Scanner) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Scanner) Validate(ctx context.Context) error {
+func (s *Scanner) Validate(_ context.Context) error {
 	panic("Scanner does not support validation mode yet")
 }

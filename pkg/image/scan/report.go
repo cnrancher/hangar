@@ -164,7 +164,7 @@ func (r *Report) WriteCSV(f io.Writer) error {
 	return nil
 }
 
-func (r *Report) WriteSPDX_CSV(f io.Writer) error {
+func (r *Report) WriteSPDXCSV(f io.Writer) error {
 	line := []string{
 		"image",       // 0
 		"arch",        // 1
@@ -231,7 +231,7 @@ func (r *Result) Append(image *ImageResult) {
 }
 
 func NewImageResult(
-	ctx context.Context, report *types.Report, format string, opt *ScanOption,
+	ctx context.Context, report *types.Report, format string, opt *Option,
 ) (*ImageResult, error) {
 	image := &ImageResult{
 		Digest:          opt.Digest,
@@ -249,9 +249,9 @@ func NewImageResult(
 			return nil, fmt.Errorf("spdx Marshal: %w", err)
 		}
 		// Modify the creator tool info to trivy without version info.
-		for _, c := range image.SBOM_SPDX.CreationInfo.Creators {
-			if c.CreatorType == "Tool" {
-				c.Creator = "trivy"
+		for i := range image.SBOM_SPDX.CreationInfo.Creators {
+			if image.SBOM_SPDX.CreationInfo.Creators[i].CreatorType == "Tool" {
+				image.SBOM_SPDX.CreationInfo.Creators[i].Creator = "trivy"
 			}
 		}
 		return image, nil

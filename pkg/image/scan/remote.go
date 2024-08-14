@@ -116,7 +116,7 @@ func (s *remoteScanner) scanOptions() types.ScanOptions {
 }
 
 func (s *remoteScanner) Scan(
-	ctx context.Context, opt *ScanOption,
+	ctx context.Context, opt *Option,
 ) (*ImageResult, error) {
 	logrus.Debugf("Start to scan image %q", opt.ReferenceName)
 	if !dbInitialized {

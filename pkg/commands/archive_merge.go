@@ -78,7 +78,7 @@ func (cc *archiveMergeCmd) run() error {
 
 func (cc *archiveMergeCmd) merge() error {
 	var (
-		readers  []*archive.Reader
+		readers  = []*archive.Reader{}
 		writer   *archive.Writer
 		err      error
 		newIndex = archive.NewIndex()

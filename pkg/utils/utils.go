@@ -37,6 +37,10 @@ const (
 	CacheCloneRepoDirectory = "charts-repo-cache"
 	MaxWorkerNum            = 20
 	MinWorkerNum            = 1
+
+	DefaultProject = "library"
+	DefaultTag     = "latest"
+	LocalHost      = "localhost"
 )
 
 func init() {
@@ -198,17 +202,17 @@ func GetProjectName(image string) string {
 
 	switch len(s) {
 	case 1:
-		return "library"
+		return DefaultProject
 	case 2:
-		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
-			return "library"
+		if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
+			return DefaultProject
 		} else {
 			return s[0]
 		}
 	case 3:
 		return s[1]
 	}
-	return "library"
+	return DefaultProject
 }
 
 // GetRegistryName gets the registry name of the image, example:
@@ -230,7 +234,7 @@ func GetRegistryName(image string) string {
 	case 1:
 		return DockerHubRegistry
 	case 2:
-		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+		if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 			return s[0]
 		} else {
 			return DockerHubRegistry
@@ -537,7 +541,7 @@ func CopyPolicy(src *signature.Policy) (*signature.Policy, error) {
 }
 
 func HTTPClientDo(
-	ctx context.Context, client *http.Client, req *http.Request,
+	client *http.Client, req *http.Request,
 ) (*http.Response, error) {
 	logrus.Debugf("client.Do: %v", req.URL.String())
 	resp, err := client.Do(req)
@@ -584,7 +588,7 @@ func DetectURL(
 	}
 
 	pingFunc := func() (*http.Response, error) {
-		resp, err := HTTPClientDo(ctx, client, req)
+		resp, err := HTTPClientDo(client, req)
 		if err == nil {
 			return resp, nil
 		}
@@ -599,7 +603,7 @@ func DetectURL(
 		if err != nil {
 			return nil, err
 		}
-		resp, err = HTTPClientDo(ctx, client, req)
+		resp, err = HTTPClientDo(client, req)
 		if err != nil {
 			return nil, err
 		}

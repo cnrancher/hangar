@@ -11,6 +11,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/opencontainers/go-digest"
 
 	manifestv5 "github.com/containers/image/v5/manifest"
@@ -341,13 +342,13 @@ func newDestinationFromDocker(o *Option) (*Destination, error) {
 		systemCtx: o.SystemContext,
 	}
 	if d.tag == "" {
-		d.tag = "latest"
+		d.tag = utils.DefaultTag
 	}
 	if d.project == "" {
-		d.project = "library"
+		d.project = utils.DefaultProject
 	}
 	if d.registry == "" {
-		d.registry = "docker.io"
+		d.registry = utils.DockerHubRegistry
 	}
 
 	return d, nil
@@ -366,13 +367,13 @@ func newDestinationFromDockerDaemon(o *Option) (*Destination, error) {
 		systemCtx: o.SystemContext,
 	}
 	if d.tag == "" {
-		d.tag = "latest"
+		d.tag = utils.DefaultTag
 	}
 	if d.project == "" {
-		d.project = "library"
+		d.project = utils.DefaultProject
 	}
 	if d.registry == "" {
-		d.registry = "docker.io"
+		d.registry = utils.DockerHubRegistry
 	}
 
 	return d, nil

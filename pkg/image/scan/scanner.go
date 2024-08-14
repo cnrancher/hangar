@@ -15,11 +15,11 @@ const (
 )
 
 type Scanner interface {
-	Scan(context.Context, *ScanOption) (*ImageResult, error)
+	Scan(context.Context, *Option) (*ImageResult, error)
 }
 
-// ScanOption is the option when scanning container image
-type ScanOption struct {
+// Option is the option when scanning container image
+type Option struct {
 	ReferenceName string
 	Digest        digest.Digest
 	Platform      Platform
@@ -71,7 +71,7 @@ func InitScanner(o ScannerOption) error {
 	return nil
 }
 
-func Scan(ctx context.Context, o *ScanOption) (*ImageResult, error) {
+func Scan(ctx context.Context, o *Option) (*ImageResult, error) {
 	if !dbInitialized {
 		return nil, ErrDBNotInitialized
 	}
