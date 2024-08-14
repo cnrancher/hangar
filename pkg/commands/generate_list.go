@@ -152,14 +152,16 @@ func (cc *generateListCmd) prepareGenerator() error {
 	}
 
 	switch {
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.6"):
-		option.MinKubeVersion = "v1.21.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
 		option.MinKubeVersion = "v1.23.0"
 	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
 		option.MinKubeVersion = "v1.25.0"
+	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.9"):
+		option.MinKubeVersion = "v1.27.0"
+	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.10"):
+		option.MinKubeVersion = "v1.29.0"
 	default:
-		option.MinKubeVersion = "v0.1.0"
+		option.MinKubeVersion = "v1.21.0"
 	}
 	if cc.kdm != "" {
 		if _, err := url.ParseRequestURI(cc.kdm); err != nil {

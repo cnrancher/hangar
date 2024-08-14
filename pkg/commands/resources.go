@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/cnrancher/hangar/pkg/rancher/chartimages"
 	"github.com/cnrancher/hangar/pkg/rancher/listgenerator"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )
@@ -293,15 +294,33 @@ func addRancherPrimeManagerKontainerDriverMetadata(
 func addRancherPrimeManagerGCKontainerDriverMetadata(
 	v string, o *listgenerator.GeneratorOption, dev bool,
 ) {
-	majorMinor := semver.MajorMinor(v)
-	urlMap := KontainerDriverMetadataGCURLs
+	urlMap := KontainerDriverMetadataURLs
 	if dev {
-		urlMap = KontainerDriverMetadataGCURLsDEV
+		urlMap = KontainerDriverMetadataURLsDEV
 	}
+	if shouldUseGCKDM(v) {
+		if dev {
+			urlMap = KontainerDriverMetadataGCURLsDEV
+		} else {
+			urlMap = KontainerDriverMetadataGCURLs
+		}
+	}
+
+	majorMinor := semver.MajorMinor(v)
 	url, ok := urlMap[majorMinor]
 	if !ok {
 		logrus.Warnf("KDM URL of version %q not found!", majorMinor)
 		return
 	}
 	o.KDMURL = url
+}
+
+func shouldUseGCKDM(version string) bool {
+	// v2.8.5 and v2.9.0+ does not required to use GC KDM anymore
+	if n, e := utils.SemverCompare(version, "v2.9.0"); e == nil && n >= 0 {
+		return false
+	} else if n, e := utils.SemverCompare(version, "v2.8.5"); e == nil && n >= 0 {
+		return false
+	}
+	return true
 }
