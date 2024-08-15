@@ -211,6 +211,7 @@ func (cc *scanCmd) prepareHangar() (hangar.Hangar, error) {
 			Arch:                cc.arch,
 			OS:                  cc.os,
 			Variant:             nil,
+			CopyProvenance:      false,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
 			FailedImageListName: cc.failed,

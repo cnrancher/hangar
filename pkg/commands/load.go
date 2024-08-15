@@ -28,6 +28,7 @@ type loadOpts struct {
 	timeout        time.Duration
 	project        string
 	skipLogin      bool
+	copyProvenance bool
 	tlsVerify      commonFlag.OptionalBool
 
 	sigstorePrivateKey     string
@@ -93,6 +94,7 @@ hangar load \
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
 	flags.StringVarP(&cc.project, "project", "", "", "override all destination image projects")
+	flags.BoolVarP(&cc.copyProvenance, "provenance", "", true, "copy SLSA provenance")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
@@ -194,6 +196,7 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 			Arch:                cc.arch,
 			OS:                  cc.os,
 			Variant:             nil,
+			CopyProvenance:      cc.copyProvenance,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
 			FailedImageListName: cc.failed,

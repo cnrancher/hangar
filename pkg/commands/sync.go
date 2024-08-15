@@ -16,15 +16,16 @@ import (
 )
 
 type syncOpts struct {
-	file        string
-	arch        []string
-	os          []string
-	source      string
-	destination string
-	failed      string
-	jobs        int
-	timeout     time.Duration
-	tlsVerify   commonFlag.OptionalBool
+	file           string
+	arch           []string
+	os             []string
+	source         string
+	destination    string
+	failed         string
+	jobs           int
+	timeout        time.Duration
+	copyProvenance bool
+	tlsVerify      commonFlag.OptionalBool
 }
 
 type syncCmd struct {
@@ -78,6 +79,7 @@ hangar sync \
 	flags.SetAnnotation("failed", cobra.BashCompFilenameExt, []string{"txt"})
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when save each images")
+	flags.BoolVarP(&cc.copyProvenance, "provenance", "", true, "copy SLSA provenance")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	addCommands(
@@ -139,6 +141,7 @@ func (cc *syncCmd) prepareHangar() (hangar.Hangar, error) {
 			Arch:                cc.arch,
 			OS:                  cc.os,
 			Variant:             nil,
+			CopyProvenance:      cc.copyProvenance,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
 			FailedImageListName: cc.failed,

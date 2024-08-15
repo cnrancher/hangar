@@ -70,6 +70,7 @@ type CommonOpts struct {
 	Arch                []string
 	OS                  []string
 	Variant             []string
+	CopyProvenance      bool
 	Timeout             time.Duration
 	Workers             int
 	FailedImageListName string
@@ -85,7 +86,8 @@ func newCommon(o *CommonOpts) (*common, error) {
 	c := &common{
 		images: make([]string, len(o.Images)),
 
-		imageSpecSet: types.NewImageFilterSet(o.Arch, o.OS, o.Variant),
+		imageSpecSet: types.NewImageFilterSet(
+			o.Arch, o.OS, o.Variant, o.CopyProvenance),
 
 		timeout:        o.Timeout,
 		workers:        o.Workers,
