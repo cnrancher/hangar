@@ -437,7 +437,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		// manifest index for destination image.
 		var skipBuildManifest = true
 		for _, img := range manifestImages {
-			if !destManifestImages.ContainDigest(img.Digest) {
+			if !manifestImages.Contains(img) {
 				skipBuildManifest = false
 				break
 			}

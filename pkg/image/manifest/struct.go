@@ -174,12 +174,24 @@ func (images Images) ContainDigest(d digest.Digest) bool {
 	return false
 }
 
-func (images Images) FindPlatformIndex(p *manifestPlatform) int {
-	if len(images) == 0 {
+func (images Images) FindDigestIndex(p *Image) int {
+	if len(images) == 0 || p == nil {
 		return -1
 	}
 	for i, img := range images {
-		if img.platform.equal(p) {
+		if img.Digest == p.Digest {
+			return i
+		}
+	}
+	return -1
+}
+
+func (images Images) FindPlatformIndex(p *Image) int {
+	if len(images) == 0 || p == nil {
+		return -1
+	}
+	for i, img := range images {
+		if img.platform.equal(&p.platform) {
 			return i
 		}
 	}

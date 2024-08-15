@@ -307,7 +307,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		// manifest index for destination image.
 		var skipBuildManifest = true
 		for _, img := range destManifestImages {
-			if !manifestImages.ContainDigest(img.Digest) {
+			if !manifestImages.Contains(img) {
 				skipBuildManifest = false
 				break
 			}

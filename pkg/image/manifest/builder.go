@@ -57,10 +57,8 @@ func NewBuilder(o *BuilderOpts) (*Builder, error) {
 }
 
 func (b *Builder) Add(p *Image) {
-	if b.images.Contains(p) {
-		return
-	}
-	if i := b.images.FindPlatformIndex(&p.platform); i >= 0 {
+	// Replace if digest already exists
+	if i := b.images.FindDigestIndex(p); i >= 0 {
 		b.images = append(b.images[:i], b.images[i+1:]...)
 	}
 	b.images = append(b.images, p)

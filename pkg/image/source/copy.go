@@ -110,12 +110,6 @@ func (s *Source) copyDockerV2ListMediaType(
 		if !opts.Set.Allow(arch, osInfo, variant) {
 			continue
 		}
-		if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(m.Digest) {
-			logrus.Debugf("dest already have digest %v, skip copy", m.Digest)
-			copiedNum++
-			continue
-		}
-
 		sourceRef, err := alltransportsv5.ParseImageName(fmt.Sprintf(
 			"%s%s/%s/%s@%s",
 			s.imageType.Transport(), s.registry, s.project, s.name, dig))
@@ -123,6 +117,43 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
+
+		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
+			// Inspect source image to fix missing variant/osVersion/osFeature keys
+			// FYI: https://github.com/cnrancher/hangar/issues/83
+			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+				Reference:     sourceRef,
+				SystemContext: s.SystemContext(),
+			})
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to create inspector for source image: %w", err))
+				continue
+			}
+			c, err := inspector.Config(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
+				inspector.Close()
+				continue
+			}
+			inspector.Close()
+
+			ociConfig := &imgspecv1.Image{}
+			err = json.Unmarshal(c, ociConfig)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
+				continue
+			}
+			if osVersion == "" {
+				osVersion = ociConfig.OSVersion
+			}
+			if len(osFeatures) == 0 {
+				osFeatures = ociConfig.OSFeatures
+			}
+			if variant == "" {
+				variant = ociConfig.Variant
+			}
+		}
+
 		destRef, err := opts.Destination.ReferenceMultiArch(
 			osInfo, osVersion, arch, variant, dig.Encoded())
 		if err != nil {
@@ -161,28 +192,6 @@ func (s *Source) copyDockerV2ListMediaType(
 		if err != nil {
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
-		}
-		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
-			c, err := inspector.Config(ctx)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
-				continue
-			}
-			ociConfig := &imgspecv1.Image{}
-			err = json.Unmarshal(c, ociConfig)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
-				continue
-			}
-			if osVersion == "" {
-				osVersion = ociConfig.OSVersion
-			}
-			if len(osFeatures) == 0 {
-				osFeatures = ociConfig.OSFeatures
-			}
-			if variant == "" {
-				variant = ociConfig.Variant
-			}
 		}
 		manifestDigest, err := manifestv5.Digest(b)
 		if err != nil {
@@ -234,7 +243,6 @@ func (s *Source) copyDockerV2ListMediaType(
 		}
 		copiedNum++
 	}
-
 	if len(errs) > 0 {
 		err := errors.Join(errs...)
 		return copiedNum, fmt.Errorf(
@@ -264,11 +272,6 @@ func (s *Source) copyMediaTypeImageIndex(
 		if !opts.Set.Allow(arch, osInfo, variant) {
 			continue
 		}
-		if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(m.Digest) {
-			logrus.Debugf("dest already have digest %v, skip copy", m.Digest)
-			copiedNum++
-			continue
-		}
 
 		sourceRef, err := alltransportsv5.ParseImageName(fmt.Sprintf(
 			"%s%s/%s/%s@%s",
@@ -277,6 +280,43 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, err)
 			continue
 		}
+
+		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
+			// Inspect source image to fix missing variant/osVersion/osFeature keys
+			// FYI: https://github.com/cnrancher/hangar/issues/83
+			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+				Reference:     sourceRef,
+				SystemContext: s.SystemContext(),
+			})
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to create inspector for source image: %w", err))
+				continue
+			}
+			c, err := inspector.Config(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
+				inspector.Close()
+				continue
+			}
+			inspector.Close()
+
+			ociConfig := &imgspecv1.Image{}
+			err = json.Unmarshal(c, ociConfig)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
+				continue
+			}
+			if osVersion == "" {
+				osVersion = ociConfig.OSVersion
+			}
+			if len(osFeatures) == 0 {
+				osFeatures = ociConfig.OSFeatures
+			}
+			if variant == "" {
+				variant = ociConfig.Variant
+			}
+		}
+
 		destRef, err := opts.Destination.ReferenceMultiArch(
 			osInfo, osVersion, arch, variant, dig.Encoded())
 		if err != nil {
@@ -316,31 +356,9 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 			continue
 		}
-		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
-			c, err := inspector.Config(ctx)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("inspector.Config failed: %w", err))
-				continue
-			}
-			ociConfig := &imgspecv1.Image{}
-			err = json.Unmarshal(c, ociConfig)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("failed to unmarshal OCI config: %w", err))
-				continue
-			}
-			if osVersion == "" {
-				osVersion = ociConfig.OSVersion
-			}
-			if len(osFeatures) == 0 {
-				osFeatures = ociConfig.OSFeatures
-			}
-			if variant == "" {
-				variant = ociConfig.Variant
-			}
-		}
 		manifestDigest, err := manifestv5.Digest(b)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("imagemanifest.Digest failed: %w", err))
+			errs = append(errs, fmt.Errorf("failed to get digest: %w", err))
 			continue
 		}
 		spec := archive.ImageSpec{
@@ -412,9 +430,10 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if !opts.Set.Allow(arch, osInfo, variant) {
 		return utils.ErrNoAvailableImage
 	}
+	skipCopy := false
 	if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(s.manifestDigest) {
 		logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
-		return nil
+		skipCopy = true
 	}
 
 	sourceRef, err := s.Reference()
@@ -426,20 +445,22 @@ func (s *Source) copyDockerV2Schema2MediaType(
 	if err != nil {
 		return err
 	}
-	err = copyImage(ctx, &copyOptions{
-		sigstorePrivateKey:           opts.SigstorePrivateKey,
-		sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
-		removeSignatures:             opts.RemoveSignatures,
+	if !skipCopy {
+		err = copyImage(ctx, &copyOptions{
+			sigstorePrivateKey:           opts.SigstorePrivateKey,
+			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
+			removeSignatures:             opts.RemoveSignatures,
 
-		sourceRef:  sourceRef,
-		destRef:    destRef,
-		sourceCtx:  s.systemCtx,
-		destCtx:    opts.Destination.SystemContext(),
-		policy:     opts.Policy,
-		sourceMIME: s.mime,
-	})
-	if err != nil {
-		return err
+			sourceRef:  sourceRef,
+			destRef:    destRef,
+			sourceCtx:  s.systemCtx,
+			destCtx:    opts.Destination.SystemContext(),
+			policy:     opts.Policy,
+			sourceMIME: s.mime,
+		})
+		if err != nil {
+			return err
+		}
 	}
 	spec := archive.ImageSpec{
 		Arch:       arch,
@@ -561,6 +582,11 @@ func (s *Source) copyMediaTypeImageManifest(
 	if !opts.Set.Allow(arch, osInfo, variant) {
 		return utils.ErrNoAvailableImage
 	}
+	skipCopy := false
+	if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(s.manifestDigest) {
+		logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
+		skipCopy = true
+	}
 
 	sourceRef, err := s.Reference()
 	if err != nil {
@@ -571,20 +597,22 @@ func (s *Source) copyMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	err = copyImage(ctx, &copyOptions{
-		sigstorePrivateKey:           opts.SigstorePrivateKey,
-		sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
-		removeSignatures:             opts.RemoveSignatures,
+	if !skipCopy {
+		err = copyImage(ctx, &copyOptions{
+			sigstorePrivateKey:           opts.SigstorePrivateKey,
+			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
+			removeSignatures:             opts.RemoveSignatures,
 
-		sourceRef:  sourceRef,
-		destRef:    destRef,
-		sourceCtx:  s.systemCtx,
-		destCtx:    opts.Destination.SystemContext(),
-		policy:     opts.Policy,
-		sourceMIME: s.mime,
-	})
-	if err != nil {
-		return err
+			sourceRef:  sourceRef,
+			destRef:    destRef,
+			sourceCtx:  s.systemCtx,
+			destCtx:    opts.Destination.SystemContext(),
+			policy:     opts.Policy,
+			sourceMIME: s.mime,
+		})
+		if err != nil {
+			return err
+		}
 	}
 	spec := archive.ImageSpec{
 		Arch:       arch,
