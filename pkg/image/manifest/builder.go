@@ -8,9 +8,10 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 
 	"github.com/containers/common/pkg/retry"
-	manifestv5 "github.com/containers/image/v5/manifest"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
 	typesv5 "github.com/containers/image/v5/types"
+	imgspec "github.com/opencontainers/image-spec/specs-go"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Builder is the builder to build DockerV2ListMediaType manifest.
@@ -60,6 +61,7 @@ func (b *Builder) Add(p *Image) {
 	// Replace if digest already exists
 	if i := b.images.FindDigestIndex(p); i >= 0 {
 		b.images = append(b.images[:i], b.images[i+1:]...)
+		return
 	}
 	b.images = append(b.images, p)
 }
@@ -72,28 +74,34 @@ func (b *Builder) Push(ctx context.Context) error {
 	if len(b.images) == 0 {
 		return fmt.Errorf("manifest builder: no images added to builder")
 	}
-	list := manifestv5.Schema2List{
-		SchemaVersion: 2,
-		MediaType:     manifestv5.DockerV2ListMediaType,
-		Manifests:     make([]manifestv5.Schema2ManifestDescriptor, 0),
+	// list := manifestv5.Schema2List{
+	// 	SchemaVersion: 2,
+	// 	MediaType:     manifestv5.DockerV2ListMediaType,
+	// 	Manifests:     make([]manifestv5.Schema2ManifestDescriptor, 0),
+	// }
+	list := imgspecv1.Index{
+		Versioned: imgspec.Versioned{
+			SchemaVersion: 2,
+		},
+		MediaType: imgspecv1.MediaTypeImageIndex,
+		Manifests: make([]imgspecv1.Descriptor, 0),
 	}
 
 	for _, img := range b.images {
-		s2desc := manifestv5.Schema2ManifestDescriptor{
-			Schema2Descriptor: manifestv5.Schema2Descriptor{
-				MediaType: img.MediaType,
-				Size:      img.Size,
-				Digest:    img.Digest,
-			},
-			Platform: manifestv5.Schema2PlatformSpec{
+		m := imgspecv1.Descriptor{
+			MediaType:   img.MediaType,
+			Size:        img.Size,
+			Digest:      img.Digest,
+			Annotations: img.Annotations,
+			Platform: &imgspecv1.Platform{
 				Architecture: img.platform.arch,
 				OS:           img.platform.os,
-				Variant:      img.platform.variant,
 				OSVersion:    img.platform.osVersion,
 				OSFeatures:   img.platform.osFeatures,
+				Variant:      img.platform.variant,
 			},
 		}
-		list.Manifests = append(list.Manifests, s2desc)
+		list.Manifests = append(list.Manifests, m)
 	}
 	d, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {

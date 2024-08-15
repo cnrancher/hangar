@@ -32,15 +32,16 @@ type Image struct {
 }
 
 type ImageSpec struct {
-	Arch       string          `json:"arch,omitempty" yaml:"arch,omitempty"`
-	OS         string          `json:"os,omitempty" yaml:"os,omitempty"`
-	OSVersion  string          `json:"osVersion,omitempty" yaml:"osVersion,omitempty"`
-	OSFeatures []string        `json:"osFeatures,omitempty" yaml:"osFeatures,omitempty"`
-	Variant    string          `json:"variant,omitempty" yaml:"variant,omitempty"`
-	MediaType  string          `json:"mediaType,omitempty" yaml:"mime,omitempty"`
-	Layers     []digest.Digest `json:"layers,omitempty" yaml:"layers,omitempty"`
-	Config     digest.Digest   `json:"config,omitempty" yaml:"config,omitempty"`
-	Digest     digest.Digest   `json:"digest,omitempty" yaml:"digest,omitempty"`
+	Arch        string            `json:"arch,omitempty" yaml:"arch,omitempty"`
+	OS          string            `json:"os,omitempty" yaml:"os,omitempty"`
+	OSVersion   string            `json:"osVersion,omitempty" yaml:"osVersion,omitempty"`
+	OSFeatures  []string          `json:"osFeatures,omitempty" yaml:"osFeatures,omitempty"`
+	Variant     string            `json:"variant,omitempty" yaml:"variant,omitempty"`
+	MediaType   string            `json:"mediaType,omitempty" yaml:"mime,omitempty"`
+	Layers      []digest.Digest   `json:"layers,omitempty" yaml:"layers,omitempty"`
+	Config      digest.Digest     `json:"config,omitempty" yaml:"config,omitempty"`
+	Digest      digest.Digest     `json:"digest,omitempty" yaml:"digest,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 }
 
 func NewIndex() *Index {

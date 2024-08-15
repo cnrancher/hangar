@@ -428,6 +428,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}
 		mi.UpdatePlatform(
 			img.Arch, img.Variant, img.OS, img.OSVersion, img.OSFeatures)
+		mi.Annotations = img.Annotations
 		manifestImages = append(manifestImages, mi)
 	}
 
@@ -436,7 +437,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		// If no new image copied to destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
-		for _, img := range manifestImages {
+		for _, img := range destManifestImages {
 			if !manifestImages.Contains(img) {
 				skipBuildManifest = false
 				break

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 
 	manifestv5 "github.com/containers/image/v5/manifest"
@@ -15,10 +16,11 @@ import (
 type Images []*Image
 
 type Image struct {
-	Size      int64
-	Digest    digest.Digest
-	MediaType string
-	platform  manifestPlatform
+	Size        int64
+	Digest      digest.Digest
+	MediaType   string
+	Annotations map[string]string // OCI image index v1 supports annotations
+	platform    manifestPlatform
 }
 
 func NewImageByInspect(
@@ -55,9 +57,10 @@ func NewImageByInspect(
 		return nil, fmt.Errorf("failed to get image config: %w", err)
 	}
 	mi := &Image{
-		Size:      int64(len(b)),
-		Digest:    digest,
-		MediaType: mime,
+		Size:        int64(len(b)),
+		Digest:      digest,
+		MediaType:   mime,
+		Annotations: map[string]string{},
 		platform: manifestPlatform{
 			arch:       config.Architecture,
 			os:         config.OS,
@@ -70,11 +73,17 @@ func NewImageByInspect(
 	return mi, nil
 }
 
-func NewImage(digest digest.Digest, mime string, size int64) *Image {
+func NewImage(
+	digest digest.Digest, mime string, size int64, annotations map[string]string,
+) *Image {
 	mi := &Image{
-		Digest:    digest,
-		MediaType: mime,
-		Size:      size,
+		Digest:      digest,
+		MediaType:   mime,
+		Size:        size,
+		Annotations: map[string]string{},
+	}
+	if len(annotations) != 0 {
+		mi.Annotations = annotations
 	}
 
 	return mi
@@ -125,6 +134,9 @@ func (p *Image) Equal(d *Image) bool {
 		return false
 	}
 	if p.Digest != d.Digest {
+		return false
+	}
+	if !reflect.DeepEqual(p.Annotations, d.Annotations) {
 		return false
 	}
 	if p.platform.arch != d.platform.arch {

@@ -259,6 +259,23 @@ func (s *Source) copyMediaTypeImageIndex(
 ) (int, error) {
 	var copiedNum int
 	var errs []error
+
+	// Filter allowed image digests
+	allowedDigests := map[string]bool{}
+	for _, m := range s.ociIndex.Manifests {
+		dig := m.Digest
+		arch := m.Platform.Architecture
+		osInfo := m.Platform.OS
+		variant := m.Platform.Variant
+		if !opts.Set.Allow(arch, osInfo, variant) {
+			continue
+		}
+		if arch == "unknown" || osInfo == "unknown" {
+			continue
+		}
+		allowedDigests[dig.String()] = true
+	}
+
 	for _, m := range s.ociIndex.Manifests {
 		mime := m.MediaType
 		arch := m.Platform.Architecture
@@ -267,10 +284,18 @@ func (s *Source) copyMediaTypeImageIndex(
 		osFeatures := m.Platform.OSFeatures
 		variant := m.Platform.Variant
 		dig := m.Digest
+		annotations := m.Annotations
 
 		// Skip image
 		if !opts.Set.Allow(arch, osInfo, variant) {
 			continue
+		}
+		if len(annotations) != 0 {
+			// Skip uncopied image SLSA provenance
+			referenceDigest := annotations["vnd.docker.reference.digest"]
+			if referenceDigest != "" && !allowedDigests[referenceDigest] {
+				continue
+			}
 		}
 
 		sourceRef, err := alltransportsv5.ParseImageName(fmt.Sprintf(
@@ -362,15 +387,16 @@ func (s *Source) copyMediaTypeImageIndex(
 			continue
 		}
 		spec := archive.ImageSpec{
-			Arch:       arch,
-			OS:         osInfo,
-			OSVersion:  osVersion,
-			OSFeatures: osFeatures,
-			Variant:    variant,
-			MediaType:  mime,
-			Layers:     nil,
-			Config:     "",
-			Digest:     manifestDigest,
+			Arch:        arch,
+			OS:          osInfo,
+			OSVersion:   osVersion,
+			OSFeatures:  osFeatures,
+			Variant:     variant,
+			MediaType:   mime,
+			Layers:      nil,
+			Config:      "",
+			Digest:      manifestDigest,
+			Annotations: annotations,
 		}
 		switch imageMIME {
 		case manifestv5.DockerV2Schema2MediaType:

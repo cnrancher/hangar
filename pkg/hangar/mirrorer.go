@@ -299,6 +299,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		}
 		mi.UpdatePlatform(
 			image.Arch, image.Variant, image.OS, image.OSVersion, image.OSFeatures)
+		mi.Annotations = image.Annotations
 		manifestImages = append(manifestImages, mi)
 	}
 	destManifestImages := obj.destination.ManifestImages()

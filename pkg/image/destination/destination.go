@@ -426,7 +426,7 @@ func (d *Destination) ManifestImages() manifest.Images {
 	switch d.mime {
 	case manifestv5.DockerV2ListMediaType:
 		for _, m := range d.schema2List.Manifests {
-			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size)
+			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size, nil)
 			mi.UpdatePlatform(
 				m.Platform.Architecture,
 				m.Platform.Variant,
@@ -438,7 +438,7 @@ func (d *Destination) ManifestImages() manifest.Images {
 		}
 	case imgspecv1.MediaTypeImageIndex:
 		for _, m := range d.ociIndex.Manifests {
-			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size)
+			mi := manifest.NewImage(m.Digest, m.MediaType, m.Size, m.Annotations)
 			mi.UpdatePlatform(
 				m.Platform.Architecture,
 				m.Platform.Variant,
