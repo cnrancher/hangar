@@ -23,7 +23,7 @@ require (
 	github.com/aquasecurity/trivy-db v0.0.0-20231005141211-4fc651f7ac8d
 	github.com/aquasecurity/trivy-java-db v0.0.0-20240109071736-184bd7481d48
 	github.com/containers/common v0.60.0
-	github.com/containers/image/v5 v5.32.1
+	github.com/containers/image/v5 v5.32.2
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/moby/term v0.5.0
 	github.com/opencontainers/go-digest v1.0.0
