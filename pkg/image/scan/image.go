@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/aquasecurity/trivy-db/pkg/db"
+	"github.com/aquasecurity/trivy/pkg/cache"
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/applier"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactimage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
-	"github.com/aquasecurity/trivy/pkg/fanal/cache"
 	"github.com/aquasecurity/trivy/pkg/fanal/image"
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/scanner"
@@ -17,7 +17,6 @@ import (
 	"github.com/aquasecurity/trivy/pkg/scanner/local"
 	"github.com/aquasecurity/trivy/pkg/scanner/ospkg"
 	"github.com/aquasecurity/trivy/pkg/types"
-	"github.com/aquasecurity/trivy/pkg/utils/fsutils"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/pkg/docker/config"
@@ -78,7 +77,6 @@ func newImageScanner(o *ScannerOption) (*imageScanner, error) {
 }
 
 func (s *imageScanner) initCache() error {
-	fsutils.SetCacheDir(s.cacheDirectory)
 	fsCache, err := cache.NewFSCache(s.cacheDirectory)
 	if err != nil {
 		return fmt.Errorf("unable to initialize fs cache: %w", err)
@@ -102,11 +100,11 @@ func (s *imageScanner) initLocalScanner() {
 // scanOptions generates the trivy ScanOptions used by scanner.
 func (s *imageScanner) scanOptions() types.ScanOptions {
 	so := types.ScanOptions{
-		VulnType:            types.VulnTypes,
+		PkgTypes:            types.PkgTypes,
+		PkgRelationships:    ftypes.Relationships,
 		Scanners:            s.scanners,
 		ImageConfigScanners: nil,
 		ScanRemovedPackages: false,
-		ListAllPackages:     false,
 		LicenseCategories:   nil,
 		FilePatterns:        nil,
 		IncludeDevDeps:      false,
@@ -115,9 +113,8 @@ func (s *imageScanner) scanOptions() types.ScanOptions {
 	// Disable scanners and set ListAllPackes to true if the output format is
 	// SBOM instead of vulnerabilities.
 	case FormatSPDXCSV, FormatJSON:
-		so.ListAllPackages = true
 		so.Scanners = types.Scanners{
-			types.NoneScanner,
+			types.SBOMScanner,
 		}
 		return so
 	}
@@ -160,8 +157,6 @@ func (s *imageScanner) Scan(
 	ao := artifact.Option{
 		DisabledAnalyzers: disabledAnalyzers,
 		DisabledHandlers:  nil,
-		SkipFiles:         nil,
-		SkipDirs:          nil,
 		FilePatterns:      nil,
 		NoProgress:        false,
 		Insecure:          s.insecureSkipTLSVerify,

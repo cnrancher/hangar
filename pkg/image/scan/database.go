@@ -15,6 +15,7 @@ import (
 	"github.com/aquasecurity/trivy/pkg/javadb"
 	"github.com/aquasecurity/trivy/pkg/oci"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sirupsen/logrus"
 
 	_ "modernc.org/sqlite" // sqlite driver
@@ -95,9 +96,13 @@ func InitTrivyDatabase(ctx context.Context, o DBOptions) error {
 // Init trivy java database.
 // Mandatory for both trivy client & local scan mode.
 func initJavaDB(ctx context.Context, o *DBOptions) error {
+	dbRef, err := name.ParseReference(o.JavaDBRepository)
+	if err != nil {
+		return fmt.Errorf("failed to parse %q: %w", o.JavaDBRepository, err)
+	}
 	javadb.Init(
 		o.CacheDirectory,
-		o.JavaDBRepository,
+		dbRef,
 		false, false,
 		ftypes.RegistryOptions{
 			Insecure: o.InsecureSkipTLSVerify,
@@ -150,10 +155,14 @@ func initJavaDB(ctx context.Context, o *DBOptions) error {
 
 func initDB(ctx context.Context, o *DBOptions) error {
 	logrus.Debugf("Start creating trivy vulnerability database client.")
+	dbRef, err := name.ParseReference(o.DBRepository)
+	if err != nil {
+		return fmt.Errorf("failed to parse %q: %w", o.DBRepository, err)
+	}
 	client := trivydb.NewClient(
-		o.CacheDirectory, false, trivydb.WithDBRepository(o.DBRepository),
+		o.CacheDirectory, false, trivydb.WithDBRepository(dbRef),
 	)
-	needsUpdate, err := client.NeedsUpdate("", o.SkipUpdateDB)
+	needsUpdate, err := client.NeedsUpdate(ctx, "", o.SkipUpdateDB)
 	if err != nil {
 		return fmt.Errorf("initDB: client.NeedsUpdate: %w", err)
 	}
