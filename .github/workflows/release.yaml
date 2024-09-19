@@ -1,10 +1,13 @@
-name: CI
+name: Release
 on:
   push:
     tags:
       - 'v*'
 jobs:
   ci:
+    permissions:
+      contents: write # required for creating GH release
+      id-token: write # required for reading vault secrets
     runs-on: ubuntu-latest
     steps:
       # - name: Login to DockerHub
@@ -38,6 +41,10 @@ jobs:
         run: |
           ./scripts/test.sh
       - name: Static Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # required for creating GH release
+          TAG: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
