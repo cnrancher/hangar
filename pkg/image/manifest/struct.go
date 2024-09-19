@@ -136,8 +136,10 @@ func (p *Image) Equal(d *Image) bool {
 	if p.Digest != d.Digest {
 		return false
 	}
-	if !reflect.DeepEqual(p.Annotations, d.Annotations) {
-		return false
+	if len(p.Annotations) != 0 || len(d.Annotations) != 0 {
+		if !reflect.DeepEqual(p.Annotations, d.Annotations) {
+			return false
+		}
 	}
 	if p.platform.arch != d.platform.arch {
 		return false

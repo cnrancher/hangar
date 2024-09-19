@@ -61,7 +61,6 @@ func (b *Builder) Add(p *Image) {
 	// Replace if digest already exists
 	if i := b.images.FindDigestIndex(p); i >= 0 {
 		b.images = append(b.images[:i], b.images[i+1:]...)
-		return
 	}
 	b.images = append(b.images, p)
 }
