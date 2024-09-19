@@ -5,6 +5,9 @@ on:
       - 'v*'
 jobs:
   ci:
+    permissions:
+      contents: write # required for creating GH release
+      id-token: write # required for reading vault secrets
     runs-on: ubuntu-latest
     steps:
       # - name: Login to DockerHub
