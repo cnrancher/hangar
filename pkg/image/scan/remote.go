@@ -9,7 +9,6 @@ import (
 	"github.com/aquasecurity/trivy/pkg/fanal/analyzer"
 	"github.com/aquasecurity/trivy/pkg/fanal/artifact"
 	artifactimage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
-	fcache "github.com/aquasecurity/trivy/pkg/fanal/cache"
 	"github.com/aquasecurity/trivy/pkg/fanal/image"
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/rpc/client"
@@ -29,7 +28,7 @@ type remoteScanner struct {
 	format                string
 	scanners              types.Scanners
 
-	cache         fcache.Cache
+	remoteCache   *cache.RemoteCache
 	clientScanner *client.Scanner
 }
 
@@ -72,12 +71,12 @@ func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
 }
 
 func (s *remoteScanner) initCache() {
-	remoteCache := cache.NewRemoteCache(
-		s.trivyServerURL,
-		http.Header{},
-		s.insecureSkipTLSVerify,
-	)
-	s.cache = cache.NopCache(remoteCache)
+	remoteCache := cache.NewRemoteCache(cache.RemoteOptions{
+		ServerAddr:    s.trivyServerURL,
+		CustomHeaders: http.Header{},
+		Insecure:      s.insecureSkipTLSVerify,
+	})
+	s.remoteCache = remoteCache
 	logrus.Debugf("remote cache of Remote Scanner initialized")
 }
 
@@ -93,11 +92,11 @@ func (s *remoteScanner) initClientScanner() {
 // scanOptions generates the trivy ScanOptions used by scanner.
 func (s *remoteScanner) scanOptions() types.ScanOptions {
 	so := types.ScanOptions{
-		VulnType:            types.VulnTypes,
+		PkgTypes:            types.PkgTypes,
+		PkgRelationships:    ftypes.Relationships,
 		Scanners:            s.scanners,
 		ImageConfigScanners: nil,
 		ScanRemovedPackages: false,
-		ListAllPackages:     false,
 		LicenseCategories:   nil,
 		FilePatterns:        nil,
 		IncludeDevDeps:      false,
@@ -105,10 +104,9 @@ func (s *remoteScanner) scanOptions() types.ScanOptions {
 	switch s.format {
 	// Disable scanners and set ListAllPackes to true if the output format is
 	// SBOM instead of vulnerabilities.
-	case "spdx-json", "spdx-csv":
-		so.ListAllPackages = true
+	case FormatSPDXCSV, FormatJSON:
 		so.Scanners = types.Scanners{
-			types.NoneScanner,
+			types.SBOMScanner,
 		}
 		return so
 	}
@@ -151,8 +149,6 @@ func (s *remoteScanner) Scan(
 	ao := artifact.Option{
 		DisabledAnalyzers: disabledAnalyzers,
 		DisabledHandlers:  nil,
-		SkipFiles:         nil,
-		SkipDirs:          nil,
 		FilePatterns:      nil,
 		NoProgress:        true,
 		Insecure:          s.insecureSkipTLSVerify,
@@ -168,7 +164,7 @@ func (s *remoteScanner) Scan(
 			ImageSources:  ftypes.AllImageSources,
 		},
 	}
-	artifactArtifact, err := artifactimage.NewArtifact(typesImage, s.cache, ao)
+	artifactArtifact, err := artifactimage.NewArtifact(typesImage, s.remoteCache, ao)
 	if err != nil {
 		return nil, fmt.Errorf("artifactimage.NewArtifact failed: %v", err)
 	}
