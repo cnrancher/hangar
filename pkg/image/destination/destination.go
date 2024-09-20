@@ -168,6 +168,9 @@ func (d *Destination) ReferenceNameMultiArch(
 		types.TypeOci:
 		return filepath.Join(d.referenceName, sha256sum)
 	default:
+		if arch == "unknown" {
+			return fmt.Sprintf("%s-%s", d.referenceName, sha256sum[:16])
+		}
 		return d.MultiArchTag(os, osVersion, arch, variant)
 	}
 }

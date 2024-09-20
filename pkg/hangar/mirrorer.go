@@ -16,6 +16,7 @@ import (
 
 	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -285,7 +286,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 	if len(copiedImage.Images) == 0 {
 		return
 	}
-	var manifestImages = make(manifest.Images, 0)
+	var copiedManifestImages = make(manifest.Images, 0)
 	for _, image := range copiedImage.Images {
 		var mi *manifest.Image
 		mi, err = manifest.NewImageByInspect(
@@ -300,18 +301,22 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		mi.UpdatePlatform(
 			image.Arch, image.Variant, image.OS, image.OSVersion, image.OSFeatures)
 		mi.Annotations = image.Annotations
-		manifestImages = append(manifestImages, mi)
+		copiedManifestImages = append(copiedManifestImages, mi)
 	}
 	destManifestImages := obj.destination.ManifestImages()
 	if len(destManifestImages) > 0 {
 		// If no new image copied to the destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
-		for _, img := range destManifestImages {
-			if !manifestImages.Contains(img) {
+		for _, img := range copiedManifestImages {
+			if !destManifestImages.Contains(img) {
 				skipBuildManifest = false
 				break
 			}
+		}
+		// Ensure dest manifest mime type to OCI Image index.
+		if obj.destination.MIME() != imgspecv1.MediaTypeImageIndex {
+			skipBuildManifest = false
 		}
 		if skipBuildManifest {
 			logrus.Debugf("skip build manifest for image [%v]: already exists",
@@ -334,7 +339,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		builder.Add(img)
 	}
 	// Then add new copied images into builder, update existing images.
-	for _, img := range manifestImages {
+	for _, img := range copiedManifestImages {
 		builder.Add(img)
 	}
 	if builder.Images() == 0 {

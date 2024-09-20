@@ -17,9 +17,9 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/source"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -328,7 +328,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		err = utils.ErrIsSigstoreSignature
 		return
 	}
-	var manifestImages = make(manifest.Images, 0)
+	var copiedManifestImages = make(manifest.Images, 0)
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
@@ -429,19 +429,23 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		mi.UpdatePlatform(
 			img.Arch, img.Variant, img.OS, img.OSVersion, img.OSFeatures)
 		mi.Annotations = img.Annotations
-		manifestImages = append(manifestImages, mi)
+		copiedManifestImages = append(copiedManifestImages, mi)
 	}
 
 	destManifestImages := dest.ManifestImages()
 	if len(destManifestImages) > 0 {
-		// If no new image copied to destination registry, skip re-create
+		// If no new image copied to the destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
-		for _, img := range destManifestImages {
-			if !manifestImages.Contains(img) {
+		for _, img := range copiedManifestImages {
+			if !destManifestImages.Contains(img) {
 				skipBuildManifest = false
 				break
 			}
+		}
+		// Ensure dest manifest mime type to OCI Image index.
+		if dest.MIME() != imgspecv1.MediaTypeImageIndex {
+			skipBuildManifest = false
 		}
 		if skipBuildManifest {
 			logrus.Debugf("skip build manifest for image [%v]: already exists",
@@ -464,7 +468,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		builder.Add(img)
 	}
 	// Then add new copied images to builder, update existing images.
-	for _, img := range manifestImages {
+	for _, img := range copiedManifestImages {
 		builder.Add(img)
 	}
 	if builder.Images() == 0 {

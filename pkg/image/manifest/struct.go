@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 
@@ -162,6 +163,25 @@ func (p *Image) Equal(d *Image) bool {
 		}
 	}
 	return true
+}
+
+func (p *Image) DeepCopy() *Image {
+	if p == nil {
+		return nil
+	}
+	return &Image{
+		Size:        p.Size,
+		Digest:      p.Digest,
+		MediaType:   p.MediaType,
+		Annotations: maps.Clone(p.Annotations),
+		platform: manifestPlatform{
+			arch:       p.platform.arch,
+			os:         p.platform.os,
+			variant:    p.platform.variant,
+			osVersion:  p.platform.osVersion,
+			osFeatures: slices.Clone(p.platform.osFeatures),
+		},
+	}
 }
 
 func (images Images) Contains(d *Image) bool {

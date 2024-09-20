@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 
@@ -59,10 +60,20 @@ func NewBuilder(o *BuilderOpts) (*Builder, error) {
 
 func (b *Builder) Add(p *Image) {
 	// Replace if digest already exists
-	if i := b.images.FindDigestIndex(p); i >= 0 {
+	for i, img := range b.images {
+		if img.Digest != p.Digest {
+			continue
+		}
+
+		// The image digest maybe same on SLSA manifest attestation.
+		if len(img.Annotations) != 0 || len(p.Annotations) != 0 {
+			if !reflect.DeepEqual(img.Annotations, p.Annotations) {
+				continue
+			}
+		}
 		b.images = append(b.images[:i], b.images[i+1:]...)
 	}
-	b.images = append(b.images, p)
+	b.images = append(b.images, p.DeepCopy())
 }
 
 func (b *Builder) Images() int {
