@@ -3,4 +3,4 @@
 
 TEST INVALID IMAGE LIST LINE
 
-alpine mirror-test/mirrored-alpine 3
+mirror-test/alpine:3

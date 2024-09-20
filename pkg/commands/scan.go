@@ -281,7 +281,7 @@ func (cc *scanCmd) saveReport() error {
 	switch cc.format {
 	case scan.FormatSPDXJSON:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.json")
-	case scan.FormatCSV:
+	case scan.FormatSPDXCSV:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", "spdx.csv")
 	default:
 		reportFile = strings.ReplaceAll(cc.reportFile, "[FORMAT]", cc.format)
