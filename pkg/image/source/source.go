@@ -521,6 +521,21 @@ func (s *Source) ImageBySet(set types.FilterSet) *archive.Image {
 			Digest: s.manifestDigest,
 		})
 	case imgspecv1.MediaTypeImageIndex:
+		// Filter allowed image digests
+		allowedDigests := map[string]bool{}
+		for _, m := range s.ociIndex.Manifests {
+			dig := m.Digest
+			arch := m.Platform.Architecture
+			osInfo := m.Platform.OS
+			variant := m.Platform.Variant
+			if !set.Allow(arch, osInfo, variant) {
+				continue
+			}
+			if arch == "unknown" || osInfo == "unknown" {
+				continue
+			}
+			allowedDigests[dig.String()] = true
+		}
 		for _, m := range s.ociIndex.Manifests {
 			p := m.Platform
 			if p == nil {
@@ -529,6 +544,14 @@ func (s *Source) ImageBySet(set types.FilterSet) *archive.Image {
 			if !set.Allow(p.Architecture, p.OS, p.Variant) {
 				continue
 			}
+			if len(m.Annotations) != 0 {
+				// Skip uncopied image SLSA provenance
+				referenceDigest := m.Annotations["vnd.docker.reference.digest"]
+				if referenceDigest != "" && !allowedDigests[referenceDigest] {
+					continue
+				}
+			}
+
 			archSet[p.Architecture] = true
 			osSet[p.OS] = true
 			image.Images = append(image.Images, archive.ImageSpec{

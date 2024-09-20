@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/image/copy"
 	"github.com/cnrancher/hangar/pkg/image/destination"
+	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/common/pkg/retry"
 	"github.com/sirupsen/logrus"
 
 	copyv5 "github.com/containers/image/v5/copy"
@@ -726,11 +725,8 @@ func copyImage(
 
 	var err error
 	copier := copy.NewCopier(&copy.CopierOption{
-		Options: copyOpts,
-		RetryOptions: &retry.Options{
-			MaxRetry: 3,
-			Delay:    time.Millisecond * 100,
-		},
+		Options:      copyOpts,
+		RetryOptions: private.RetryOptions(),
 
 		SourceRef: o.sourceRef,
 		DestRef:   o.destRef,

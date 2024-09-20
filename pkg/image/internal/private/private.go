@@ -28,6 +28,8 @@ func RetryOptions() *retry.Options {
 			case strings.Contains(s, "not found") ||
 				strings.Contains(s, "manifest unknow"):
 				return false
+			case strings.Contains(s, "500 Internal Server Error"):
+				return true
 			}
 			return true
 		},
