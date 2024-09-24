@@ -8,7 +8,7 @@ replace golang.org/x/net => golang.org/x/net v0.29.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
-	github.com/STARRY-S/zip v0.2.0
+	github.com/STARRY-S/zip v0.2.1-beta.1
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.55.2
 	github.com/aquasecurity/trivy-db v0.0.0-20240910133327-7e0f4d2ed4c1

@@ -21,6 +21,7 @@ data.json
 charts-repo-cache
 /rancher/
 /cnrancher/
+/vendor/
 
 # default save image directory
 saved-image-cache
