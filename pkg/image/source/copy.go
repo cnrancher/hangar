@@ -29,6 +29,7 @@ type CopyOptions struct {
 	SigstorePrivateKey string
 	SigstorePassphrase []byte
 	RemoveSignatures   bool
+	CopyProvenance     bool
 
 	Destination *destination.Destination
 	Set         types.FilterSet
@@ -109,6 +110,11 @@ func (s *Source) copyDockerV2ListMediaType(
 		if !opts.Set.Allow(arch, osInfo, variant) {
 			continue
 		}
+		skipCopy := false
+		if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(dig) {
+			logrus.Debugf("dest already have digest %v, skip copy", dig)
+			skipCopy = true
+		}
 		sourceRef, err := alltransportsv5.ParseImageName(fmt.Sprintf(
 			"%s%s/%s/%s@%s",
 			s.imageType.Transport(), s.registry, s.project, s.name, dig))
@@ -159,44 +165,25 @@ func (s *Source) copyDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
+		if !skipCopy {
+			err = copyImage(ctx, &copyOptions{
+				sigstorePrivateKey:           opts.SigstorePrivateKey,
+				sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
+				removeSignatures:             opts.RemoveSignatures,
 
-		err = copyImage(ctx, &copyOptions{
-			sigstorePrivateKey:           opts.SigstorePrivateKey,
-			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
-			removeSignatures:             opts.RemoveSignatures,
-
-			sourceRef:  sourceRef,
-			destRef:    destRef,
-			sourceCtx:  s.systemCtx,
-			destCtx:    opts.Destination.SystemContext(),
-			policy:     opts.Policy,
-			sourceMIME: mime,
-		})
-		if err != nil {
-			errs = append(errs, err)
-			continue
+				sourceRef:  sourceRef,
+				destRef:    destRef,
+				sourceCtx:  s.systemCtx,
+				destCtx:    opts.Destination.SystemContext(),
+				policy:     opts.Policy,
+				sourceMIME: mime,
+			})
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		}
 
-		inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
-			Reference:     destRef,
-			SystemContext: opts.Destination.SystemContext(),
-		})
-		if err != nil {
-			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
-			continue
-		}
-		defer inspector.Close()
-
-		b, imageMIME, err := inspector.Raw(ctx)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
-			continue
-		}
-		manifestDigest, err := manifestv5.Digest(b)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to get digest: %w", err))
-			continue
-		}
 		spec := archive.ImageSpec{
 			Arch:       arch,
 			OS:         osInfo,
@@ -206,35 +193,49 @@ func (s *Source) copyDockerV2ListMediaType(
 			MediaType:  mime,
 			Layers:     nil,
 			Config:     "",
-			Digest:     manifestDigest,
+			Digest:     dig,
 		}
-		switch imageMIME {
-		case manifestv5.DockerV2Schema2MediaType:
-			schema2, err := manifestv5.Schema2FromManifest(b)
+
+		switch opts.Destination.Type() {
+		case types.TypeDir, types.TypeOci:
+			// Only the save functions needs image layers info.
+			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+				Reference:     destRef,
+				SystemContext: opts.Destination.SystemContext(),
+			})
 			if err != nil {
-				errs = append(errs, err)
+				errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 				continue
 			}
-			updateSpecDockerV2Schema2(&spec, schema2)
-		// case imagemanifest.DockerV2Schema1MediaType,
-		// 	imagemanifest.DockerV2Schema1SignedMediaType:
-		// 	schema1, err := imagemanifest.Schema1FromManifest(b)
-		// 	if err != nil {
-		// 		errs = append(errs, err)
-		// 		continue
-		// 	}
-		// 	updateSpecDockerV2Schema1(&spec, schema1)
-		case imgspecv1.MediaTypeImageManifest:
-			ociManifest := new(imgspecv1.Manifest)
-			if err = json.Unmarshal(b, ociManifest); err != nil {
-				errs = append(errs, err)
+			defer inspector.Close()
+
+			b, imageMIME, err := inspector.Raw(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 				continue
 			}
-			updateSpecImageManifest(&spec, ociManifest)
-		default:
-			errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
-			continue
+
+			switch imageMIME {
+			case manifestv5.DockerV2Schema2MediaType:
+				schema2, err := manifestv5.Schema2FromManifest(b)
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				updateSpecDockerV2Schema2(&spec, schema2)
+			case imgspecv1.MediaTypeImageManifest:
+				ociManifest := new(imgspecv1.Manifest)
+				if err = json.Unmarshal(b, ociManifest); err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				updateSpecImageManifest(&spec, ociManifest)
+			default:
+				errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
+				continue
+			}
 		}
+
 		err = s.recordCopiedImage(spec)
 		if err != nil {
 			errs = append(errs, err)
@@ -269,13 +270,13 @@ func (s *Source) copyMediaTypeImageIndex(
 		if !opts.Set.Allow(arch, osInfo, variant) {
 			continue
 		}
-		if arch == "unknown" || osInfo == "unknown" {
-			continue
-		}
 		allowedDigests[dig.String()] = true
 	}
 
 	for _, m := range s.ociIndex.Manifests {
+		if m.Platform == nil {
+			continue
+		}
 		mime := m.MediaType
 		arch := m.Platform.Architecture
 		osInfo := m.Platform.OS
@@ -285,18 +286,21 @@ func (s *Source) copyMediaTypeImageIndex(
 		dig := m.Digest
 		annotations := m.Annotations
 
-		// Skip image
-		if !opts.Set.Allow(arch, osInfo, variant) {
-			continue
-		}
-		if len(annotations) != 0 {
-			// Skip uncopied image SLSA provenance
-			referenceDigest := annotations["vnd.docker.reference.digest"]
-			if referenceDigest != "" && !allowedDigests[referenceDigest] {
+		if private.IsAttestations(&m) && opts.CopyProvenance {
+			// Skip image SLSA provenance
+			d := m.Annotations["vnd.docker.reference.digest"]
+			if !allowedDigests[d] {
 				continue
 			}
+		} else if !allowedDigests[dig.String()] {
+			continue
 		}
 
+		skipCopy := false
+		if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(dig) {
+			logrus.Debugf("dest already have digest %v, skip copy", dig)
+			skipCopy = true
+		}
 		sourceRef, err := alltransportsv5.ParseImageName(fmt.Sprintf(
 			"%s%s/%s/%s@%s",
 			s.imageType.Transport(), s.registry, s.project, s.name, dig))
@@ -347,44 +351,25 @@ func (s *Source) copyMediaTypeImageIndex(
 			errs = append(errs, err)
 			continue
 		}
+		if !skipCopy {
+			err = copyImage(ctx, &copyOptions{
+				sigstorePrivateKey:           opts.SigstorePrivateKey,
+				sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
+				removeSignatures:             opts.RemoveSignatures,
 
-		err = copyImage(ctx, &copyOptions{
-			sigstorePrivateKey:           opts.SigstorePrivateKey,
-			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
-			removeSignatures:             opts.RemoveSignatures,
-
-			sourceRef:  sourceRef,
-			destRef:    destRef,
-			sourceCtx:  s.systemCtx,
-			destCtx:    opts.Destination.SystemContext(),
-			policy:     opts.Policy,
-			sourceMIME: mime,
-		})
-		if err != nil {
-			errs = append(errs, err)
-			continue
+				sourceRef:  sourceRef,
+				destRef:    destRef,
+				sourceCtx:  s.systemCtx,
+				destCtx:    opts.Destination.SystemContext(),
+				policy:     opts.Policy,
+				sourceMIME: mime,
+			})
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		}
 
-		inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
-			Reference:     destRef,
-			SystemContext: opts.Destination.SystemContext(),
-		})
-		if err != nil {
-			errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
-			continue
-		}
-		defer inspector.Close()
-
-		b, imageMIME, err := inspector.Raw(ctx)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
-			continue
-		}
-		manifestDigest, err := manifestv5.Digest(b)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to get digest: %w", err))
-			continue
-		}
 		spec := archive.ImageSpec{
 			Arch:        arch,
 			OS:          osInfo,
@@ -394,35 +379,48 @@ func (s *Source) copyMediaTypeImageIndex(
 			MediaType:   mime,
 			Layers:      nil,
 			Config:      "",
-			Digest:      manifestDigest,
+			Digest:      dig,
 			Annotations: annotations,
 		}
-		switch imageMIME {
-		case manifestv5.DockerV2Schema2MediaType:
-			schema2, err := manifestv5.Schema2FromManifest(b)
+
+		switch opts.Destination.Type() {
+		case types.TypeDir, types.TypeOci:
+			// Only the save functions needs image layers info.
+			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+				Reference:     destRef,
+				SystemContext: opts.Destination.SystemContext(),
+			})
 			if err != nil {
-				errs = append(errs, err)
+				errs = append(errs, fmt.Errorf("newInspector failed: %w", err))
 				continue
 			}
-			updateSpecDockerV2Schema2(&spec, schema2)
-		// case imagemanifest.DockerV2Schema1MediaType,
-		// 	imagemanifest.DockerV2Schema1SignedMediaType:
-		// 	schema1, err := imagemanifest.Schema1FromManifest(b)
-		// 	if err != nil {
-		// 		errs = append(errs, err)
-		// 		continue
-		// 	}
-		// 	updateSpecDockerV2Schema1(&spec, schema1)
-		case imgspecv1.MediaTypeImageManifest:
-			ociManifest := new(imgspecv1.Manifest)
-			if err = json.Unmarshal(b, ociManifest); err != nil {
-				errs = append(errs, err)
+			defer inspector.Close()
+
+			b, imageMIME, err := inspector.Raw(ctx)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("inspector.Raw failed: %w", err))
 				continue
 			}
-			updateSpecImageManifest(&spec, ociManifest)
-		default:
-			errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
-			continue
+
+			switch imageMIME {
+			case manifestv5.DockerV2Schema2MediaType:
+				schema2, err := manifestv5.Schema2FromManifest(b)
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				updateSpecDockerV2Schema2(&spec, schema2)
+			case imgspecv1.MediaTypeImageManifest:
+				ociManifest := new(imgspecv1.Manifest)
+				if err = json.Unmarshal(b, ociManifest); err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				updateSpecImageManifest(&spec, ociManifest)
+			default:
+				errs = append(errs, fmt.Errorf("copied image mime unknow: %v", imageMIME))
+				continue
+			}
 		}
 		err = s.recordCopiedImage(spec)
 		if err != nil {
@@ -515,12 +513,6 @@ func (s *Source) copyDockerV2Schema1MediaType(
 	if !opts.Set.Allow(arch, osInfo, variant) {
 		return utils.ErrNoAvailableImage
 	}
-	// Cannot detect whether the destination registry have Schema1 image here.
-	// if opts.SigstorePrivateKey == "" && dest.HaveDigest(s.manifestDigest) {
-	// 	logrus.Debugf("dest already have digest %v, skip copy", s.manifestDigest)
-	// 	return nil
-	// }
-
 	sourceRef, err := s.Reference()
 	if err != nil {
 		return err
@@ -604,7 +596,11 @@ func (s *Source) copyMediaTypeImageManifest(
 	variant := s.ociConfig.Variant
 
 	// Skip image
-	if !opts.Set.Allow(arch, osInfo, variant) {
+	if arch == "unknown" && osInfo == "unknown" {
+		if !opts.CopyProvenance {
+			return utils.ErrNoAvailableImage
+		}
+	} else if !opts.Set.Allow(arch, osInfo, variant) {
 		return utils.ErrNoAvailableImage
 	}
 	skipCopy := false
@@ -749,18 +745,6 @@ func updateSpecDockerV2Schema2(
 	}
 	return spec
 }
-
-// func updateSpecDockerV2Schema1(
-// 	spec *archive.ImageSpec, schema1 *imagemanifest.Schema1,
-// ) {
-// 	layerDigestSet := map[digest.Digest]bool{}
-// 	for _, layer := range schema1.FSLayers {
-// 		layerDigestSet[layer.BlobSum] = true
-// 	}
-// 	for layer := range layerDigestSet {
-// 		spec.Layers = append(spec.Layers, layer)
-// 	}
-// }
 
 func updateSpecImageManifest(
 	spec *archive.ImageSpec, ociManifest *imgspecv1.Manifest,

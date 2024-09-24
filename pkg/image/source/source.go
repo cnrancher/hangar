@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -477,7 +478,9 @@ func (s *Source) initManifest(ctx context.Context) error {
 	return nil
 }
 
-func (s *Source) ImageBySet(set types.FilterSet) *archive.Image {
+func (s *Source) ImageBySet(
+	set types.FilterSet, copyProvenance bool,
+) *archive.Image {
 	image := &archive.Image{}
 	archSet := map[string]bool{}
 	osSet := map[string]bool{}
@@ -531,9 +534,6 @@ func (s *Source) ImageBySet(set types.FilterSet) *archive.Image {
 			if !set.Allow(arch, osInfo, variant) {
 				continue
 			}
-			if arch == "unknown" || osInfo == "unknown" {
-				continue
-			}
 			allowedDigests[dig.String()] = true
 		}
 		for _, m := range s.ociIndex.Manifests {
@@ -541,15 +541,14 @@ func (s *Source) ImageBySet(set types.FilterSet) *archive.Image {
 			if p == nil {
 				continue
 			}
-			if !set.Allow(p.Architecture, p.OS, p.Variant) {
-				continue
-			}
-			if len(m.Annotations) != 0 {
-				// Skip uncopied image SLSA provenance
-				referenceDigest := m.Annotations["vnd.docker.reference.digest"]
-				if referenceDigest != "" && !allowedDigests[referenceDigest] {
+			if private.IsAttestations(&m) && copyProvenance {
+				// Skip image SLSA provenance
+				d := m.Annotations["vnd.docker.reference.digest"]
+				if !allowedDigests[d] {
 					continue
 				}
+			} else if !allowedDigests[m.Digest.String()] {
+				continue
 			}
 
 			archSet[p.Architecture] = true

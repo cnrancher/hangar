@@ -265,6 +265,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		obj.source.ReferenceNameWithoutTransport(),
 		obj.destination.ReferenceNameWithoutTransport())
 	err = obj.source.Copy(copyContext, &source.CopyOptions{
+		CopyProvenance:     m.common.copyProvenance,
 		RemoveSignatures:   m.common.removeSignatures,
 		SigstorePrivateKey: m.common.sigstorePrivateKey,
 		SigstorePassphrase: m.common.sigstorePassphrase,
@@ -330,7 +331,7 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		SystemContext: obj.destination.SystemContext(),
 	})
 	if err != nil {
-		err = fmt.Errorf("failed to create mafiest builder: %w", err)
+		err = fmt.Errorf("failed to create manifest builder: %w", err)
 		return
 	}
 	// Merge new added images with destination manifest index.
@@ -443,12 +444,12 @@ func (m *Mirrorer) validateWorker(ctx context.Context, o any) {
 		// Could not compare image digest since the destination mediaType
 		// was changed during copy.
 	default:
-		destImages := obj.destination.ImageBySet(m.imageSpecSet)
+		destImages := obj.destination.ImageBySet(m.imageSpecSet, m.copyProvenance)
 		destDigestSet := map[digest.Digest]bool{}
 		for _, img := range destImages.Images {
 			destDigestSet[img.Digest] = true
 		}
-		sourceImages := obj.source.ImageBySet(m.imageSpecSet)
+		sourceImages := obj.source.ImageBySet(m.imageSpecSet, m.copyProvenance)
 		for _, img := range sourceImages.Images {
 			if !destDigestSet[img.Digest] {
 				logrus.WithFields(logrus.Fields{"IMG": obj.id}).

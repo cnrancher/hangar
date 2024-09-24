@@ -251,6 +251,7 @@ func (s *Saver) worker(ctx context.Context, o any) {
 		return
 	}
 	err = obj.source.Copy(copyContext, &source.CopyOptions{
+		CopyProvenance: s.common.copyProvenance,
 		// Saver does not supports saving image with signatures
 		// into local OCI transport.
 		RemoveSignatures: true,
@@ -440,7 +441,7 @@ func (s *Saver) validateWorker(ctx context.Context, o any) {
 			fail = true
 		}
 	default:
-		image := obj.source.ImageBySet(s.imageSpecSet)
+		image := obj.source.ImageBySet(s.imageSpecSet, s.copyProvenance)
 		if !s.index.Has(image) {
 			fail = true
 		}

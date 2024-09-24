@@ -262,6 +262,7 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 		return
 	}
 	err = obj.source.Copy(copyContext, &source.CopyOptions{
+		CopyProvenance:     s.common.copyProvenance,
 		SigstorePrivateKey: s.common.sigstorePrivateKey,
 		SigstorePassphrase: s.common.sigstorePassphrase,
 		Destination:        obj.destination,
@@ -328,12 +329,23 @@ func (s *Syncer) worker(ctx context.Context, o any) {
 		}
 	}
 
-	err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
-	if err != nil {
-		err = fmt.Errorf("failed to append files into zip archive: %w", err)
-		return
+	ch := make(chan int)
+	go func() {
+		err = s.au.Append(obj.destination.ReferenceNameWithoutTransport())
+		if err != nil {
+			err = fmt.Errorf("failed to append files into zip archive: %w", err)
+			return
+		}
+		ch <- 0
+	}()
+	select {
+	case <-ch:
+		s.index.Append(copiedImage)
+	case <-ctx.Done():
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).
+			Errorf("Failed [%v]: %v",
+				obj.source.ReferenceNameWithoutTransport(), ctx.Err())
 	}
-	s.index.Append(copiedImage)
 }
 
 func (s *Syncer) Validate(ctx context.Context) error {
@@ -449,7 +461,7 @@ func (s *Syncer) validateWorker(ctx context.Context, o any) {
 			fail = true
 		}
 	default:
-		image := obj.source.ImageBySet(s.imageSpecSet)
+		image := obj.source.ImageBySet(s.imageSpecSet, s.copyProvenance)
 		if !s.index.Has(image) {
 			fail = true
 		}

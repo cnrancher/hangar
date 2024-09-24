@@ -14,7 +14,6 @@ const (
 	TypeDockerArhive
 	TypeOci
 	TypeDir
-	TypeHangarArchive
 )
 
 var (
@@ -60,7 +59,7 @@ type FilterSet map[string]map[string]bool
 
 // NewImageFilterSet is the constructor function to build a filter set
 // by arch, os and variant list.
-func NewImageFilterSet(archList, osList, variantList []string, allowUnknown bool) FilterSet {
+func NewImageFilterSet(archList, osList, variantList []string) FilterSet {
 	s := FilterSet{
 		"arch":    make(map[string]bool),
 		"os":      make(map[string]bool),
@@ -80,10 +79,6 @@ func NewImageFilterSet(archList, osList, variantList []string, allowUnknown bool
 		for _, v := range variantList {
 			s["variant"][v] = true
 		}
-	}
-	if allowUnknown {
-		s["arch"]["unknown"] = true
-		s["os"]["unknown"] = true
 	}
 	return s
 }

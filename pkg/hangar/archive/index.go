@@ -44,6 +44,25 @@ type ImageSpec struct {
 	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 }
 
+func (i *ImageSpec) IsAttestations() bool {
+	if i == nil {
+		return false
+	}
+	if len(i.Annotations) == 0 {
+		return false
+	}
+	if i.Arch != "unknown" {
+		return false
+	}
+	if i.OS != "unknown" {
+		return false
+	}
+	if i.Annotations["vnd.docker.reference.type"] != "attestation-manifest" {
+		return false
+	}
+	return true
+}
+
 func NewIndex() *Index {
 	return &Index{
 		List:      make([]*Image, 0),

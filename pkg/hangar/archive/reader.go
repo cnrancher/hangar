@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/STARRY-S/zip"
-	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -154,12 +153,7 @@ func (r *Reader) DecompressTmp(name string) (string, error) {
 
 func (r *Reader) DecompressImageTmp(
 	img *ImageSpec,
-	set types.FilterSet,
 ) (string, error) {
-	if !set.AllowArch(img.Arch) || !set.AllowOS(img.OS) || !set.AllowVariant(img.Variant) {
-		return "", utils.ErrNoAvailableImage
-	}
-
 	tmpDir, err := os.MkdirTemp(utils.HangarCacheDir(), "*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create tmp dir: %w", err)
@@ -200,4 +194,20 @@ func (r *Reader) Ls() {
 		}
 		logrus.Infof(" %v %v", t, f.Name)
 	}
+}
+
+func (r *Reader) FileCompressedSize(name string) (int, error) {
+	for _, f := range r.zr.File {
+		if f.Name != name {
+			continue
+		}
+
+		switch {
+		case f.Mode().IsRegular():
+			return int(f.CompressedSize64), nil
+		case f.Mode().IsDir():
+			return 0, nil
+		}
+	}
+	return 0, os.ErrNotExist
 }

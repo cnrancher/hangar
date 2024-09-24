@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/retry"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -20,9 +21,6 @@ func RetryOptions() *retry.Options {
 			if !retry.IsErrorRetryable(err) {
 				return false
 			}
-			// https://github.com/cnrancher/hangar/issues/44
-			// Harbor response non-standard error code, need to detect the
-			// error content again to avoid the retry warning message.
 			s := err.Error()
 			switch {
 			case strings.Contains(s, "not found") ||
@@ -34,4 +32,23 @@ func RetryOptions() *retry.Options {
 			return true
 		},
 	}
+}
+
+func IsAttestations(m *imgspecv1.Descriptor) bool {
+	if m == nil {
+		return false
+	}
+	if m.Platform.Architecture != "unknown" {
+		return false
+	}
+	if m.Platform.OS != "unknown" {
+		return false
+	}
+	if len(m.Annotations) == 0 {
+		return false
+	}
+	if m.Annotations["vnd.docker.reference.type"] != "attestation-manifest" {
+		return false
+	}
+	return true
 }

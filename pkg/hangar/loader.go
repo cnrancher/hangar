@@ -328,12 +328,30 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		err = utils.ErrIsSigstoreSignature
 		return
 	}
+
+	allowedDigests := map[string]bool{}
+	for _, img := range obj.image.Images {
+		if !l.common.imageSpecSet.AllowArch(img.Arch) ||
+			!l.common.imageSpecSet.AllowOS(img.OS) ||
+			!l.common.imageSpecSet.AllowVariant(img.Variant) {
+			continue
+		}
+		allowedDigests[img.Digest.String()] = true
+	}
 	var copiedManifestImages = make(manifest.Images, 0)
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
 			logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 				Warnf("Skip invalid image [%v] [%v] [%v]",
 					imageName, img.Arch, img.OS)
+			continue
+		}
+		if img.IsAttestations() {
+			d := img.Annotations["vnd.docker.reference.digest"]
+			if !allowedDigests[d] {
+				continue
+			}
+		} else if !allowedDigests[img.Digest.String()] {
 			continue
 		}
 
@@ -343,13 +361,13 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		)
 		imgRef = dest.ReferenceNameDigest(img.Digest)
 		l.arMutex.Lock()
-		tmpDir, err = l.ar.DecompressImageTmp(&img, l.common.imageSpecSet)
+		tmpDir, err = l.ar.DecompressImageTmp(&img)
 		l.arMutex.Unlock()
 		// Register defer function to clean-up cache.
 		defer func(d string, img archive.ImageSpec) {
 			if d != "" {
 				if err := os.RemoveAll(d); err != nil {
-					logrus.Warnf("Failed to cleanup [%v]: %v", d, err)
+					logrus.Warnf("failed to cleanup [%v]: %v", d, err)
 				}
 			}
 			l.layerManager.clean(&img, &l.imageSpecSet)
@@ -399,6 +417,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			return
 		}
 		err = src.Copy(copyContext, &source.CopyOptions{
+			CopyProvenance:     l.common.copyProvenance,
 			RemoveSignatures:   false,
 			SigstorePrivateKey: l.common.sigstorePrivateKey,
 			SigstorePassphrase: l.common.sigstorePassphrase,
@@ -629,7 +648,7 @@ func (l *Loader) validateWorker(ctx context.Context, o any) {
 		err = fmt.Errorf("FAILED: [%v]", imageName)
 		return
 	}
-	destImage := dest.ImageBySet(l.imageSpecSet)
+	destImage := dest.ImageBySet(l.imageSpecSet, l.copyProvenance)
 	destDigestSet := map[digest.Digest]bool{}
 	for _, img := range destImage.Images {
 		destDigestSet[img.Digest] = true

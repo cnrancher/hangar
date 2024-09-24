@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -168,8 +169,15 @@ func (d *Destination) ReferenceNameMultiArch(
 		types.TypeOci:
 		return filepath.Join(d.referenceName, sha256sum)
 	default:
-		if arch == "unknown" {
-			return fmt.Sprintf("%s-%s", d.referenceName, sha256sum[:16])
+		invalidPlatform := false
+		if arch == "" || os == "" || arch == "unknown" || os == "unknown" {
+			invalidPlatform = true
+		}
+		if invalidPlatform {
+			if len(sha256sum) > 16 {
+				return fmt.Sprintf("%s-%s", d.referenceName, sha256sum[:16])
+			}
+			return fmt.Sprintf("%s-%s", d.referenceName, sha256sum)
 		}
 		return d.MultiArchTag(os, osVersion, arch, variant)
 	}
@@ -382,7 +390,9 @@ func newDestinationFromDockerDaemon(o *Option) (*Destination, error) {
 	return d, nil
 }
 
-func (d *Destination) ImageBySet(set types.FilterSet) *archive.Image {
+func (d *Destination) ImageBySet(
+	set types.FilterSet, copyProvenance bool,
+) *archive.Image {
 	image := &archive.Image{}
 	if !d.Exists() {
 		return image
@@ -403,9 +413,30 @@ func (d *Destination) ImageBySet(set types.FilterSet) *archive.Image {
 			})
 		}
 	case imgspecv1.MediaTypeImageIndex:
+		// Filter allowed image digests
+		allowedDigests := map[string]bool{}
+		for _, m := range d.ociIndex.Manifests {
+			dig := m.Digest
+			arch := m.Platform.Architecture
+			osInfo := m.Platform.OS
+			variant := m.Platform.Variant
+			if !set.Allow(arch, osInfo, variant) {
+				continue
+			}
+			allowedDigests[dig.String()] = true
+		}
 		for _, m := range d.ociIndex.Manifests {
 			p := m.Platform
-			if !set.Allow(p.Architecture, p.OS, p.Variant) {
+			if p == nil {
+				continue
+			}
+			if private.IsAttestations(&m) && copyProvenance {
+				// Skip image SLSA provenance
+				d := m.Annotations["vnd.docker.reference.digest"]
+				if !allowedDigests[d] {
+					continue
+				}
+			} else if !allowedDigests[m.Digest.String()] {
 				continue
 			}
 			archSet[p.Architecture] = true
@@ -455,21 +486,21 @@ func (d *Destination) ManifestImages() manifest.Images {
 	return mis
 }
 
-func (d *Destination) HaveDigest(imageDigest digest.Digest) bool {
-	if d.mime == "" || imageDigest == "" {
+func (d *Destination) HaveDigest(dig digest.Digest) bool {
+	if d.mime == "" || dig == "" {
 		return false
 	}
 
 	switch d.mime {
 	case manifestv5.DockerV2ListMediaType:
 		for _, m := range d.schema2List.Manifests {
-			if m.Digest == imageDigest {
+			if m.Digest == dig {
 				return true
 			}
 		}
 	case imgspecv1.MediaTypeImageIndex:
 		for _, m := range d.ociIndex.Manifests {
-			if m.Digest == imageDigest {
+			if m.Digest == dig {
 				return true
 			}
 		}

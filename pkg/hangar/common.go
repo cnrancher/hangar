@@ -63,6 +63,9 @@ type common struct {
 	// sigstorePublicKey is the file name of the sigstore public key
 	// (for validating the signed image)
 	sigstorePublicKey string
+	// copyProvenance copies the image SLSA provenance attestation
+	// when it sets true
+	copyProvenance bool
 }
 
 type CommonOpts struct {
@@ -70,7 +73,6 @@ type CommonOpts struct {
 	Arch                []string
 	OS                  []string
 	Variant             []string
-	CopyProvenance      bool
 	Timeout             time.Duration
 	Workers             int
 	FailedImageListName string
@@ -80,6 +82,7 @@ type CommonOpts struct {
 	SigstorePrivateKey  string
 	SigstorePassphrase  []byte
 	SigstorePublicKey   string
+	CopyProvenance      bool
 }
 
 func newCommon(o *CommonOpts) (*common, error) {
@@ -87,7 +90,7 @@ func newCommon(o *CommonOpts) (*common, error) {
 		images: make([]string, len(o.Images)),
 
 		imageSpecSet: types.NewImageFilterSet(
-			o.Arch, o.OS, o.Variant, o.CopyProvenance),
+			o.Arch, o.OS, o.Variant),
 
 		timeout:        o.Timeout,
 		workers:        o.Workers,
@@ -108,6 +111,8 @@ func newCommon(o *CommonOpts) (*common, error) {
 		sigstorePrivateKey: o.SigstorePrivateKey,
 		sigstorePassphrase: o.SigstorePassphrase,
 		sigstorePublicKey:  o.SigstorePublicKey,
+
+		copyProvenance: o.CopyProvenance,
 	}
 	var err error
 	policy, err := utils.CopyPolicy(o.Policy)
