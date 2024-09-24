@@ -14,7 +14,7 @@ import (
 var (
 	signalContext context.Context = signal.SetupSignalContext()
 
-	defaultUserAgent string = "hangar/" + utils.Version
+	defaultUserAgent string = "hangar/" + utils.Version + " (github.com/cnrancher/hangar)"
 )
 
 type baseCmd struct {
