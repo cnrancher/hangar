@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -71,7 +72,7 @@ func (cc *archiveLsCmd) run(args []string) error {
 		reader.Close()
 		return fmt.Errorf("failed to get index from archive: %v", err)
 	}
-	reader.Close()
+	defer reader.Close()
 
 	index := archive.NewIndex()
 	err = index.Unmarshal(b)
@@ -93,11 +94,40 @@ func (cc *archiveLsCmd) run(args []string) error {
 	logrus.Infof("Created time: %v", index.Time)
 	logrus.Infof("Index version: %v", index.Version)
 	logrus.Infof("Images:")
+
+	const unknownPlatform = "unknown"
 	for i, image := range index.List {
-		fmt.Printf("%4d | %s:%s | %s | %s\n",
+		layers := map[string]bool{}
+		for _, img := range image.Images {
+			for _, l := range img.Layers {
+				layers[l.Hex()] = true
+			}
+		}
+		size := 0.0
+		for l := range layers {
+			n := fmt.Sprintf("share/sha256/%v", l)
+			s, _ := reader.FileCompressedSize(n)
+			size += float64(s)
+		}
+
+		hasProvenance := false
+		if i := slices.Index(image.ArchList, unknownPlatform); i >= 0 {
+			hasProvenance = true
+			image.ArchList = append(image.ArchList[:i], image.ArchList[i+1:]...)
+		}
+		if i := slices.Index(image.OsList, unknownPlatform); i >= 0 {
+			hasProvenance = true
+			image.OsList = append(image.OsList[:i], image.OsList[i+1:]...)
+		}
+		s := fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fM",
 			i+1, image.Source, image.Tag,
 			strings.Join(image.ArchList, ","),
-			strings.Join(image.OsList, ","))
+			strings.Join(image.OsList, ","),
+			size/1024.0/1024.0)
+		if hasProvenance {
+			s += " | (with attestation)"
+		}
+		fmt.Println(s)
 	}
 	return nil
 }
