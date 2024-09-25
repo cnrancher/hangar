@@ -60,7 +60,11 @@ if [[ ${HARBOR:-} != "" ]]; then
     echo "REGISTRY_URL: ${REGISTRY_URL}"
 
     setup_harbor
-    tox -e harbor
+    tox -e harbor || {
+        delete_k3s_cluster
+        echo "Hangar validation test with Harbor: FAILED"
+        exit 1
+    }
     delete_k3s_cluster
     echo "Hangar validation test with Harbor: Done"
 fi
@@ -74,7 +78,11 @@ if [[ ${DISTRIBUTION:-} != "" ]]; then
     echo "REGISTRY_URL: ${REGISTRY_URL}"
 
     setup_distribution_registry
-    tox -e distribution_registry
+    tox -e distribution_registry || {
+        delete_distribution_registry
+        echo "Hangar validation test with Distribution registry: FAILED"
+        exit 1
+    }
     delete_distribution_registry
     echo "Hangar validation test with Distribution registry: Done"
 fi

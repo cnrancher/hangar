@@ -18,7 +18,11 @@ function setup_harbor() {
 
     echo "Launching K3s cluster..."
     if k3d cluster ls --no-headers | grep -q ${K3S_CLUSTER_NAME}; then
-        k3d cluster delete ${K3S_CLUSTER_NAME} || true
+        CLUSTERS=$(k3d cluster ls --no-headers | cut -d ' ' -f 1)
+        for c in ${CLUSTERS}; do
+            k3d cluster delete ${c} || true
+            sleep 1
+        done
     fi
     k3d cluster create -p ${HARBOR_PORT}:${HARBOR_PORT} ${K3S_CLUSTER_NAME}
     sleep 3 # Add some timeout
