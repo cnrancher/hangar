@@ -6,7 +6,8 @@ Automatin tests for following commands:
 """
 
 import os
-from .common import run_hangar, check, REGISTRY_URL
+from .common import run_hangar, check
+from .common import SOURCE_REGISTRY_URL, TRIVY_DB_REPO, TRIVY_JAVA_DB_REPO
 
 SCAN_FAILED_LIST = "scan-failed.txt"
 SCAN_REPORT_PREFIX = "scan-report"
@@ -54,102 +55,121 @@ def test_scan_help():
 
 
 def test_scan_image_csv():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--format", "csv",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
+        "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_CSV)
 
 
 def test_scan_image_json():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--format", "json",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
+        "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_JSON)
 
 
 def test_scan_image_yaml():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--format", "yaml",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
+        "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_YAML)
 
 
 def test_scan_image_spdx_json():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--format", "spdx-json",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_SPDX_JSON)
 
 
 def test_scan_image_spdx_csv():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--format", "spdx-csv",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_SPDX_CSV)
 
 
 def test_scan_image_custom_report():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--report", SCAM_REPORT_CUSTOM_NAME,
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAM_REPORT_CUSTOM_NAME)
 
 
 def test_scan_image_custom_scanners():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
-        "--scanner", "vuln,secret",
-        "--registry", REGISTRY_URL,
+        "--file", "data/scan/scan.txt",
+        "--scanner", "vuln,seclog",
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_CSV)
 
 
 def test_scan_image_skip_db_update():
-    ret = run_hangar([
+    log = run_hangar([
         "scan",
-        "--file", "data/scan.txt",
+        "--file", "data/scan/scan.txt",
         "--skip-db-update",
         "--skip-java-db-update",
-        "--registry", REGISTRY_URL,
+        "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",
+        "--trivy-db-repo", TRIVY_DB_REPO,
+        "--trivy-java-db-repo", TRIVY_JAVA_DB_REPO,
     ])
-    check(ret, SCAN_FAILED_LIST)
+    check(log, SCAN_FAILED_LIST)
     check_report(SCAN_REPORT_CSV)

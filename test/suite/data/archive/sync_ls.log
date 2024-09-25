@@ -1,0 +1,4 @@
+- [INFO] Index version: v1.2.0
+- [INFO] Images:
+   1 | docker.io/hxstarrys/slsa-provenance-test:latest | amd64 | linux | 15.33M | (with attestation)
+   2 | docker.io/hxstarrys/manifest-v2-list:latest | amd64 | linux | 3.46M

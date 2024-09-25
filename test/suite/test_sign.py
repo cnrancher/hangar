@@ -9,122 +9,163 @@ Automatin tests for following commands:
     "hangar load (with --sigstore-private-key option provided)"
 """
 
-import os
-from .common import run_hangar, check, REGISTRY_URL
-
-SIGN_FAILED_LIST = "sign-failed.txt"
-MIRROR_FAILED_LIST = "mirror-failed.txt"
-LOAD_FAILED_LIST = "load-failed.txt"
+from .common import run_hangar, check, prepare
+from .common import REGISTRY_URL, REGISTRY_PASSWORD, SOURCE_REGISTRY_URL
 
 
-def prepare():
-    lists = [
-        SIGN_FAILED_LIST,
-        MIRROR_FAILED_LIST,
-    ]
-    for list in lists:
-        if os.path.exists(list):
-            os.remove(list)
-
-
-def test_generate_sigstore_key_help():
-    prepare()
-    check(run_hangar(["generate-sigstore-key", "--help"]))
+def test_login():
+    check(run_hangar([
+        "login",
+        REGISTRY_URL,
+        "-u=admin",
+        "-p", REGISTRY_PASSWORD,
+        "--tls-verify=false",
+    ]))
 
 
 def test_sign_help():
+    check(run_hangar(["generate-sigstore-key", "--help"]))
     check(run_hangar(["sign", "--help"]))
     check(run_hangar(["sign", "validate", "--help"]))
 
 
 def test_generate_sigstore_key():
-    ret = run_hangar([
+    log = run_hangar([
         "generate-sigstore-key",
         "--prefix=sigstore",
-        "--passphrase-file=data/sigstore_passphrase.txt",
+        "--passphrase-file=data/sign/sigstore_passphrase.txt",
         "--auto-yes",
     ])
-    check(ret)
-
-
-def test_sign():
-    ret = run_hangar([
-        "sign",
-        "--jobs=4",
-        "--file=data/sigstore_sign.txt",
-        "--registry", REGISTRY_URL,
-        "--sigstore-key=sigstore.key",
-        "--sigstore-passphrase-file=data/sigstore_passphrase.txt",
-        "--tls-verify=false",
-    ])
-    check(ret, SIGN_FAILED_LIST)
-
-
-def test_sign_validate():
-    ret = run_hangar([
-        "sign",
-        "validate",
-        "--jobs=4",
-        "--file=data/sigstore_sign.txt",
-        "--registry", REGISTRY_URL,
-        "--sigstore-pubkey=sigstore.pub",
-        "--tls-verify=false",
-    ])
-    check(ret, SIGN_FAILED_LIST)
-
-
-def test_mirror_sigstore_sign():
-    ret = run_hangar([
-        "mirror",
-        "--file=data/mirror_sigstore_sign.txt",
-        "-s", REGISTRY_URL,  # use private registry to avoid rate limit.
-        "-d", REGISTRY_URL,
-        "--arch=amd64,arm64",
-        "--os=linux",
-        "--sigstore-private-key=sigstore.key",
-        "--sigstore-passphrase-file=data/sigstore_passphrase.txt",
-        "--tls-verify=false",
-    ], timeout=600)
-    check(ret, MIRROR_FAILED_LIST)
-
-
-def test_validate_mirror_sigstore_sign():
-    ret = run_hangar([
-        "sign",
-        "validate",
-        "--jobs=4",
-        "--file=data/mirror_sigstore_sign.txt",
-        "--registry", REGISTRY_URL,
-        "--sigstore-pubkey=sigstore.pub",
-        "--tls-verify=false",
-    ])
-    check(ret, SIGN_FAILED_LIST)
+    check(log)
+    f = open("sigstore.pub")
+    pub = f.read()
+    f.close
+    f = open("sigstore.key")
+    key = f.read()
+    f.close()
+    assert 'BEGIN PUBLIC KEY' in pub
+    assert 'BEGIN ENCRYPTED COSIGN PRIVATE KEY' in key
 
 
 def test_load_sigstore_sign():
-    ret = run_hangar([
+    FAILED = "sign-failed-1.txt"
+    prepare(FAILED)
+    log = run_hangar([
+        "save",
+        "--file=data/sign/save.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "sign-save-1.zip",
+        "--arch=amd64,arm64",
+        "--os=linux",
+        "--tls-verify=false",
+        "--auto-yes",
+        "--failed", FAILED,
+    ], timeout=600)
+    check(log, FAILED)
+
+    log = run_hangar([
         "load",
-        "--file=data/load_sigstore_sign.txt",
-        "-s", "saved_test.zip",
+        "--file", "data/sign/save.txt",
+        "-s", "sign-save-1.zip",
         "-d", REGISTRY_URL,
         "--arch=amd64,arm64",
         "--os=linux",
-        "--source-registry", "docker.io",
+        "--project=sign-test",
+        "--source-registry", SOURCE_REGISTRY_URL,
         "--sigstore-private-key=sigstore.key",
-        "--sigstore-passphrase-file=data/sigstore_passphrase.txt",
+        "--sigstore-passphrase-file=data/sign/sigstore_passphrase.txt",
         "--tls-verify=false",
+        "--failed", FAILED,
     ], timeout=600)
-    check(ret, LOAD_FAILED_LIST)
+    check(log, FAILED)
 
-
-def test_validate_load_sigstore_sign():
-    ret = run_hangar([
+    log = run_hangar([
         "sign",
         "validate",
         "--jobs=4",
-        "--file=data/load_sigstore_sign.txt",
+        "--file=data/sign/save.txt",
+        "--project=sign-test",
         "--registry", REGISTRY_URL,
         "--sigstore-pubkey=sigstore.pub",
         "--tls-verify=false",
+        "--failed", FAILED,
     ])
-    check(ret, SIGN_FAILED_LIST)
+    check(log, FAILED)
+
+
+def test_mirror_sigstore_sign():
+    FAILED = "sign-failed-2.txt"
+    prepare(FAILED)
+    log = run_hangar([
+        "mirror",
+        "--file=data/sign/mirror.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", REGISTRY_URL,
+        "--arch=amd64,arm64",
+        "--os=linux",
+        "--destination-project=sign-test",
+        "--sigstore-private-key=sigstore.key",
+        "--sigstore-passphrase-file=data/sign/sigstore_passphrase.txt",
+        "--tls-verify=false",
+        "--failed", FAILED,
+    ], timeout=600)
+    check(log, FAILED)
+
+    log = run_hangar([
+        "mirror",
+        "validate",
+        "--file=data/sign/mirror.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", REGISTRY_URL,
+        "--arch=amd64,arm64",
+        "--os=linux",
+        "--destination-project=sign-test",
+        "--sigstore-private-key=sigstore.key",
+        "--sigstore-passphrase-file=data/sign/sigstore_passphrase.txt",
+        "--tls-verify=false",
+        "--failed", FAILED,
+    ], timeout=600)
+    check(log, FAILED)
+
+    log = run_hangar([
+        "sign",
+        "validate",
+        "--jobs=4",
+        "--file=data/sign/mirror.txt",
+        "--registry", REGISTRY_URL,
+        "--project", "sign-test",
+        "--sigstore-pubkey=sigstore.pub",
+        "--tls-verify=false",
+        "--failed", FAILED,
+    ])
+    check(log, FAILED)
+
+
+def test_sign():
+    FAILED = "sign-failed-3.txt"
+    prepare(FAILED)
+    log = run_hangar([
+        "sign",
+        "--jobs=4",
+        "--file=data/sign/sign.txt",
+        "--registry", REGISTRY_URL,
+        "--project", "sign-test",
+        "--sigstore-key=sigstore.key",
+        "--sigstore-passphrase-file=data/sign/sigstore_passphrase.txt",
+        "--tls-verify=false",
+        "--failed", FAILED,
+    ])
+    check(log, FAILED)
+
+    log = run_hangar([
+        "sign",
+        "validate",
+        "--jobs=4",
+        "--file=data/sign/sign.txt",
+        "--registry", REGISTRY_URL,
+        "--project", "sign-test",
+        "--sigstore-pubkey=sigstore.pub",
+        "--tls-verify=false",
+        "--failed", FAILED,
+    ])
+    check(log, FAILED)

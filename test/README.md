@@ -26,18 +26,7 @@ To run validation tests on your local machine:
     pip install tox
     ```
 
-1. Run `scripts/registry.sh`, this will create a temporary *private registry server* for tests.
-
-    > Since the macOS system uses the port `5000` for other service, you can change the
-    > [distribution registry server configuration](https://distribution.github.io/distribution/about/configuration/)
-    > option `http.addr` to another port or use other methods to setup
-    > a private registry server for test.
-
-    ```sh
-    source ./scripts/env.sh
-    source ./scripts/distribution.sh
-    setup_distribution_registry
-    ```
+1. You need to prepare a [Harbor](https://goharbor.io) or [distribution](https://distribution.github.io/distribution/) registry server manually to run validation tests manually.
 
 1. To run specific test file:
 
@@ -45,11 +34,15 @@ To run validation tests on your local machine:
     # Set REGISTRY_AUTH_FILE environment variable to avoid permission denied error during tests.
     export REGISTRY_AUTH_FILE="${HOME}/.config/containers/auth.json"
 
+    # Ensure the `default-docker.use-sigstore-attachments` is true.
+    vim /etc/containers/registries.d/default.yaml
+
     # Specify the REGISTRY_URL environment variable manually.
     export REGISTRY_URL=127.0.0.1:5000
+    # Set REGISTRY_PASSWORD if needed.
+    export REGISTRY_PASSWORD="Harbor123!@#"
 
     cd suite/
-
     # Run specific test file.
     pytest -s test_help.py
     # Run specific test case.
@@ -59,4 +52,3 @@ To run validation tests on your local machine:
 1. Cleanup:
 
     - Run `scripts/clean.sh`.
-    - Delete the `registry` directory.

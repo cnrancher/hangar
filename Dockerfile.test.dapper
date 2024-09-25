@@ -21,4 +21,4 @@ COPY package/registries.d/default.yaml /etc/containers/registries.d/default.yaml
 ENV DAPPER_RUN_ARGS "--network=host"
 
 ENTRYPOINT [ "test/scripts/run.sh" ]
-CMD [ "--all" ]
+CMD [ "--harbor" ]

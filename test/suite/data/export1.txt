@@ -1,6 +1,0 @@
-# Image list in DEFAULT format
-// COMMENT LINE
-
-TEST INVALID IMAGE LIST LINE
-
-alpine:3

@@ -1,0 +1,2 @@
+# Image format OCI index with SLSA Provenance
+hxstarrys/slsa-provenance-test:latest

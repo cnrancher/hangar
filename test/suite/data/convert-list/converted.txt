@@ -1,0 +1,4 @@
+example.io/alpine docker.io/alpine 3
+example.io/hxstarrys/cas docker.io/hxstarrys/cas 6.5.6
+example.io/library/mysql docker.io/library/mysql 5.7.5
+example.io/library/nginx docker.io/library/nginx latest

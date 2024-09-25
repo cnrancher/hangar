@@ -26,28 +26,64 @@ if REGISTRY_URL is None:
     raise Exception("REGISTRY_URL env not specified")
 
 
-def run_hangar(args=[], timeout=1200, stdout=None) -> int:
+SOURCE_REGISTRY_URL = os.getenv("SOURCE_REGISTRY_URL")
+if SOURCE_REGISTRY_URL is None:
+    SOURCE_REGISTRY_URL = "docker.io"
+
+TRIVY_DB_REPO = os.getenv("TRIVY_DB_REPO")
+if TRIVY_DB_REPO is None:
+    TRIVY_DB_REPO = "ghcr.io/aquasecurity/trivy-db"
+
+TRIVY_JAVA_DB_REPO = os.getenv("TRIVY_JAVA_DB_REPO")
+if TRIVY_JAVA_DB_REPO is None:
+    TRIVY_JAVA_DB_REPO = "ghcr.io/aquasecurity/trivy-java-db"
+
+
+def run_hangar(args=[], timeout=1200) -> string:
     args.insert(0, HANGAR)
-    # args.append("--insecure-policy")
-    process = subprocess.Popen(
+    result = subprocess.run(
         args,
         text=True,
-        stdout=stdout,
+        timeout=timeout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
-    return process.wait(timeout=timeout)
+    try:
+        result.check_returncode()
+    except subprocess.CalledProcessError as e:
+        print(result.stdout)
+        raise e
+    return result.stdout
 
 
-def check(ret: int, p=None):
-    if ret == 0:
-        return
+def check(log: string, p=None):
+    print(log)
     if p is not None and os.path.exists(p):
         f = open(p, "r")
         images = f.read()
         f.close()
         os.remove(p)
-        raise Exception("Failed images:", images)
-    else:
-        raise Exception("hangar run failed:", ret)
+        print("Hangar run failed:")
+        print(log)
+        print("")
+        raise Exception("Failed images:", images, "Log", log)
+
+
+def compare(output: string, expected_file: string):
+    f = open(expected_file, "r")
+    expected = f.read().strip()
+    output = output.strip()
+    f.close()
+    expected = expected.replace("docker.io", SOURCE_REGISTRY_URL)
+    try:
+        assert output == expected
+    except AssertionError:
+        raise Exception("Expected:", expected, "Actual", output)
+
+
+def prepare(name):
+    if os.path.exists(name):
+        os.remove(name)
 
 
 REGISTRY_PASSWORD = os.getenv("REGISTRY_PASSWORD")

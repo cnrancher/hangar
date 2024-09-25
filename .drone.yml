@@ -26,6 +26,7 @@ steps:
     environment:
       DRONE_TAG: ${DRONE_TAG}
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
+      SOURCE_REGISTRY_URL: 'docker.hxstarrys.me'
     commands:
       - dapper -f Dockerfile.test.dapper
     volumes:

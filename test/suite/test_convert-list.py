@@ -4,17 +4,8 @@
 Automatin tests for "hangar convert-list" command.
 """
 
-import os
-from .common import run_hangar, check, REGISTRY_URL
-
-
-def prepare():
-    lists = [
-        'converted.txt',
-    ]
-    for list in lists:
-        if os.path.exists(list):
-            os.remove(list)
+from .common import run_hangar, check, compare, prepare
+from .common import SOURCE_REGISTRY_URL
 
 
 def test_convert_list_help():
@@ -22,15 +13,15 @@ def test_convert_list_help():
 
 
 def test_convert_list():
+    prepare("converted.txt")
     check(run_hangar([
         "convert-list",
-        "--input=data/default_format.txt",
+        "--input=data/convert-list/default.txt",
         "--output=converted.txt",
-        "-s", "docker.io",
-        "-d", REGISTRY_URL,
+        "-s", "example.io",
+        "-d", SOURCE_REGISTRY_URL,
     ]))
-    cf = open("converted.txt")
-    c = cf.read()
-    cf.close()
-    print("")
-    print("Converted image list:\n"+c)
+    f = open("converted.txt")
+    s = f.read()
+    f.close()
+    compare(s, "data/convert-list/converted.txt")

@@ -110,10 +110,10 @@ func initJavaDB(ctx context.Context, o *DBOptions) error {
 	)
 
 	dbDir := filepath.Join(o.CacheDirectory, "java-db")
-	repo := fmt.Sprintf("%s:%d", o.JavaDBRepository, trivyjavadb.SchemaVersion)
 	metac := trivyjavadb.NewMetadata(dbDir)
 	meta, err := metac.Get()
 	if err != nil {
+		logrus.Debugf("java db metadata get error: %v", err)
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("java DB metadata error: %w", err)
 		} else if o.SkipUpdateJavaDB {
@@ -121,13 +121,21 @@ func initJavaDB(ctx context.Context, o *DBOptions) error {
 			return fmt.Errorf("java database cannot skip on first run")
 		}
 	}
-	if (meta.Version != trivyjavadb.SchemaVersion || meta.NextUpdate.Before(time.Now().UTC())) && !o.SkipUpdateJavaDB {
+	needUpdate := false
+	now := time.Now().UTC()
+	if meta.Version != trivyjavadb.SchemaVersion || meta.NextUpdate.Before(now) {
+		needUpdate = true
+	}
+	if now.Before(meta.DownloadedAt.Add(time.Hour)) || o.SkipUpdateJavaDB {
+		needUpdate = false
+	}
+	if needUpdate {
 		// Download DB
-		logrus.Infof("Java DB Repository: %s", repo)
+		logrus.Infof("Java DB Repository: %s", o.JavaDBRepository)
 		logrus.Infof("Downloading the Java DB to the cache dir %q", dbDir)
 
 		var a *oci.Artifact
-		if a, err = oci.NewArtifact(repo, false, ftypes.RegistryOptions{
+		if a, err = oci.NewArtifact(o.JavaDBRepository, false, ftypes.RegistryOptions{
 			Insecure: o.InsecureSkipTLSVerify,
 		}); err != nil {
 			return fmt.Errorf("oci.NewArtifact failed: %w", err)

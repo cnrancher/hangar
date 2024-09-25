@@ -1,0 +1,5 @@
+# Image format OCI index with SLSA Provenance
+hxstarrys/slsa-provenance-test:latest
+
+# Image format docker manifest.list schema 2
+hxstarrys/manifest-v2-list:latest

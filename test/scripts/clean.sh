@@ -5,10 +5,6 @@ set -euo pipefail
 cd $(dirname $0)/../
 WORKINGDIR=$(pwd)
 
-source ./scripts/env.sh
-source ./scripts/harbor.sh
-source ./scripts/distribution.sh
-
 files=(
     "*.zip"
     "*-failed.txt"
@@ -19,6 +15,8 @@ files=(
     "suite/converted.txt"
     "suite/*-failed.txt"
     "suite/*.zip"
+    "suite/*.key"
+    "suite/*.pub"
     "suite/scan-report.*"
     "suite/*.csv"
     "suite/__pycache__"
@@ -31,7 +29,5 @@ for f in ${files[@]}; do
         rm -rf $WORKINGDIR/$f
     fi
 done
-
-
 
 exit 0

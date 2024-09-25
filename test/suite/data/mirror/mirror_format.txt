@@ -1,0 +1,16 @@
+# Image list in DEFAULT format
+// COMMENT LINE
+
+TEST INVALID IMAGE LIST LINE
+
+# Image format OCI index with SLSA Provenance
+hxstarrys/slsa-provenance-test library/slsa-provenance-test latest
+
+# Image format docker manifest.list schema 2
+hxstarrys/manifest-v2-list     library/manifest-v2-list     latest
+
+# Image format docker manifest schema 2
+hxstarrys/manifest-v2          library/manifest-v2          latest
+
+# Image format docker manifest schema 1 (deprecated)
+alpine                         library/alpine               2.6

@@ -1,0 +1,7 @@
+# Image list in DEFAULT format
+// COMMENT LINE
+
+TEST INVALID IMAGE LIST LINE
+
+# Image format OCI index with SLSA Provenance
+hxstarrys/slsa-provenance-test:latest

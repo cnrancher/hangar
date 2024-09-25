@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 
+	"github.com/aquasecurity/trivy/pkg/db"
+	"github.com/aquasecurity/trivy/pkg/javadb"
 	"github.com/aquasecurity/trivy/pkg/log"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/opencontainers/go-digest"
 )
 
-const (
-	DefaultDBRepository     = "ghcr.io/aquasecurity/trivy-db"
-	DefaultJavaDBRepository = "ghcr.io/aquasecurity/trivy-java-db"
+var (
+	DefaultDBRepository     = db.DefaultRepository
+	DefaultJavaDBRepository = javadb.DefaultRepository
 )
 
 type Scanner interface {

@@ -3,4 +3,4 @@
 
 TEST INVALID IMAGE LIST LINE
 
-mirror-test/alpine:3
+nginx:latest

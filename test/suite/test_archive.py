@@ -13,25 +13,19 @@ Automatin tests for following commands:
     "hangar archive export"
 """
 
-import os
-from .common import run_hangar, check, REGISTRY_URL
-
-SAVE_FAILED_LIST = "save-failed.txt"
-SYNC_FAILED_LIST = "sync-failed.txt"
-LOAD_FAILED_LIST = "load-failed.txt"
-MERGE_FAILED_LIST = "merge-failed.txt"
-EXPORT_FAILED_LIST = "export-failed.txt"
+import pytest
+from .common import run_hangar, check, compare, prepare
+from .common import REGISTRY_URL, REGISTRY_PASSWORD, SOURCE_REGISTRY_URL
 
 
-def prepare():
-    lists = [
-        SAVE_FAILED_LIST,
-        SYNC_FAILED_LIST,
-        LOAD_FAILED_LIST,
-    ]
-    for list in lists:
-        if os.path.exists(list):
-            os.remove(list)
+def test_login():
+    check(run_hangar([
+        "login",
+        REGISTRY_URL,
+        "-u=admin",
+        "-p", REGISTRY_PASSWORD,
+        "--tls-verify=false",
+    ]))
 
 
 def test_save_help():
@@ -49,154 +43,259 @@ def test_load_help():
     check(run_hangar(["load", "validate", "--help"]))
 
 
+@pytest.mark.dependency()
 def test_save():
-    ret = run_hangar([
+    FAILED = "1-failed.txt"
+    prepare(FAILED)
+    log = run_hangar([
         "save",
-        "-f=data/default_format.txt",
-        "-d", "saved_test.zip",
+        "-f=data/archive/save.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "1.zip",
         "-j=3",
+        "--os=linux",
+        "--arch=amd64",
         "-y",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, SAVE_FAILED_LIST)
+    check(log, FAILED)
 
-
-def test_save_validate():
-    ret = run_hangar([
+    log = run_hangar([
         "save",
         "validate",
-        "-f=data/default_format.txt",
-        "-d", "saved_test.zip",
+        "-f=data/archive/save.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "1.zip",
         "-j=3",
+        "--os=linux",
+        "--arch=amd64",
         "-y",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, SAVE_FAILED_LIST)
+    check(log, FAILED)
+
+    log = run_hangar([
+        "archive",
+        "ls",
+        "-f", "1.zip",
+        "--hide-log-time",
+    ])
+    compare(log, "data/archive/save_ls.log")
+
+    log = run_hangar([
+        "load",
+        "-s", "1.zip",
+        "-d", REGISTRY_URL,
+        "-j=3",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
+
+    log = run_hangar([
+        "load",
+        "validate",
+        "-s", "1.zip",
+        "-d", REGISTRY_URL,
+        "-j=3",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
 
 
+@pytest.mark.dependency()
 def test_sync():
-    ret = run_hangar([
-        "sync",
-        "-f=data/sync.txt",
-        "-d", "saved_test.zip",
+    FAILED = "2-failed.txt"
+    prepare(FAILED)
+    log = run_hangar([
+        "save",
+        "-f=data/archive/save.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "2.zip",
         "-j=3",
+        "--os=linux",
+        "--arch=amd64",
+        "-y",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, SYNC_FAILED_LIST)
+    check(log, FAILED)
 
+    log = run_hangar([
+        "sync",
+        "-f=data/archive/sync.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "2.zip",
+        "-j=3",
+        "--os=linux",
+        "--arch=amd64",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
 
-def test_sync_validate():
-    ret = run_hangar([
+    log = run_hangar([
         "sync",
         "validate",
-        "-f=data/sync.txt",
-        "-d", "saved_test.zip",
+        "-f=data/archive/sync.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "2.zip",
         "-j=3",
+        "--os=linux",
+        "--arch=amd64",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, SYNC_FAILED_LIST)
+    check(log, FAILED)
 
+    log = run_hangar([
+        "archive",
+        "ls",
+        "-f", "2.zip",
+        "--hide-log-time",
+    ])
+    compare(log, "data/archive/sync_ls.log")
 
-def test_load():
-    ret = run_hangar([
+    log = run_hangar([
         "load",
-        "-s", "saved_test.zip",
+        "-s", "2.zip",
         "-d", REGISTRY_URL,
         "-j=3",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, LOAD_FAILED_LIST)
+    check(log, FAILED)
 
-
-def test_load_validate():
-    ret = run_hangar([
+    log = run_hangar([
         "load",
         "validate",
-        "-s", "saved_test.zip",
+        "-s", "2.zip",
         "-d", REGISTRY_URL,
         "-j=3",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, LOAD_FAILED_LIST)
+    check(log, FAILED)
 
 
-def test_archive_ls():
-    check(run_hangar([
-        "archive",
-        "ls",
-        "-f", "saved_test.zip",
-    ]))
-
-
-def test_archive_export():
-    ret = run_hangar([
-        "archive",
-        "export",
-        "-f", "data/export1.txt",
-        "-s", "saved_test.zip",
-        "-d", "export1.zip",
-        "--auto-yes",
-    ])
-    check(ret, EXPORT_FAILED_LIST)
-
-    ret = run_hangar([
-        "archive",
-        "export",
-        "-f", "data/export2.txt",
-        "-s", "saved_test.zip",
-        "-d", "export2.zip",
-        "--auto-yes",
-    ])
-    check(ret, EXPORT_FAILED_LIST)
-
-    # Check the exported archive files.
-    check(run_hangar([
-        "archive",
-        "ls",
-        "-f", "export1.zip",
-    ]))
-    check(run_hangar([
-        "archive",
-        "ls",
-        "-f", "export2.zip",
-    ]))
-
-    # Load the exported archive file
-    ret = run_hangar([
-        "load",
-        "-s", "export1.zip",
-        "-d", REGISTRY_URL,
-        "-j=10",
+@pytest.mark.dependency()
+def test_archive_merge_export():
+    FAILED = "3-failed.txt"
+    prepare(FAILED)
+    log = run_hangar([
+        "save",
+        "-f=data/archive/save.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "3-1.zip",
+        "-j=3",
+        "--os=linux",
+        "--arch=arm64",
+        "-y",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, LOAD_FAILED_LIST)
-
-
-def test_archive_merge():
-    ret = run_hangar([
+    check(log, FAILED)
+    log = run_hangar([
+        "save",
+        "-f=data/archive/sync.txt",
+        "-s", SOURCE_REGISTRY_URL,
+        "-d", "3-2.zip",
+        "-j=3",
+        "--os=linux",
+        "--arch=arm64",
+        "-y",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
+    run_hangar([
         "archive",
         "merge",
-        "-f", "export1.zip",
-        "-f", "export2.zip",
-        "-o", "merge.zip",
+        "-f", "3-1.zip",
+        "-f", "3-2.zip",
+        "-o", "3-3.zip",
         "--auto-yes",
     ])
-    check(ret, MERGE_FAILED_LIST)
-
-    # Check the merged archive files.
-    check(run_hangar([
+    log = run_hangar([
         "archive",
         "ls",
-        "-f", "merge.zip",
-    ]))
+        "-f", "3-3.zip",
+        "--hide-log-time",
+    ])
+    compare(log, "data/archive/merge_ls.log")
 
     # Load the merged archive file
-    ret = run_hangar([
+    log = run_hangar([
         "load",
-        "-s", "merge.zip",
+        "-s", "3-3.zip",
         "-d", REGISTRY_URL,
-        "--project=mirror-test",  # Auto create 'mirror-test' project
         "-j=10",
         "--tls-verify=false",
+        "-o", FAILED,
     ])
-    check(ret, LOAD_FAILED_LIST)
+    check(log, FAILED)
+    log = run_hangar([
+        "load",
+        "validate",
+        "-s", "3-3.zip",
+        "-d", REGISTRY_URL,
+        "-j=10",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
+
+    # Export image from archive
+    log = run_hangar([
+        "archive",
+        "export",
+        "-f", "data/archive/save.txt",
+        "--source-registry", SOURCE_REGISTRY_URL,
+        "-s", "3-3.zip",
+        "-d", "3-4.zip",
+        "--auto-yes",
+        "--failed", FAILED,
+    ])
+    check(log, FAILED)
+
+    log = run_hangar([
+        "archive",
+        "ls",
+        "-f", "3-4.zip",
+        "--hide-log-time",
+    ])
+    compare(log, "data/archive/export_ls.log")
+
+    # Load the exported archive file
+    log = run_hangar([
+        "load",
+        "-s", "3-4.zip",
+        "-d", REGISTRY_URL,
+        "-j=10",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
+    log = run_hangar([
+        "load",
+        "validate",
+        "-s", "3-4.zip",
+        "-d", REGISTRY_URL,
+        "-j=10",
+        "--tls-verify=false",
+        "-o", FAILED,
+    ])
+    check(log, FAILED)
+
+
+@pytest.mark.dependency(depends=['test_archive_merge_export', 'test_save'])
+def test_inspect():
+    log = run_hangar([
+        "inspect",
+        "docker://"+REGISTRY_URL+"/hxstarrys/slsa-provenance-test:latest",
+        "--raw",
+    ])
+    compare(log, "data/archive/inspect.log")
