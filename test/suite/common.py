@@ -32,11 +32,11 @@ if SOURCE_REGISTRY_URL is None:
 
 TRIVY_DB_REPO = os.getenv("TRIVY_DB_REPO")
 if TRIVY_DB_REPO is None:
-    TRIVY_DB_REPO = "ghcr.io/aquasecurity/trivy-db"
+    TRIVY_DB_REPO = "ghcr.io/aquasecurity/trivy-db:2"
 
 TRIVY_JAVA_DB_REPO = os.getenv("TRIVY_JAVA_DB_REPO")
 if TRIVY_JAVA_DB_REPO is None:
-    TRIVY_JAVA_DB_REPO = "ghcr.io/aquasecurity/trivy-java-db"
+    TRIVY_JAVA_DB_REPO = "ghcr.io/aquasecurity/trivy-java-db:1"
 
 
 def run_hangar(args=[], timeout=1200) -> string:

@@ -297,5 +297,6 @@ def test_inspect():
         "inspect",
         "docker://"+REGISTRY_URL+"/hxstarrys/slsa-provenance-test:latest",
         "--raw",
+        "--tls-verify=false",
     ])
     compare(log, "data/archive/inspect.log")

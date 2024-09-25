@@ -65,6 +65,7 @@ def test_mirror_default_format():
         "inspect",
         "docker://"+REGISTRY_URL+"/library/slsa-provenance-test:latest",
         "--raw",
+        "--tls-verify=false",
     ])
     # The inspected image should only have AMD64 architecture
     # and does not have SLSA Provenance
@@ -110,6 +111,7 @@ def test_mirror_mirror_format():
         "inspect",
         "docker://"+REGISTRY_URL+"/library/slsa-provenance-test:latest",
         "--raw",
+        "--tls-verify=false",
     ])
     # The inspected image should have AMD64,ARM64 architecture
     # and have SLSA Provenances
