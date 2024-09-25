@@ -68,6 +68,7 @@ You can also download the KDM JSON file and clone chart repos manually:
         --system-chart="./system-chart-repo-dir" \
         --kdm="./kdm-data.json"`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

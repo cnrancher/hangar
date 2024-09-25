@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/image/manifest"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -35,6 +36,7 @@ hangar inspect [image-reference]
 # Inspect RAW docker image maniefest:
 hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

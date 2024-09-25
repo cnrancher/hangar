@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,7 @@ hangar load validate \
 	--arch amd64,arm64 \
 	--os linux`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

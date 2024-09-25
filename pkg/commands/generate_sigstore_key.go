@@ -33,6 +33,7 @@ func newgenerateSigstoreKeyCmd() *generateSigstoreKeyCmd {
 		Long:    ``,
 		Example: `hangar generate-sigstore-key --prefix sigstore`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

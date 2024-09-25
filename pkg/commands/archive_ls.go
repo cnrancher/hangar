@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -30,6 +32,7 @@ func newArchiveLsCmd() *archiveLsCmd {
 # Show images in archive file:
 hangar archive ls -f SAVED_ARCHIVE.zip`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")
@@ -91,7 +94,9 @@ func (cc *archiveLsCmd) run(args []string) error {
 		}
 		return nil
 	}
-	logrus.Infof("Created time: %v", index.Time)
+	if !cc.baseCmd.hideLogTime {
+		logrus.Infof("Created time: %v", index.Time.Format(time.DateOnly))
+	}
 	logrus.Infof("Index version: %v", index.Version)
 	logrus.Infof("Images:")
 

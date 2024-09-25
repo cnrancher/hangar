@@ -44,6 +44,7 @@ hangar convert-list \
 docker.io/library/mysql registry.example.io/library/mysql 8
 docker.io/library/nginx registry.example.io/library/nginx latest`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

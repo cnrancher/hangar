@@ -43,6 +43,7 @@ hangar archive export \
 	--source SAVED_ARCHIVE.zip \
 	--destination EXPORT_OUTPUT.zip`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

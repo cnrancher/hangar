@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +21,7 @@ func newArchiveCmd() *archiveCmd {
 # Show images in archive file:
 hangar archive ls -f SAVED_ARCHIVE.zip`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

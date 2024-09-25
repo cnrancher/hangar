@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/common/pkg/auth"
 	commonFlag "github.com/containers/common/pkg/flag"
 	"github.com/containers/common/pkg/retry"
@@ -28,6 +29,7 @@ func newLogoutCmd() *logoutCmd {
 		Short:   "Logout from registry server",
 		Example: "  hangar logout docker.io",
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

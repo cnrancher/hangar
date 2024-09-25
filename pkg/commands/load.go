@@ -61,6 +61,7 @@ hangar load \
 	--os linux \
 	--sigstore-private-key SIGSTORE.key`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

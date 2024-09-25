@@ -56,6 +56,8 @@ https://hangar.cnrancher.com
 	flags := cc.cmd.PersistentFlags()
 	flags.BoolVarP(&cc.baseCmd.debug, "debug", "", false, "enable debug output")
 	flags.BoolVar(&cc.baseCmd.insecurePolicy, "insecure-policy", false, "run Hangar without policy check")
+	flags.BoolVar(&cc.baseCmd.hideLogTime, "hide-log-time", false, "hide log output timestamp")
+	flags.MarkHidden("hide-log-time")
 
 	return cc
 }

@@ -30,6 +30,7 @@ type baseOpts struct {
 	debug          bool   // Enable debug output
 	policyPath     string // Path to a signature verification policy file
 	insecurePolicy bool   // Use an "allow everything" signature verification policy
+	hideLogTime    bool   // Hide log output time (used in validation test)
 }
 
 var globalOpts = baseOpts{}

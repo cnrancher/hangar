@@ -38,6 +38,7 @@ hangar archive merge \
 	--file ARCHIVE_2.zip \
 	--output MERGE_OUTPUT.zip`,
 		PreRun: func(cmd *cobra.Command, args []string) {
+			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
 				logrus.SetLevel(logrus.DebugLevel)
 				logrus.Debugf("Debug output enabled")

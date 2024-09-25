@@ -17,7 +17,6 @@ require (
 	github.com/containers/image/v5 v5.32.2
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-containerregistry v0.20.2
-	github.com/moby/term v0.5.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/rancher/rke v1.6.2
@@ -270,6 +269,7 @@ require (
 	github.com/moby/sys/signal v0.7.0 // indirect
 	github.com/moby/sys/user v0.3.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
+	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
