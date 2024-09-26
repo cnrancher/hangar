@@ -148,7 +148,7 @@ def test_scan_image_custom_scanners():
     log = run_hangar([
         "scan",
         "--file", "data/scan/scan.txt",
-        "--scanner", "vuln,seclog",
+        "--scanner", "vuln,secret",
         "--registry", SOURCE_REGISTRY_URL,
         "--tls-verify=false",
         "--auto-yes",

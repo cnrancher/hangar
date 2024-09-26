@@ -3,4 +3,5 @@
 
 TEST INVALID IMAGE LIST LINE
 
-nginx:latest
+# nginx:latest
+alpine:3
