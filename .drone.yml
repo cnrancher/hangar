@@ -40,35 +40,6 @@ steps:
       ref:
         include:
           - "refs/tags/v*"
-  - name: github_release
-    image: plugins/github-release
-    settings:
-      api_key:
-        from_secret: github_token
-      prerelease: false
-      files:
-      title: "${DRONE_TAG}"
-    when:
-      ref:
-        include:
-          - "refs/tags/v*"
-        exclude:
-          - "refs/tags/*-rc*"
-          - "refs/tags/*-alpha*"
-          - "refs/tags/*-beta*"
-  - name: github_prerelease
-    image: plugins/github-release
-    settings:
-      api_key:
-        from_secret: github_token
-      prerelease: true
-      title: "Pre-release ${DRONE_TAG}"
-    when:
-      ref:
-        include:
-          - "refs/tags/*-rc*"
-          - "refs/tags/*-alpha*"
-          - "refs/tags/*-beta*"
   - name: docker-publish
     image: plugins/docker
     settings:
