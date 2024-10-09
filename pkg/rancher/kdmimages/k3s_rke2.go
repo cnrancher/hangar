@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -299,6 +300,10 @@ func filterDeprecatedVersions(versions []string) []string {
 			// Update the highest patch version
 			if n, _ := utils.SemverCompare(v, set[mm]); n > 0 {
 				set[mm] = v
+			} else if n == 0 {
+				if strings.Compare(v, set[mm]) > 0 {
+					set[mm] = v
+				}
 			}
 		}
 	}
@@ -306,5 +311,6 @@ func filterDeprecatedVersions(versions []string) []string {
 	for _, v := range set {
 		filteredVersions = append(filteredVersions, v)
 	}
+	slices.Sort(filteredVersions)
 	return filteredVersions
 }
