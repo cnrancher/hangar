@@ -33,8 +33,8 @@ var (
 type DBOptions struct {
 	TrivyServerURL        string
 	CacheDirectory        string
-	DBRepository          string
-	JavaDBRepository      string
+	DBRepositories        []string
+	JavaDBRepositories    []string
 	SkipUpdateDB          bool
 	SkipUpdateJavaDB      bool
 	InsecureSkipTLSVerify bool
@@ -45,11 +45,17 @@ func InitTrivyDatabase(ctx context.Context, o DBOptions) error {
 		return nil
 	}
 
-	if o.DBRepository == "" {
-		o.DBRepository = DefaultDBRepository
+	if len(o.DBRepositories) == 0 {
+		o.DBRepositories = []string{
+			DefaultECRRepository,
+			DefaultGHCRRepository,
+		}
 	}
-	if o.JavaDBRepository == "" {
-		o.JavaDBRepository = DefaultJavaDBRepository
+	if len(o.JavaDBRepositories) == 0 {
+		o.JavaDBRepositories = []string{
+			DefaultJavaECRRepository,
+			DefaultJavaGHCRRepository,
+		}
 	}
 	if o.CacheDirectory == "" {
 		o.CacheDirectory = utils.TrivyCacheDir()
@@ -96,13 +102,20 @@ func InitTrivyDatabase(ctx context.Context, o DBOptions) error {
 // Init trivy java database.
 // Mandatory for both trivy client & local scan mode.
 func initJavaDB(ctx context.Context, o *DBOptions) error {
-	dbRef, err := name.ParseReference(o.JavaDBRepository)
-	if err != nil {
-		return fmt.Errorf("failed to parse %q: %w", o.JavaDBRepository, err)
+	if len(o.JavaDBRepositories) == 0 {
+		return fmt.Errorf("java db repo not specified")
+	}
+	dbRefs := []name.Reference{}
+	for _, r := range o.JavaDBRepositories {
+		dbRef, err := name.ParseReference(r)
+		if err != nil {
+			return fmt.Errorf("failed to parse %q: %w", r, err)
+		}
+		dbRefs = append(dbRefs, dbRef)
 	}
 	javadb.Init(
 		o.CacheDirectory,
-		dbRef,
+		dbRefs,
 		false, false,
 		ftypes.RegistryOptions{
 			Insecure: o.InsecureSkipTLSVerify,
@@ -131,16 +144,14 @@ func initJavaDB(ctx context.Context, o *DBOptions) error {
 	}
 	if needUpdate {
 		// Download DB
-		logrus.Infof("Java DB Repository: %s", o.JavaDBRepository)
+		logrus.Infof("Java DB Repositories: %v", o.JavaDBRepositories)
 		logrus.Infof("Downloading the Java DB to the cache dir %q", dbDir)
 
-		var a *oci.Artifact
-		if a, err = oci.NewArtifact(o.JavaDBRepository, false, ftypes.RegistryOptions{
+		artifacts := oci.NewArtifacts(dbRefs, ftypes.RegistryOptions{
 			Insecure: o.InsecureSkipTLSVerify,
-		}); err != nil {
-			return fmt.Errorf("oci.NewArtifact failed: %w", err)
-		}
-		if err = a.Download(ctx, dbDir, oci.DownloadOption{MediaType: mediaType}); err != nil {
+		})
+		err = artifacts.Download(ctx, dbDir, oci.DownloadOption{MediaType: mediaType})
+		if err != nil {
 			return fmt.Errorf("failed to download java DB: %w", err)
 		}
 
@@ -163,12 +174,19 @@ func initJavaDB(ctx context.Context, o *DBOptions) error {
 
 func initDB(ctx context.Context, o *DBOptions) error {
 	logrus.Debugf("Start creating trivy vulnerability database client.")
-	dbRef, err := name.ParseReference(o.DBRepository)
-	if err != nil {
-		return fmt.Errorf("failed to parse %q: %w", o.DBRepository, err)
+	if len(o.DBRepositories) == 0 {
+		return fmt.Errorf("trivy db repository not specified")
+	}
+	dbRefs := []name.Reference{}
+	for _, r := range o.DBRepositories {
+		dbRef, err := name.ParseReference(r)
+		if err != nil {
+			return fmt.Errorf("failed to parse %q: %w", r, err)
+		}
+		dbRefs = append(dbRefs, dbRef)
 	}
 	client := trivydb.NewClient(
-		o.CacheDirectory, false, trivydb.WithDBRepository(dbRef),
+		o.CacheDirectory, false, trivydb.WithDBRepository(dbRefs),
 	)
 	needsUpdate, err := client.NeedsUpdate(ctx, "", o.SkipUpdateDB)
 	if err != nil {
@@ -177,7 +195,7 @@ func initDB(ctx context.Context, o *DBOptions) error {
 
 	if needsUpdate {
 		logrus.Info("Updating the trivy vulnerability database...")
-		logrus.Infof("Vulnerability database repository: %s", o.DBRepository)
+		logrus.Infof("Vulnerability database repositories: %v", o.DBRepositories)
 		if err = client.Download(ctx, o.CacheDirectory, ftypes.RegistryOptions{
 			Insecure: o.InsecureSkipTLSVerify,
 		}); err != nil {

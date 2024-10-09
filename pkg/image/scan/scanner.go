@@ -3,6 +3,7 @@ package scan
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/aquasecurity/trivy/pkg/db"
 	"github.com/aquasecurity/trivy/pkg/javadb"
@@ -12,8 +13,13 @@ import (
 )
 
 var (
-	DefaultDBRepository     = db.DefaultRepository
-	DefaultJavaDBRepository = javadb.DefaultRepository
+	DefaultECRRepository = fmt.Sprintf("%s:%d",
+		"public.ecr.aws/aquasecurity/trivy-db", db.SchemaVersion)
+	DefaultJavaECRRepository = fmt.Sprintf("%s:%d",
+		"public.ecr.aws/aquasecurity/trivy-java-db", javadb.SchemaVersion)
+
+	DefaultGHCRRepository     = db.DefaultGHCRRepository
+	DefaultJavaGHCRRepository = javadb.DefaultGHCRRepository
 )
 
 type Scanner interface {

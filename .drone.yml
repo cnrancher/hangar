@@ -28,9 +28,8 @@ steps:
       DRONE_COMMIT_SHA: ${DRONE_COMMIT_SHA}
       SOURCE_REGISTRY_URL: 'docker.hxstarrys.me'
       # https://github.com/aquasecurity/trivy-action/issues/389
-      # Workaround to pull trivy DB from docker hub.
-      TRIVY_DB_REPO: 'docker.hxstarrys.me/hxstarrys/trivy-db:2'
-      TRIVY_JAVA_DB_REPO: "docker.hxstarrys.me/hxstarrys/trivy-java-db:1"
+      TRIVY_DB_REPO: 'public.ecr.aws/aquasecurity/trivy-db:2'
+      TRIVY_JAVA_DB_REPO: "public.ecr.aws/aquasecurity/trivy-java-db:1"
     commands:
       - dapper -f Dockerfile.test.dapper
     volumes:

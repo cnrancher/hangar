@@ -29,8 +29,8 @@ type scanOpts struct {
 	jobs             int
 	timeout          time.Duration
 	cacheDir         string
-	dbRepo           string
-	javaDBRepo       string
+	dbRepos          []string
+	javaDBRepos      []string
 	offline          bool
 	skipDBUpdate     bool
 	skipJavaDBUpdate bool
@@ -103,10 +103,12 @@ hangar scan \
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, scan images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when scan each images")
 	flags.StringVarP(&cc.cacheDir, "cache", "", utils.TrivyCacheDir(), "trivy database cache directory")
-	flags.StringVarP(&cc.dbRepo, "trivy-db-repo", "", scan.DefaultDBRepository,
-		"trivy vulnerability database repository")
-	flags.StringVarP(&cc.javaDBRepo, "trivy-java-db-repo", "", scan.DefaultJavaDBRepository,
-		"trivy java database repository")
+	flags.StringSliceVarP(&cc.dbRepos, "trivy-db-repo", "",
+		[]string{scan.DefaultECRRepository, scan.DefaultGHCRRepository},
+		"trivy vulnerability database repositories")
+	flags.StringSliceVarP(&cc.javaDBRepos, "trivy-java-db-repo", "",
+		[]string{scan.DefaultJavaECRRepository, scan.DefaultJavaGHCRRepository},
+		"trivy java database repositories")
 	flags.BoolVarP(&cc.offline, "offline-scan", "", false, "scan in offline (air-gapped) mode")
 	flags.BoolVarP(&cc.skipDBUpdate, "skip-db-update", "", false, "skip updating trivy vulnerability database")
 	flags.BoolVarP(&cc.skipJavaDBUpdate, "skip-java-db-update", "", false, "skip updating trivy java index database")
@@ -253,8 +255,8 @@ func (cc *scanCmd) prepareScanner() error {
 	err := scan.InitTrivyDatabase(signalContext, scan.DBOptions{
 		TrivyServerURL:        cc.trivyServerURL,
 		CacheDirectory:        cc.cacheDir,
-		DBRepository:          cc.dbRepo,
-		JavaDBRepository:      cc.javaDBRepo,
+		DBRepositories:        cc.dbRepos,
+		JavaDBRepositories:    cc.javaDBRepos,
 		SkipUpdateDB:          cc.skipDBUpdate,
 		SkipUpdateJavaDB:      cc.skipJavaDBUpdate,
 		InsecureSkipTLSVerify: !cc.tlsVerify,
