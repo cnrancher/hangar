@@ -4,11 +4,9 @@ go 1.22.2
 
 toolchain go1.22.4
 
-replace golang.org/x/net => golang.org/x/net v0.29.0
-
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
-	github.com/STARRY-S/zip v0.2.1-beta.1
+	github.com/STARRY-S/zip v0.2.1
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.56.1
 	github.com/aquasecurity/trivy-db v0.0.0-20240910133327-7e0f4d2ed4c1
