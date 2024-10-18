@@ -2,8 +2,9 @@ name: CI
 on:
   pull_request:
   push:
-    tags-ignore:
-      - '**'
+    branches:
+      - main
+      - dev
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -18,23 +19,32 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Dependencies
+      - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt --yes install libgpgme-dev libassuan-dev libbtrfs-dev libdevmapper-dev pkg-config gcc
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libassuan-dev libbtrfs-dev libdevmapper-dev pkg-config gcc
       - name: Lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.59
+          version: v1.61
       - name: Verify
         run: |
-          ./scripts/verify.sh
+          make verify
       - name: Test
         run: |
-          ./scripts/test.sh
-      - name: Static Build
+          make test
+      - name: Build
+        env:
+          TAG: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
           args: build --clean --snapshot
+      - name: Image Build
+        run: |
+          make image
+        env:
+          TAG: dev
+          REPO: cnrancher
