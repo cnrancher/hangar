@@ -9,6 +9,7 @@ files=(
     ".dapper*"
     "hangar"
     "bin/"
+    "build/"
     "dist/"
     "pkg/archive/part/test/test*"
     "pkg/rancher/chartimages/test/*"
