@@ -1,27 +1,39 @@
-TARGETS := ci build test verify
-.PHONY: $(TARGETS) $(TEST_TARGETS) validation-test clean help
+TAG?=$(shell git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0" )
+COMMIT?=$(shell git rev-parse HEAD)
 
-.dapper:
-	@echo Downloading dapper
-	@curl -sL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper.tmp
-	@chmod +x .dapper.tmp
-	@./.dapper.tmp -v
-	@mv .dapper.tmp .dapper
+default: build
 
-$(TARGETS): .dapper
-	@./.dapper $@
+.PHONY: build
+build:
+	COMMIT=$(COMMIT) TAG=$(TAG) goreleaser build --snapshot --clean
 
-validation-test: .dapper
-	@./.dapper -f Dockerfile.test.dapper
+.PHONY: test
+test:
+	./scripts/test.sh
 
+.PHONY: clean
 clean:
-	@./scripts/clean.sh
+	./scripts/clean.sh
 
+.PHONY: verify
+verify:
+	./scripts/verify.sh
+
+.PHONY: image
+image:
+	TAG=$(TAG) ./scripts/image.sh
+
+.PHONY: image-push
+image-push:
+	TAG=$(TAG) BUILDX_OPTIONS="--push" ./scripts/image.sh
+
+.PHONY: help
 help:
 	@echo "Usage:"
-	@echo "    make build           - Build 'hangar' executable files in 'bin' folder"
-	@echo "    make test            - Run hangar unit test"
-	@echo "    make build-test      - Run hangar build test"
-	@echo "    make validation-test - Run hangar validation test"
-	@echo "    make clean           - Remove generated files"
-	@echo "    make help            - Show this message"
+	@echo "	make build		build binary files"
+	@echo "	make test		run unit tests"
+	@echo "	make verify		verify modules"
+	@echo "	make image		build container images"
+	@echo "	make image-push		build container images and push"
+	@echo "	make clean		clean up built files"
+	@echo "	make help		show this message"

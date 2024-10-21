@@ -1,58 +1,62 @@
 name: Release
+
 on:
   push:
     tags:
       - 'v*'
 jobs:
-  ci:
+  release:
     permissions:
       contents: write # required for creating GH release
       id-token: write # required for reading vault secrets
     runs-on: ubuntu-latest
     steps:
-      # - name: Login to DockerHub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ${{ vars.PUBLIC_REGISTRY }}
-      #     username: ${{ secrets.PUBLIC_REGISTRY_USERNAME }}
-      #     password: ${{ secrets.PUBLIC_REGISTRY_PASSWORD }}
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.22.x
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Dependencies
-        run: |
-          sudo apt update
-          sudo apt --yes install libgpgme-dev libassuan-dev libbtrfs-dev libdevmapper-dev pkg-config gcc
-      - name: Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.59
-      - name: Verify
-        run: |
-          ./scripts/verify.sh
-      - name: Test
-        run: |
-          ./scripts/test.sh
-      - name: Static Build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # required for creating GH release
-          TAG: ${{ github.ref_name }}
-          COMMIT: ${{ github.sha }}
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
-      # - name: Image Push
-      #   run: |
-      #     make image-push
-      #   env:
-      #     TAG: ${{ github.ref_name }}
-      #     REPO: ${{ vars.PUBLIC_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ vars.PUBLIC_REGISTRY }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.ref_name}}
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.22.x
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgpgme-dev libassuan-dev libbtrfs-dev libdevmapper-dev pkg-config gcc
+    - name: Lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: v1.61
+    - name: Verify
+      run: |
+        make verify
+    - name: Test
+      run: |
+        make test
+    - name: Go Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # required for creating GH release
+        TAG: ${{ github.ref_name }}
+        COMMIT: ${{ github.sha }}
+      uses: goreleaser/goreleaser-action@v6
+      with:
+        distribution: goreleaser
+        version: "~> v2"
+        args: release --clean --verbose
+    - name: Image Push
+      run: |
+        make image-push
+      env:
+        TAG: ${{ github.ref_name }}
+        REPO: ${{ vars.PUBLIC_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}
