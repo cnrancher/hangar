@@ -1178,8 +1178,8 @@ github.com/rancher/lasso v0.0.0-20240430201833-6f3def65ffc5 h1:6K4RhfmCy7uxaw9Oz
 github.com/rancher/lasso v0.0.0-20240430201833-6f3def65ffc5/go.mod h1:7WkdfPEvWAdnHVioMUkhpZkshJzjDY62ocHVhcbw89M=
 github.com/rancher/norman v0.0.0-20240604183301-20cd23aadce1 h1:7g0yOiUGfT4zK4N9H0PSijnS/e2YrObi4Gj19JgE1L8=
 github.com/rancher/norman v0.0.0-20240604183301-20cd23aadce1/go.mod h1:sGnN5ayvAHLfInOFZ4N1fzZw1IMy3i+9PZA7IxlPsRg=
-github.com/rancher/rke v1.6.2 h1:ttGk77t5oe7bsiS7s7SOFmAl3PALYI5M2SQQenjKevk=
-github.com/rancher/rke v1.6.2/go.mod h1:5xRbf3L8PxqJRhABjYRfaBqbpVqAnqyH3maUNQEuwvk=
+github.com/rancher/rke v1.6.3 h1:jZByofLNK/hB+EQH4FxIZgrUO1HRNek4wuuOjTA7ZME=
+github.com/rancher/rke v1.6.3/go.mod h1:n9ys1XDbjh3BN7GYl9Vbu+zm4CWVSBvpRkBGiJ9JvIw=
 github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=
 github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
