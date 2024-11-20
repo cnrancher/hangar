@@ -14,6 +14,10 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+const (
+	platformUnknown = "unknown"
+)
+
 type Images []*Image
 
 type Image struct {
@@ -213,6 +217,9 @@ func (images Images) FindDigestIndex(p *Image) int {
 		return -1
 	}
 	for i, img := range images {
+		if img.platform.arch == platformUnknown || img.platform.os == platformUnknown {
+			continue
+		}
 		if img.Digest == p.Digest {
 			return i
 		}
@@ -225,7 +232,31 @@ func (images Images) FindPlatformIndex(p *Image) int {
 		return -1
 	}
 	for i, img := range images {
+		if img.platform.arch == platformUnknown || img.platform.os == platformUnknown {
+			continue
+		}
 		if img.platform.equal(&p.platform) {
+			return i
+		}
+	}
+	return -1
+}
+
+func (images Images) FindSLSAIndex(p *Image) int {
+	if len(images) == 0 || p == nil {
+		return -1
+	}
+	if len(p.Annotations) == 0 {
+		return -1
+	}
+	for i, img := range images {
+		if img.platform.arch != platformUnknown && img.platform.os != platformUnknown {
+			continue
+		}
+		if len(img.Annotations) == 0 {
+			continue
+		}
+		if reflect.DeepEqual(img.Annotations, p.Annotations) {
 			return i
 		}
 	}
@@ -252,7 +283,9 @@ func (p *manifestPlatform) equal(d *manifestPlatform) bool {
 		return false
 	}
 	if p.variant != d.variant {
-		return false
+		if p.arch != "arm64" {
+			return false
+		}
 	}
 	if p.osVersion != d.osVersion {
 		return false

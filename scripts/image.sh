@@ -29,9 +29,15 @@ docker buildx ls | grep ${BUILDER} || \
 echo "Start build images"
 set -x
 
+IMAGE_TAG_OPTIONS="-t ${REPO}/hangar:${TAG}"
+if [[ ${TAG} != *rc* ]] && [[ ${TAG} != *beta* ]] && [[ ${TAG} != *alpha* ]] && [[ ${TAG} != latest ]]; then
+    # Add latest tag for stable release.
+    IMAGE_TAG_OPTIONS="${IMAGE_TAG_OPTIONS} -t ${REPO}/hangar:latest"
+fi
+
 docker buildx build -f package/Dockerfile \
     --builder ${BUILDER} \
-    -t "${REPO}/hangar:${TAG}" \
+    ${IMAGE_TAG_OPTIONS} \
     --platform=${TARGET_PLATFORMS} ${BUILDX_OPTIONS} .
 
 set +x

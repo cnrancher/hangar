@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 
@@ -59,20 +58,20 @@ func NewBuilder(o *BuilderOpts) (*Builder, error) {
 }
 
 func (b *Builder) Add(p *Image) {
-	// Replace if digest already exists
-	for i, img := range b.images {
-		if img.Digest != p.Digest {
-			continue
-		}
-
-		// The image digest maybe same on SLSA manifest attestation.
-		if len(img.Annotations) != 0 || len(p.Annotations) != 0 {
-			if !reflect.DeepEqual(img.Annotations, p.Annotations) {
-				continue
-			}
-		}
+	if i := b.images.FindPlatformIndex(p); i >= 0 {
 		b.images = append(b.images[:i], b.images[i+1:]...)
 	}
+
+	if i := b.images.FindSLSAIndex(p); i >= 0 {
+		b.images = append(b.images[:i], b.images[i+1:]...)
+	}
+
+	if i := b.images.FindDigestIndex(p); i >= 0 {
+		if b.images[i].platform.equal(&p.platform) {
+			b.images = append(b.images[:i], b.images[i+1:]...)
+		}
+	}
+
 	b.images = append(b.images, p.DeepCopy())
 }
 
@@ -80,15 +79,11 @@ func (b *Builder) Images() int {
 	return len(b.images)
 }
 
-func (b *Builder) Push(ctx context.Context) error {
+func (b *Builder) String() (string, error) {
 	if len(b.images) == 0 {
-		return fmt.Errorf("manifest builder: no images added to builder")
+		return "", fmt.Errorf("manifest builder: no images added to builder")
 	}
-	// list := manifestv5.Schema2List{
-	// 	SchemaVersion: 2,
-	// 	MediaType:     manifestv5.DockerV2ListMediaType,
-	// 	Manifests:     make([]manifestv5.Schema2ManifestDescriptor, 0),
-	// }
+
 	list := imgspecv1.Index{
 		Versioned: imgspec.Versioned{
 			SchemaVersion: 2,
@@ -115,9 +110,16 @@ func (b *Builder) Push(ctx context.Context) error {
 	}
 	d, err := json.MarshalIndent(list, "", "  ")
 	if err != nil {
-		return fmt.Errorf("manifest builder: %w", err)
+		return "", fmt.Errorf("manifest builder: %w", err)
 	}
+	return string(d), nil
+}
 
+func (b *Builder) Push(ctx context.Context) error {
+	s, err := b.String()
+	if err != nil {
+		return err
+	}
 	var (
 		dest typesv5.ImageDestination
 	)
@@ -135,7 +137,7 @@ func (b *Builder) Push(ctx context.Context) error {
 	}
 	defer dest.Close()
 	if err = retry.IfNecessary(ctx, func() error {
-		return dest.PutManifest(ctx, d, nil)
+		return dest.PutManifest(ctx, []byte(s), nil)
 	}, b.retryOpts); err != nil {
 		return fmt.Errorf("manifest builder: %w", err)
 	}

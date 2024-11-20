@@ -324,15 +324,15 @@ func decodeQuestionsFile(path string) (Questions, error) {
 // minMaxToConstraintStr converts min and max Rancher version strings into a
 // constraint string
 // E.g min "2.6.3" max "2.6.4" -> constraintStr "2.6.3 - 2.6.4".
-func minMaxToConstraintStr(min, max string) string {
-	if min != "" && max != "" {
-		return fmt.Sprintf("%s - %s", min, max)
+func minMaxToConstraintStr(a, b string) string {
+	if a != "" && b != "" {
+		return fmt.Sprintf("%s - %s", a, b)
 	}
-	if min != "" {
-		return fmt.Sprintf(">= %s", min)
+	if a != "" {
+		return fmt.Sprintf(">= %s", a)
 	}
-	if max != "" {
-		return fmt.Sprintf("<= %s", max)
+	if b != "" {
+		return fmt.Sprintf("<= %s", b)
 	}
 	return ""
 }
