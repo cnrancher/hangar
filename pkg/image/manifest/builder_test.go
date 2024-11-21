@@ -157,12 +157,12 @@ func Test_Builder_Add(t *testing.T) {
 	e := a.DeepCopy()
 	e.Digest = digest.Digest("sha256:" + utils.Sha256Sum("000000"))
 	e.Annotations = map[string]string{
-		"vnd.docker.reference.digest": "sha256:" + utils.Sha256Sum("lmnlmn"),
-		"vnd.docker.reference.type":   "attestation-manifest",
+		annotationKeyReferenceDigest: "sha256:" + utils.Sha256Sum("lmnlmn"),
+		annotationKeyReferenceType:   annotationKeyReferenceTypeValue,
 	}
 	e.platform = manifestPlatform{
-		arch: "unknown",
-		os:   "unknown",
+		arch: platformUnknown,
+		os:   platformUnknown,
 	}
 	builder.Add(e)
 	assert.Equal(6, builder.Images())
@@ -172,13 +172,13 @@ func Test_Builder_Add(t *testing.T) {
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("ijkijk")), builder.images[3].Digest)
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("lmnlmn")), builder.images[4].Digest)
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("000000")), builder.images[5].Digest)
-	assert.Equal("unknown", builder.images[5].platform.arch)
-	assert.Equal("unknown", builder.images[5].platform.os)
+	assert.Equal(platformUnknown, builder.images[5].platform.arch)
+	assert.Equal(platformUnknown, builder.images[5].platform.os)
 
 	// Add SLSA provenance for arm64 linux image
 	f := e.DeepCopy()
 	f.Digest = digest.Digest("sha256:" + utils.Sha256Sum("111111"))
-	f.Annotations["vnd.docker.reference.digest"] = "sha256:" + utils.Sha256Sum("123123")
+	f.Annotations[annotationKeyReferenceDigest] = "sha256:" + utils.Sha256Sum("123123")
 	builder.Add(f)
 	assert.Equal(7, builder.Images())
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("123123")), builder.images[0].Digest)
@@ -188,30 +188,111 @@ func Test_Builder_Add(t *testing.T) {
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("lmnlmn")), builder.images[4].Digest)
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("000000")), builder.images[5].Digest)
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("111111")), builder.images[6].Digest)
-	assert.Equal("unknown", builder.images[6].platform.arch)
-	assert.Equal("unknown", builder.images[6].platform.os)
+	assert.Equal(platformUnknown, builder.images[6].platform.arch)
+	assert.Equal(platformUnknown, builder.images[6].platform.os)
 
 	// SLSA Provenance update (digest changed)
 	f.Digest = digest.Digest("sha256:" + utils.Sha256Sum("222222"))
 	builder.Add(f)
 	assert.Equal(7, builder.Images())
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("222222")), builder.images[6].Digest)
-	assert.Equal("unknown", builder.images[6].platform.arch)
-	assert.Equal("unknown", builder.images[6].platform.os)
+	assert.Equal(platformUnknown, builder.images[6].platform.arch)
+	assert.Equal(platformUnknown, builder.images[6].platform.os)
 
 	// Add SLSA Provenance with same digest but for different images
-	f.Annotations["vnd.docker.reference.digest"] = "sha256:" + utils.Sha256Sum("xyzxyz")
+	f.Annotations[annotationKeyReferenceDigest] = "sha256:" + utils.Sha256Sum("xyzxyz")
 	builder.Add(f)
 	assert.Equal(8, builder.Images())
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("222222")), builder.images[6].Digest)
 	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("222222")), builder.images[7].Digest)
-	assert.Equal("sha256:"+utils.Sha256Sum("123123"), builder.images[6].Annotations["vnd.docker.reference.digest"])
-	assert.Equal("sha256:"+utils.Sha256Sum("xyzxyz"), builder.images[7].Annotations["vnd.docker.reference.digest"])
-	assert.Equal("unknown", builder.images[6].platform.arch)
-	assert.Equal("unknown", builder.images[6].platform.os)
+	assert.Equal("sha256:"+utils.Sha256Sum("123123"), builder.images[6].Annotations[annotationKeyReferenceDigest])
+	assert.Equal("sha256:"+utils.Sha256Sum("xyzxyz"), builder.images[7].Annotations[annotationKeyReferenceDigest])
+	assert.Equal(platformUnknown, builder.images[6].platform.arch)
+	assert.Equal(platformUnknown, builder.images[6].platform.os)
 
 	s, _ := builder.String()
 	fmt.Printf("%v\n", s)
+}
+
+func Test_RemoveUnExistSLSAProvenance(t *testing.T) {
+	assert := assert.New(t)
+	builder := &Builder{
+		name:          "registry.io/library/example:latest",
+		reference:     nil,
+		images:        nil,
+		systemContext: nil,
+		retryOpts:     nil,
+	}
+
+	a1 := &Image{
+		Size:        0,
+		Digest:      digest.Digest("sha256:" + utils.Sha256Sum("aaa1")),
+		MediaType:   "",
+		Annotations: map[string]string{},
+		platform: manifestPlatform{
+			arch:       "amd64",
+			os:         "linux",
+			variant:    "",
+			osVersion:  "",
+			osFeatures: nil,
+		},
+	}
+	builder.Add(a1)
+	builder.RemoveUnExistSLSAProvenance()
+	assert.Len(builder.images, 1)
+
+	a2 := a1.DeepCopy()
+	a2.Digest = digest.Digest("sha256:" + utils.Sha256Sum("aaa2"))
+	a2.platform.arch = "arm64"
+	a2.platform.variant = "v8"
+	builder.Add(a2)
+	builder.RemoveUnExistSLSAProvenance()
+	assert.Len(builder.images, 2)
+
+	s1 := &Image{
+		Size:      0,
+		Digest:    digest.Digest("sha256:" + utils.Sha256Sum("sss1")),
+		MediaType: "",
+		Annotations: map[string]string{
+			annotationKeyReferenceDigest: "sha256:" + utils.Sha256Sum("aaa1"),
+			annotationKeyReferenceType:   annotationKeyReferenceTypeValue,
+		},
+		platform: manifestPlatform{
+			arch:       platformUnknown,
+			os:         platformUnknown,
+			variant:    "",
+			osVersion:  "",
+			osFeatures: nil,
+		},
+	}
+	builder.Add(s1)
+	builder.RemoveUnExistSLSAProvenance()
+	assert.Len(builder.images, 3)
+
+	s2 := s1.DeepCopy()
+	s2.Digest = digest.Digest("sha256:" + utils.Sha256Sum("sss2"))
+	s2.Annotations[annotationKeyReferenceDigest] = "sha256:" + utils.Sha256Sum("aaa2")
+	builder.Add(s2)
+	builder.RemoveUnExistSLSAProvenance()
+	assert.Len(builder.images, 4)
+
+	s3 := s1.DeepCopy()
+	s3.Digest = digest.Digest("sha256:" + utils.Sha256Sum("sss3"))
+	s3.Annotations[annotationKeyReferenceDigest] = "sha256:" + utils.Sha256Sum("invalidinvalid")
+	builder.Add(s3)
+	assert.Len(builder.images, 5)
+
+	builder.RemoveUnExistSLSAProvenance()
+	assert.Len(builder.images, 4)
+	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("aaa1")), builder.images[0].Digest)
+	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("aaa2")), builder.images[1].Digest)
+	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("sss1")), builder.images[2].Digest)
+	assert.Equal("sha256:"+utils.Sha256Sum("aaa1"), builder.images[2].Annotations[annotationKeyReferenceDigest])
+	assert.Equal(digest.Digest("sha256:"+utils.Sha256Sum("sss2")), builder.images[3].Digest)
+	assert.Equal("sha256:"+utils.Sha256Sum("aaa2"), builder.images[3].Annotations[annotationKeyReferenceDigest])
+
+	s, _ := builder.String()
+	fmt.Printf("%v", s)
 }
 
 func Test_manifestPlatform_equal(t *testing.T) {

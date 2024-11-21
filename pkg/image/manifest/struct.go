@@ -169,6 +169,25 @@ func (p *Image) Equal(d *Image) bool {
 	return true
 }
 
+func (p *Image) IsSLSAProvenance() bool {
+	if p.platform.arch != platformUnknown {
+		return false
+	}
+	if p.platform.os != platformUnknown {
+		return false
+	}
+	if len(p.Annotations) == 0 {
+		return false
+	}
+	if p.Annotations[annotationKeyReferenceDigest] == "" {
+		return false
+	}
+	if p.Annotations[annotationKeyReferenceType] == "" {
+		return false
+	}
+	return true
+}
+
 func (p *Image) DeepCopy() *Image {
 	if p == nil {
 		return nil
@@ -217,7 +236,7 @@ func (images Images) FindDigestIndex(p *Image) int {
 		return -1
 	}
 	for i, img := range images {
-		if img.platform.arch == platformUnknown || img.platform.os == platformUnknown {
+		if img.IsSLSAProvenance() {
 			continue
 		}
 		if img.Digest == p.Digest {
@@ -232,7 +251,7 @@ func (images Images) FindPlatformIndex(p *Image) int {
 		return -1
 	}
 	for i, img := range images {
-		if img.platform.arch == platformUnknown || img.platform.os == platformUnknown {
+		if img.IsSLSAProvenance() {
 			continue
 		}
 		if img.platform.equal(&p.platform) {
@@ -250,10 +269,7 @@ func (images Images) FindSLSAIndex(p *Image) int {
 		return -1
 	}
 	for i, img := range images {
-		if img.platform.arch != platformUnknown && img.platform.os != platformUnknown {
-			continue
-		}
-		if len(img.Annotations) == 0 {
+		if !img.IsSLSAProvenance() {
 			continue
 		}
 		if reflect.DeepEqual(img.Annotations, p.Annotations) {

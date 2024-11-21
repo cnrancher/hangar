@@ -28,6 +28,7 @@ type mirrorOpts struct {
 	timeout        time.Duration
 	skipLogin      bool
 	copyProvenance bool
+	overwriteExist bool
 	tlsVerify      commonFlag.OptionalBool
 
 	sourceProject      string
@@ -91,6 +92,8 @@ hangar mirror \
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, copy images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when mirror each images")
 	flags.BoolVarP(&cc.copyProvenance, "provenance", "", true, "copy SLSA provenance")
+	flags.BoolVarP(&cc.overwriteExist, "overwrite", "", false,
+		"overwrite exist manifest index in destination registry")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")
 
 	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
@@ -200,6 +203,7 @@ func (cc *mirrorCmd) prepareHangar() (hangar.Hangar, error) {
 			OS:                  cc.os,
 			Variant:             nil, // TODO: support variants
 			CopyProvenance:      cc.copyProvenance,
+			OverwriteExist:      cc.overwriteExist,
 			Timeout:             cc.timeout,
 			Workers:             cc.jobs,
 			FailedImageListName: cc.failed,

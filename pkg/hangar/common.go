@@ -66,6 +66,8 @@ type common struct {
 	// copyProvenance copies the image SLSA provenance attestation
 	// when it sets true
 	copyProvenance bool
+	// overwriteExist overwrites existing manifest index on destination registry
+	overwriteExist bool
 }
 
 type CommonOpts struct {
@@ -83,6 +85,7 @@ type CommonOpts struct {
 	SigstorePassphrase  []byte
 	SigstorePublicKey   string
 	CopyProvenance      bool
+	OverwriteExist      bool
 }
 
 func newCommon(o *CommonOpts) (*common, error) {
@@ -113,6 +116,7 @@ func newCommon(o *CommonOpts) (*common, error) {
 		sigstorePublicKey:  o.SigstorePublicKey,
 
 		copyProvenance: o.CopyProvenance,
+		overwriteExist: o.OverwriteExist,
 	}
 	var err error
 	policy, err := utils.CopyPolicy(o.Policy)

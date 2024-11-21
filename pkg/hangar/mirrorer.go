@@ -305,7 +305,30 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		copiedManifestImages = append(copiedManifestImages, mi)
 	}
 	destManifestImages := obj.destination.ManifestImages()
-	if len(destManifestImages) > 0 {
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: obj.destination.ReferenceName(),
+		SystemContext: obj.destination.SystemContext(),
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to create manifest builder: %w", err)
+		return
+	}
+	if !m.overwriteExist {
+		// Merge new added images with destination manifest index.
+		// Add images already exists on destination registry into builder firstly.
+		for _, img := range destManifestImages {
+			builder.Add(img)
+		}
+	}
+	// Then add new copied images into builder, update existing images.
+	for _, img := range copiedManifestImages {
+		builder.Add(img)
+	}
+	if builder.Images() == 0 {
+		return
+	}
+
+	if !m.overwriteExist && len(destManifestImages) > 0 {
 		// If no new image copied to the destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
@@ -319,6 +342,10 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		if obj.destination.MIME() != imgspecv1.MediaTypeImageIndex {
 			skipBuildManifest = false
 		}
+		// Ensure dest manifest length is expected with builder.
+		if len(destManifestImages) != builder.Images() {
+			skipBuildManifest = false
+		}
 		if skipBuildManifest {
 			logrus.Debugf("skip build manifest for image [%v]: already exists",
 				obj.destination.ReferenceName())
@@ -326,26 +353,6 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		}
 	}
 
-	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
-		ReferenceName: obj.destination.ReferenceName(),
-		SystemContext: obj.destination.SystemContext(),
-	})
-	if err != nil {
-		err = fmt.Errorf("failed to create manifest builder: %w", err)
-		return
-	}
-	// Merge new added images with destination manifest index.
-	// Add images already exists on destination registry into builder firstly.
-	for _, img := range destManifestImages {
-		builder.Add(img)
-	}
-	// Then add new copied images into builder, update existing images.
-	for _, img := range copiedManifestImages {
-		builder.Add(img)
-	}
-	if builder.Images() == 0 {
-		return
-	}
 	if err = builder.Push(ctx); err != nil {
 		err = fmt.Errorf("failed to push manifest: %w", err)
 		return

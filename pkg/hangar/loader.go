@@ -452,7 +452,31 @@ func (l *Loader) worker(ctx context.Context, o any) {
 	}
 
 	destManifestImages := dest.ManifestImages()
-	if len(destManifestImages) > 0 {
+	// Init manifest Builder.
+	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
+		ReferenceName: dest.ReferenceName(),
+		SystemContext: dest.SystemContext(),
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to create manifest builder: %w", err)
+		return
+	}
+	if !l.overwriteExist {
+		// Add images already exists on destination registry into builder firstly.
+		for _, img := range destManifestImages {
+			builder.Add(img)
+		}
+	}
+	// Then add new copied images to builder, update existing images.
+	for _, img := range copiedManifestImages {
+		builder.Add(img)
+	}
+	if builder.Images() == 0 {
+		err = fmt.Errorf("failed to load [%v]: some images failed to load", imageName)
+		return
+	}
+
+	if !l.overwriteExist && len(destManifestImages) > 0 {
 		// If no new image copied to the destination registry, skip re-create
 		// manifest index for destination image.
 		var skipBuildManifest = true
@@ -466,6 +490,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		if dest.MIME() != imgspecv1.MediaTypeImageIndex {
 			skipBuildManifest = false
 		}
+		// Ensure dest manifest length is expected with builder.
+		if len(destManifestImages) != builder.Images() {
+			skipBuildManifest = false
+		}
 		if skipBuildManifest {
 			logrus.Debugf("skip build manifest for image [%v]: already exists",
 				dest.ReferenceName())
@@ -473,27 +501,6 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}
 	}
 
-	// Init manifest Builder.
-	builder, err := manifest.NewBuilder(&manifest.BuilderOpts{
-		ReferenceName: dest.ReferenceName(),
-		SystemContext: dest.SystemContext(),
-	})
-	if err != nil {
-		err = fmt.Errorf("failed to create manifest builder: %w", err)
-		return
-	}
-	// Add images already exists on destination registry into builder firstly.
-	for _, img := range destManifestImages {
-		builder.Add(img)
-	}
-	// Then add new copied images to builder, update existing images.
-	for _, img := range copiedManifestImages {
-		builder.Add(img)
-	}
-	if builder.Images() == 0 {
-		err = fmt.Errorf("failed to load [%v]: some images failed to load", imageName)
-		return
-	}
 	if err = builder.Push(ctx); err != nil {
 		err = fmt.Errorf("failed to push manifest: %w", err)
 		return

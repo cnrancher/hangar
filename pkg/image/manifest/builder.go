@@ -10,8 +10,15 @@ import (
 	"github.com/containers/common/pkg/retry"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
 	typesv5 "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+const (
+	annotationKeyReferenceDigest    = "vnd.docker.reference.digest"
+	annotationKeyReferenceType      = "vnd.docker.reference.type"
+	annotationKeyReferenceTypeValue = "attestation-manifest"
 )
 
 // Builder is the builder to build DockerV2ListMediaType manifest.
@@ -79,17 +86,16 @@ func (b *Builder) Images() int {
 	return len(b.images)
 }
 
-func (b *Builder) String() (string, error) {
-	if len(b.images) == 0 {
-		return "", fmt.Errorf("manifest builder: no images added to builder")
-	}
-
-	list := imgspecv1.Index{
+func (b *Builder) index() *imgspecv1.Index {
+	index := &imgspecv1.Index{
 		Versioned: imgspec.Versioned{
 			SchemaVersion: 2,
 		},
 		MediaType: imgspecv1.MediaTypeImageIndex,
 		Manifests: make([]imgspecv1.Descriptor, 0),
+	}
+	if len(b.images) == 0 {
+		return index
 	}
 
 	for _, img := range b.images {
@@ -106,16 +112,63 @@ func (b *Builder) String() (string, error) {
 				Variant:      img.platform.variant,
 			},
 		}
-		list.Manifests = append(list.Manifests, m)
+		index.Manifests = append(index.Manifests, m)
 	}
-	d, err := json.MarshalIndent(list, "", "  ")
+	return index
+}
+
+func (b *Builder) String() (string, error) {
+	index := b.index()
+	d, err := json.MarshalIndent(index, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("manifest builder: %w", err)
 	}
 	return string(d), nil
 }
 
+func (b *Builder) RemoveUnExistSLSAProvenance() {
+	imageSet := map[digest.Digest]bool{}
+	provenanceSet := map[digest.Digest]bool{}
+
+	for _, img := range b.images {
+		if img.platform.arch == platformUnknown || img.platform.os == platformUnknown {
+			provenanceSet[img.Digest] = true
+		} else {
+			imageSet[img.Digest] = true
+		}
+	}
+
+	for dig := range provenanceSet {
+		index := -1
+		for i := range b.images {
+			if b.images[i].Digest != dig {
+				continue
+			}
+			index = i
+		}
+		if index < 0 {
+			continue
+		}
+
+		a := b.images[index].Annotations
+		if len(a) == 0 {
+			continue
+		}
+		d := a[annotationKeyReferenceDigest]
+		if d == "" {
+			continue
+		}
+		if imageSet[digest.Digest(d)] {
+			continue
+		}
+		b.images = append(b.images[:index], b.images[index+1:]...)
+	}
+}
+
 func (b *Builder) Push(ctx context.Context) error {
+	// Remove unexist SLSA Provenances.
+	b.RemoveUnExistSLSAProvenance()
+
 	s, err := b.String()
 	if err != nil {
 		return err

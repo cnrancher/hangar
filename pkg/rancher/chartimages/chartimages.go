@@ -250,7 +250,7 @@ func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 			remotes[0].Config().Name, c.Branch),
 	})
 	if err != nil {
-		if !errors.Is(git.ErrBranchExists, err) && !errors.Is(io.EOF, err) {
+		if !errors.Is(err, git.ErrBranchExists) && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("fetchChartsFromURL: checkout: %w", err)
 		}
 	}
