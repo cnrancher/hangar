@@ -25,6 +25,7 @@ builds:
     - -extldflags -static
     - -s -w
     - -X github.com/cnrancher/hangar/pkg/utils.Version={{.Version}}
+    - -X github.com/cnrancher/hangar/pkg/utils.GitCommit={{.ShortCommit}}
   binary: hangar
 
 release:
