@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # Configuration for Harbor
-export HARBOR_HELM_VERSION="v1.14.2"
-export HARBOR_URL="localhost"
+export HARBOR_HELM_VERSION="v1.16.0"
+export HARBOR_URL=${HARBOR_URL:-'localhost'}
 export HARBOR_PORT="443" # ingress https
 export HARBOR_PASSWORD="testpassword123"
 export K3S_CLUSTER_NAME="testharbor"

@@ -47,6 +47,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+tox -e flake8
+
 if [[ ${HARBOR:-} = "" ]] && [[ ${DISTRIBUTION:-} = "" ]]; then
     HARBOR=1
     DISTRIBUTION=1
@@ -86,5 +88,3 @@ if [[ ${DISTRIBUTION:-} != "" ]]; then
     delete_distribution_registry
     echo "Hangar validation test with Distribution registry: Done"
 fi
-
-tox -e flake8

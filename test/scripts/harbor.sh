@@ -24,7 +24,7 @@ function setup_harbor() {
             sleep 1
         done
     fi
-    k3d cluster create -p ${HARBOR_PORT}:${HARBOR_PORT} ${K3S_CLUSTER_NAME}
+    k3d cluster create --network host ${K3S_CLUSTER_NAME}
     sleep 3 # Add some timeout
 
     echo "Install harbor helm chart.."
@@ -58,6 +58,12 @@ function setup_harbor() {
         k3d cluster delete ${K3S_CLUSTER_NAME} || true
         exit 1
     fi
+
+    echo "Wait a few seconds for harbor server ready"
+    sleep 10 # Add timeout for harbor ready
+    echo "---------- all pods ----------"
+    kubectl get pods -A
+    echo "------------------------------"
 }
 
 function delete_k3s_cluster() {

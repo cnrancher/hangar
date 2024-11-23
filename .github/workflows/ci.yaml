@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - dev
+      - dev*
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -48,3 +48,61 @@ jobs:
         env:
           TAG: dev
           REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
+  validation-test:
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: "registry:2"
+        ports:
+          - 5000:5000
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.22.x
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y util-linux libgpgme-dev libassuan-dev \
+          libbtrfs-dev libdevmapper-dev pkg-config gcc iproute2
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - name: Build single target
+      env:
+        TAG: ${{ github.ref_name }}
+        COMMIT: ${{ github.sha }}
+      uses: goreleaser/goreleaser-action@v6
+      with:
+        distribution: goreleaser
+        version: "~> v2"
+        args: build --clean --snapshot --single-target
+    - name: Setup testing environment
+      run: |
+        set -x
+        pip install pytest tox
+        pip install -r test/requirements.txt
+
+        sudo mkdir -p /etc/containers/registries.d
+        sudo cp package/default-policy.json /etc/containers/policy.json
+        sudo cp package/registries.d/default.yaml /etc/containers/registries.d/default.yaml
+        sudo cp ./dist/hangar_linux_amd64*/hangar /usr/local/bin/
+        # TODO: Workaround for permission denied when accessing '/run/containers/1001/auth.json'
+        sudo mkdir -p /run/containers/$UID
+        sudo chmod 755 /run/
+        sudo chmod 755 /run/containers
+        sudo chmod 755 /run/containers/$UID
+        sudo chown $UID /run/containers/$UID
+        sudo ls -al /run/containers/$UID
+
+        hangar version
+        echo "Done setup validation test environment"
+    - name: Distribution Registry Validation test
+      env:
+        REGISTRY_URL: 127.0.0.1:5000
+      run: |
+        cd test/
+        tox -e distribution_registry
