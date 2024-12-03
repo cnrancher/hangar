@@ -25,6 +25,7 @@ type generateListOpts struct {
 	outputSource   string
 	outputVersions string
 	rancherVersion string
+	minKubeVersion string
 	dev            bool
 	tlsVerify      bool
 	charts         []string
@@ -98,6 +99,7 @@ You can also download the KDM JSON file and clone chart repos manually:
 	flags.StringVarP(&cc.outputVersions, "output-versions", "", "", "output Rancher supported k8s versions (default \"[RANCHER_VERSION]-k8s-versions.txt\")")
 	flags.StringVarP(&cc.rancherVersion, "rancher", "", "", "rancher version (semver with 'v' prefix) "+
 		"(use '-ent' suffix to distinguish with Rancher Prime Manager GC) (required)")
+	flags.StringVarP(&cc.minKubeVersion, "min-kube-version", "", "", "min kube version for RKE2/K3s when generate images, example: 'v1.28' (optional)")
 	flags.BoolVarP(&cc.dev, "dev", "", false, "switch to dev branch/URL of charts & KDM data")
 	flags.StringVarP(&cc.kdm, "kdm", "", "", "KDM file path or URL")
 	flags.StringSliceVarP(&cc.charts, "chart", "", nil, "cloned chart repo path (URL not supported)")
@@ -152,18 +154,30 @@ func (cc *generateListCmd) prepareGenerator() error {
 		RemoveDeprecatedKDM: cc.kdmRemoveDeprecated,
 	}
 
-	switch {
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
-		option.MinKubeVersion = "v1.23.0"
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
-		option.MinKubeVersion = "v1.25.0"
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.9"):
-		option.MinKubeVersion = "v1.27.0"
-	case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.10"):
-		option.MinKubeVersion = "v1.29.0"
-	default:
-		option.MinKubeVersion = "v1.21.0"
+	if cc.minKubeVersion != "" {
+		minKubeVersion := semver.MajorMinor(cc.minKubeVersion)
+		option.MinKubeVersion = minKubeVersion
+		if minKubeVersion == "" {
+			return fmt.Errorf("invalid min-kube-version provided: %v",
+				cc.minKubeVersion)
+		}
+	} else {
+		switch {
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.7"):
+			option.MinKubeVersion = "v1.23.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.8"):
+			option.MinKubeVersion = "v1.25.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.9"):
+			option.MinKubeVersion = "v1.27.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.10"):
+			option.MinKubeVersion = "v1.28.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.11"):
+			option.MinKubeVersion = "v1.29.0"
+		default:
+			option.MinKubeVersion = "v1.21.0"
+		}
 	}
+	logrus.Infof("Min Kube-Version for Rancher [%v]: %v", cc.rancherVersion, option.MinKubeVersion)
 	if cc.kdm != "" {
 		if _, err := url.ParseRequestURI(cc.kdm); err != nil {
 			option.KDMPath = cc.kdm
@@ -210,15 +224,15 @@ func (cc *generateListCmd) prepareGenerator() error {
 		}
 		if cc.isRPMGC {
 			logrus.Debugf("Add Rancher Prime Manager GC charts & KDM to generate list")
-			addRPMCharts(cc.rancherVersion, option, dev)
-			addRPMGCCharts(cc.rancherVersion, option, dev)
-			addRPMGCSystemCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeGCCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeGCSystemCharts(cc.rancherVersion, option, dev)
 			addRancherPrimeManagerGCKontainerDriverMetadata(cc.rancherVersion, option, dev)
 		} else {
 			logrus.Debugf("Add Rancher Prime Manager charts & KDM to generate list")
-			addRPMCharts(cc.rancherVersion, option, dev)
-			addRPMSystemCharts(cc.rancherVersion, option, dev)
-			addRancherPrimeManagerKontainerDriverMetadata(cc.rancherVersion, option, dev)
+			addRancherPrimeCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeSystemCharts(cc.rancherVersion, option, dev)
+			addRancherPrimeKontainerDriverMetadata(cc.rancherVersion, option, dev)
 		}
 	}
 	g, err := listgenerator.NewGenerator(option)
