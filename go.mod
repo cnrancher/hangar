@@ -5,7 +5,7 @@ go 1.22.2
 toolchain go1.22.4
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/STARRY-S/zip v0.2.1
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.56.1
