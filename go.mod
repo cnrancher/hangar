@@ -17,7 +17,7 @@ require (
 	github.com/google/go-containerregistry v0.20.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/rancher/rke v1.6.3
+	github.com/rancher/rke v1.7.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.5
 	github.com/spf13/cobra v1.8.1
@@ -298,8 +298,8 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/rancher/lasso v0.0.0-20240430201833-6f3def65ffc5 // indirect
-	github.com/rancher/norman v0.0.0-20240604183301-20cd23aadce1 // indirect
+	github.com/rancher/lasso v0.0.0-20240924233157-8f384efc8813 // indirect
+	github.com/rancher/norman v0.0.0-20241001183610-78a520c160ab // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -398,7 +398,7 @@ require (
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/kubectl v0.31.1 // indirect
-	k8s.io/kubernetes v1.30.1 // indirect
+	k8s.io/kubernetes v1.31.1 // indirect
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
 	modernc.org/libc v1.55.3 // indirect
