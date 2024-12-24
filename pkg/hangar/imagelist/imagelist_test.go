@@ -74,13 +74,16 @@ func Test_Detect(t *testing.T) {
 	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("docker.io/library/nginx:1.22")) {
 		return
 	}
+	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("127.0.0.1:5000/library/nginx:1.22")) {
+		return
+	}
+	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("127.0.0.1:5000/foo/bar/abc:latest")) {
+		return
+	}
 	if !assert.Equal(imagelist.TypeMirror, imagelist.Detect("a b c")) {
 		return
 	}
 	if !assert.Equal(imagelist.TypeMirror, imagelist.Detect(" nginx library/mirrored-nginx 1.22  ")) {
-		return
-	}
-	if !assert.Equal(imagelist.TypeUnknow, imagelist.Detect("docker://docker.io/library/nginx:1.22")) {
 		return
 	}
 }

@@ -196,7 +196,7 @@ func ReplaceProjectName(image, project string) string {
 			s = append(s, v)
 		}
 	}
-	switch len(s) {
+	switch l := len(s); l {
 	case 1:
 		if project != "" {
 			s = append([]string{project}, s...)
@@ -220,6 +220,23 @@ func ReplaceProjectName(image, project string) string {
 			// remove project name
 			s = []string{s[0], s[2]}
 		}
+	default:
+		// The image name has slashes
+		// https://github.com/cnrancher/hangar/issues/109
+		if l > 3 {
+			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+				// s[0] is the registry URL
+				// s[1] is the project name to be replaced
+				if project != "" {
+					s[1] = project
+				}
+			} else {
+				// s[0] is the project name
+				if project != "" {
+					s[0] = project
+				}
+			}
+		}
 	}
 	return strings.Join(s, "/")
 }
@@ -239,7 +256,7 @@ func GetProjectName(image string) string {
 		}
 	}
 
-	switch len(s) {
+	switch l := len(s); l {
 	case 1:
 		return DefaultProject
 	case 2:
@@ -250,6 +267,15 @@ func GetProjectName(image string) string {
 		}
 	case 3:
 		return s[1]
+	default:
+		// The image name has slashes
+		// https://github.com/cnrancher/hangar/issues/109
+		if l > 3 {
+			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+				return s[1]
+			}
+			return s[0]
+		}
 	}
 	return DefaultProject
 }
@@ -269,7 +295,7 @@ func GetRegistryName(image string) string {
 		}
 	}
 
-	switch len(s) {
+	switch l := len(s); l {
 	case 1:
 		return DockerHubRegistry
 	case 2:
@@ -280,6 +306,14 @@ func GetRegistryName(image string) string {
 		}
 	case 3:
 		return s[0]
+	default:
+		// The image name has slashes
+		// https://github.com/cnrancher/hangar/issues/109
+		if l > 3 {
+			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+				return s[0]
+			}
+		}
 	}
 	return DockerHubRegistry
 }
@@ -298,7 +332,7 @@ func GetImageName(image string) string {
 			s = append(s, v)
 		}
 	}
-	switch len(s) {
+	switch l := len(s); l {
 	case 1:
 		if strings.Contains(s[0], ":") {
 			return strings.Split(s[0], ":")[0]
@@ -314,6 +348,15 @@ func GetImageName(image string) string {
 			return strings.Split(s[2], ":")[0]
 		}
 		return s[2]
+	default:
+		// The image name has slashes
+		// https://github.com/cnrancher/hangar/issues/109
+		if l > 3 {
+			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+				return strings.Split(strings.Join(s[2:], "/"), ":")[0]
+			}
+			return strings.Split(strings.Join(s[1:], "/"), ":")[0]
+		}
 	}
 	return ""
 }
@@ -336,7 +379,7 @@ func GetImageTag(image string) string {
 			s = append(s, v)
 		}
 	}
-	switch len(s) {
+	switch l := len(s); l {
 	case 1:
 		if strings.Contains(s[0], ":") {
 			// Example: name:tag
@@ -361,6 +404,17 @@ func GetImageTag(image string) string {
 		if strings.Contains(s[2], ":") {
 			// Example: docker.io/library/name:tag
 			spec1 := strings.Split(s[2], ":")
+			for _, v := range spec1 {
+				if len(v) > 0 {
+					s1 = append(s1, v)
+				}
+			}
+		}
+	default:
+		// The image name has slashes
+		// https://github.com/cnrancher/hangar/issues/109
+		if l > 3 {
+			spec1 := strings.Split(s[l-1], ":")
 			for _, v := range spec1 {
 				if len(v) > 0 {
 					s1 = append(s1, v)

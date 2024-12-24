@@ -12,5 +12,9 @@ hxstarrys/manifest-v2-list     library/manifest-v2-list     latest
 # Image format docker manifest schema 2
 hxstarrys/manifest-v2          library/manifest-v2          latest
 
+# Image name with multiple slashes
+# https://github.com/cnrancher/hangar/issues/109
+alpine                         library/a/b/c/alpine         latest
+
 # Image format docker manifest schema 1 (deprecated)
 alpine                         library/alpine               2.6

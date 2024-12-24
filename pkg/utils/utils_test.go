@@ -55,6 +55,10 @@ func Test_ConstructRegistry(t *testing.T) {
 	if s != "custom.io/nginx" {
 		t.Error("value should be 'custom.io/nginx'")
 	}
+	s = ConstructRegistry("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2", "")
+	if s != "registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2" {
+		t.Errorf("value should be '%s'", "registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2")
+	}
 
 	dstReg := "private.io"
 
@@ -77,6 +81,11 @@ func Test_ConstructRegistry(t *testing.T) {
 	if s != dstReg+"/nginx" {
 		t.Errorf("value should be '%s'", dstReg+"/nginx")
 	}
+
+	s = ConstructRegistry("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2", dstReg)
+	if s != dstReg+"/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2" {
+		t.Errorf("value should be '%s'", dstReg+"/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2")
+	}
 }
 
 func Test_ReplaceProjectName(t *testing.T) {
@@ -88,6 +97,12 @@ func Test_ReplaceProjectName(t *testing.T) {
 	assert.Equal(t, ReplaceProjectName("library/nginx", "another_library"), "another_library/nginx")
 	assert.Equal(t, ReplaceProjectName("docker.io/nginx", "library"), "docker.io/library/nginx")
 	assert.Equal(t, ReplaceProjectName("docker.io/name/nginx", "library"), "docker.io/library/nginx")
+	assert.Equal(t, ReplaceProjectName(
+		"registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2", "library"),
+		"registry.suse.com/library/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2")
+	assert.Equal(t, ReplaceProjectName(
+		"suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2", "library"),
+		"library/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2")
 }
 
 // ReadUsernamePasswd should test manually
@@ -154,6 +169,8 @@ func Test_GetProjectName(t *testing.T) {
 	assert.Equal(t, GetProjectName("docker.io/nginx"), "library")
 	assert.Equal(t, GetProjectName("user/nginx"), "user")
 	assert.Equal(t, GetProjectName("docker.io/user/nginx"), "user")
+	assert.Equal(t, GetProjectName("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "suse")
+	assert.Equal(t, GetProjectName("suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "suse")
 }
 
 func Test_GetRegistryName(t *testing.T) {
@@ -161,6 +178,8 @@ func Test_GetRegistryName(t *testing.T) {
 	assert.Equal(t, GetRegistryName("reg.io/nginx"), "reg.io")
 	assert.Equal(t, GetRegistryName("library/nginx"), "docker.io")
 	assert.Equal(t, GetRegistryName("reg.io/library/nginx"), "reg.io")
+	assert.Equal(t, GetRegistryName("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "registry.suse.com")
+	assert.Equal(t, GetRegistryName("suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "docker.io")
 }
 
 func Test_GetImageName(t *testing.T) {
@@ -172,7 +191,8 @@ func Test_GetImageName(t *testing.T) {
 	assert.Equal(t, GetImageName("docker.io/nginx"), "nginx")
 	assert.Equal(t, GetImageName("docker.io/nginx:latest"), "nginx")
 	assert.Equal(t, GetImageName("docker.io/library/nginx"), "nginx")
-	assert.Equal(t, GetImageName("docker.io/library/nginx:latest"), "nginx")
+	assert.Equal(t, GetImageName("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "sl-micro/6.0/baremetal-iso-image")
+	assert.Equal(t, GetImageName("suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "sl-micro/6.0/baremetal-iso-image")
 }
 
 func Test_GetImageTag(t *testing.T) {
@@ -187,4 +207,5 @@ func Test_GetImageTag(t *testing.T) {
 	assert.Equal(t, GetImageTag("127.0.0.1/library/name:1.23"), "1.23")
 	assert.Equal(t, GetImageTag("127.0.0.1:5000/library/name"), "latest")
 	assert.Equal(t, GetImageTag("127.0.0.1:5000/library/name:1.23"), "1.23")
+	assert.Equal(t, GetImageTag("registry.suse.com/suse/sl-micro/6.0/baremetal-iso-image:2.1.3-4.2"), "2.1.3-4.2")
 }

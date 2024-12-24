@@ -69,7 +69,7 @@ func getMirrorSpec(line string) ([]string, bool) {
 func isDefaultFormat(line string) bool {
 	line = strings.TrimSpace(line)
 	v := strings.Split(line, "/")
-	var spec = make([]string, 0, 3)
+	var spec = make([]string, 0)
 	for _, s := range v {
 		if len(s) == 0 {
 			continue
@@ -79,8 +79,5 @@ func isDefaultFormat(line string) bool {
 		}
 		spec = append(spec, s)
 	}
-	if len(spec) < 1 || len(spec) > 3 {
-		return false
-	}
-	return true
+	return len(spec) >= 1
 }
