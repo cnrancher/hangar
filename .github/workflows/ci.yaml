@@ -14,7 +14,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22.x
+          go-version: 1.23.x
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
       - name: Setup Docker Buildx
@@ -26,7 +26,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          version: v1.62
       - name: Verify
         run: |
           make verify
@@ -62,7 +62,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: 1.22.x
+        go-version: 1.23.x
     - name: Install dependencies
       run: |
         sudo apt-get update

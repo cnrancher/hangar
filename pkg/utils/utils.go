@@ -158,7 +158,7 @@ func ConstructRegistry(image, registryOverride string) string {
 			s = append(s, v)
 		}
 	}
-	if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+	if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 		if registryOverride != "" {
 			s[0] = registryOverride
 		}
@@ -202,7 +202,7 @@ func ReplaceProjectName(image, project string) string {
 			s = append([]string{project}, s...)
 		}
 	case 2:
-		if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+		if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 			if project != "" {
 				s = []string{s[0], project, s[1]}
 			}
@@ -224,7 +224,7 @@ func ReplaceProjectName(image, project string) string {
 		// The image name has slashes
 		// https://github.com/cnrancher/hangar/issues/109
 		if l > 3 {
-			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 				// s[0] is the registry URL
 				// s[1] is the project name to be replaced
 				if project != "" {
@@ -271,7 +271,7 @@ func GetProjectName(image string) string {
 		// The image name has slashes
 		// https://github.com/cnrancher/hangar/issues/109
 		if l > 3 {
-			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 				return s[1]
 			}
 			return s[0]
@@ -310,7 +310,7 @@ func GetRegistryName(image string) string {
 		// The image name has slashes
 		// https://github.com/cnrancher/hangar/issues/109
 		if l > 3 {
-			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 				return s[0]
 			}
 		}
@@ -352,7 +352,7 @@ func GetImageName(image string) string {
 		// The image name has slashes
 		// https://github.com/cnrancher/hangar/issues/109
 		if l > 3 {
-			if strings.ContainsAny(s[0], ".:") || s[0] == "localhost" {
+			if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 				return strings.Split(strings.Join(s[2:], "/"), ":")[0]
 			}
 			return strings.Split(strings.Join(s[1:], "/"), ":")[0]
