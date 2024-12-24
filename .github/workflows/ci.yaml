@@ -50,6 +50,7 @@ jobs:
           REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
   validation-test:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
     services:
       registry:
         image: "registry:2"
