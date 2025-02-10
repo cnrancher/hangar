@@ -17,7 +17,7 @@ require (
 	github.com/google/go-containerregistry v0.20.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/rancher/rke v1.7.1
+	github.com/rancher/rke v1.7.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.5
 	github.com/spf13/cobra v1.8.1
