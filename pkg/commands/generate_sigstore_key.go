@@ -29,7 +29,7 @@ func newgenerateSigstoreKeyCmd() *generateSigstoreKeyCmd {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "generate-sigstore-key -p NAME",
-		Short:   "Generate a sigstore key-pair for signing images",
+		Short:   "Generate a cosign sigstore key-pair for signing images",
 		Long:    ``,
 		Example: `hangar generate-sigstore-key --prefix sigstore`,
 		PreRun: func(cmd *cobra.Command, args []string) {

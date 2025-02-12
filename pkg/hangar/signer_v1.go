@@ -14,15 +14,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// signObject is the object sending to worker pool when signing image
-type signObject struct {
+// signv1Object is the object sending to worker pool when signing image
+type signv1Object struct {
 	image   string
 	source  *source.Source
 	timeout time.Duration
 	id      int
 }
 
-type Signer struct {
+type SignerV1 struct {
 	*common
 
 	// sigstorePublicKey is the file path of the sigstore public key
@@ -38,9 +38,9 @@ type Signer struct {
 }
 
 // Signer implements functions of Hangar interface.
-var _ Hangar = &Signer{}
+var _ Hangar = &SignerV1{}
 
-type SignerOpts struct {
+type SignerV1Opts struct {
 	CommonOpts
 
 	ExactRepository string
@@ -48,8 +48,8 @@ type SignerOpts struct {
 	Project         string
 }
 
-func NewSigner(o *SignerOpts) (*Signer, error) {
-	s := &Signer{
+func NewSignerV1(o *SignerV1Opts) (*SignerV1, error) {
+	s := &SignerV1{
 		sigstorePublicKey: o.SigstorePublicKey,
 		exactRepository:   o.ExactRepository,
 		Registry:          o.Registry,
@@ -63,12 +63,12 @@ func NewSigner(o *SignerOpts) (*Signer, error) {
 	return s, nil
 }
 
-func (s *Signer) sign(ctx context.Context) {
+func (s *SignerV1) sign(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.common.initWorker(ctx, s.worker)
 	for i, line := range s.common.images {
 		var (
-			object *signObject
+			object *signv1Object
 			err    error
 		)
 		switch imagelist.Detect(line) {
@@ -77,7 +77,7 @@ func (s *Signer) sign(ctx context.Context) {
 			logrus.Warnf("Ignore image list line %q: invalid format", line)
 			continue
 		}
-		object = &signObject{
+		object = &signv1Object{
 			id:      i + 1,
 			image:   line,
 			timeout: s.timeout,
@@ -112,11 +112,11 @@ func (s *Signer) sign(ctx context.Context) {
 	s.waitWorkers()
 }
 
-func (s *Signer) worker(ctx context.Context, o any) {
+func (s *SignerV1) worker(ctx context.Context, o any) {
 	if o == nil {
 		return
 	}
-	obj, ok := o.(*signObject)
+	obj, ok := o.(*signv1Object)
 	if !ok {
 		logrus.Errorf("skip object type(%T), data %v", o, o)
 		return
@@ -149,7 +149,7 @@ func (s *Signer) worker(ctx context.Context, o any) {
 	}
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Signing [%v]", obj.source.ReferenceNameWithoutTransport())
-	err = obj.source.Sign(signContext, &source.SignOptions{
+	err = obj.source.SignV1(signContext, &source.SignV1Options{
 		SigstorePrivateKey: s.common.sigstorePrivateKey,
 		SigstorePassphrase: s.common.sigstorePassphrase,
 		Set:                s.common.imageSpecSet,
@@ -170,7 +170,7 @@ func (s *Signer) worker(ctx context.Context, o any) {
 }
 
 // Run sign all images in the registry server.
-func (s *Signer) Run(ctx context.Context) error {
+func (s *SignerV1) Run(ctx context.Context) error {
 	s.sign(ctx)
 	if len(s.failedImageSet) != 0 {
 		v := make([]string, 0, len(s.failedImageSet))
@@ -183,7 +183,7 @@ func (s *Signer) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Signer) Validate(ctx context.Context) error {
+func (s *SignerV1) Validate(ctx context.Context) error {
 	s.validate(ctx)
 	if len(s.failedImageSet) != 0 {
 		v := make([]string, 0, len(s.failedImageSet))
@@ -197,12 +197,12 @@ func (s *Signer) Validate(ctx context.Context) error {
 	return nil
 }
 
-func (s *Signer) validate(ctx context.Context) {
+func (s *SignerV1) validate(ctx context.Context) {
 	s.common.initErrorHandler(ctx)
 	s.initWorker(ctx, s.validateWorker)
 	for i, line := range s.common.images {
 		var (
-			object *signObject
+			object *signv1Object
 			err    error
 		)
 		switch imagelist.Detect(line) {
@@ -211,7 +211,7 @@ func (s *Signer) validate(ctx context.Context) {
 			logrus.Warnf("Ignore image list line %q: invalid format", line)
 			continue
 		}
-		object = &signObject{
+		object = &signv1Object{
 			id:      i + 1,
 			image:   line,
 			timeout: s.timeout,
@@ -246,11 +246,11 @@ func (s *Signer) validate(ctx context.Context) {
 	s.waitWorkers()
 }
 
-func (s *Signer) validateWorker(ctx context.Context, o any) {
+func (s *SignerV1) validateWorker(ctx context.Context, o any) {
 	if o == nil {
 		return
 	}
-	obj, ok := o.(*signObject)
+	obj, ok := o.(*signv1Object)
 	if !ok {
 		logrus.Errorf("skip object type(%T), data %v", o, o)
 		return
@@ -277,7 +277,7 @@ func (s *Signer) validateWorker(ctx context.Context, o any) {
 	if err != nil {
 		return
 	}
-	err = obj.source.ValidateSignature(
+	err = obj.source.ValidateSignatureV1(
 		validateContext,
 		s.sigstorePublicKey,
 		s.exactRepository,

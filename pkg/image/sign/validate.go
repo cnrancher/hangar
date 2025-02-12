@@ -80,11 +80,11 @@ func policyWithSigstorePubkey(transport, repository, pubkey string) (*signaturev
 		if err != nil {
 			return nil, fmt.Errorf("signature NewPRMExactRepository failed: %w", err)
 		}
-		logrus.Debugf("Generate exactRepository signIdentity %v", utils.PrintObject(identity))
+		logrus.Debugf("Generate exactRepository signIdentity %v", utils.ToJSON(identity))
 	} else {
 		identity = signaturev5.NewPRMMatchRepoDigestOrExact()
 		logrus.Debugf("Generate matchRepoDigestOrExact signIdentity %v",
-			utils.PrintObject(identity))
+			utils.ToJSON(identity))
 	}
 
 	requirement, err := signaturev5.NewPRSigstoreSignedKeyPath(pubkey, identity)

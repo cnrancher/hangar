@@ -15,5 +15,5 @@ var (
 type Hangar interface {
 	Run(ctx context.Context) error
 	Validate(ctx context.Context) error
-	SaveFailedImages() error
+	FailedImages() error
 }

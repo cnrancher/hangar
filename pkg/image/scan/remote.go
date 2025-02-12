@@ -33,7 +33,7 @@ type remoteScanner struct {
 }
 
 func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
-	logrus.Debugf("Create scanner with options %v", utils.PrintObject(o))
+	logrus.Debugf("Create scanner with options %v", utils.ToJSON(o))
 	s := &remoteScanner{
 		trivyServerURL:        o.TrivyServerURL,
 		insecureSkipTLSVerify: o.InsecureSkipTLSVerify,

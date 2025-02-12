@@ -107,6 +107,10 @@ func SetupLogrus(hideTime bool) {
 	})
 }
 
+func DefaultUserAgent() string {
+	return "hangar/" + Version + " (github.com/cnrancher/hangar)"
+}
+
 // Get the hangar cache dir.
 //
 // The default cache dir is `${HOME}/.cache/hangar/<random>`.
@@ -542,8 +546,11 @@ func ToObj(data interface{}, into interface{}) error {
 	return json.Unmarshal(bytes, into)
 }
 
-func PrintObject(a any) string {
-	b, _ := json.MarshalIndent(a, "", "  ")
+func ToJSON(a any) string {
+	b, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		logrus.Warnf("failed to marsjal %T to JSON: %v", a, err)
+	}
 	return string(b)
 }
 

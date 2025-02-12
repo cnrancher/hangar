@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type signValidateOpts struct {
+type signValidateV1Opts struct {
 	file      string
 	arch      []string
 	os        []string
@@ -30,27 +30,30 @@ type signValidateOpts struct {
 	exactRepository string
 }
 
-type signValidateCmd struct {
+type signValidateV1Cmd struct {
 	*baseCmd
-	*signValidateOpts
+	*signValidateV1Opts
 }
 
-func newSignValidateCmd() *signValidateCmd {
-	cc := &signValidateCmd{
-		signValidateOpts: new(signValidateOpts),
+func newSignValidateV1Cmd() *signValidateV1Cmd {
+	cc := &signValidateV1Cmd{
+		signValidateV1Opts: new(signValidateV1Opts),
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "validate -f IMAGE_LIST.txt",
 		Short: "Validate the signed images with sigstore public key",
 		Long: `Validate the signed images by sigstore public key with the
 matchRepoDigestOrExact signedIdentity.`,
-		Example: `# Validate the signed images by sigstore public key file.
-hangar validate \
+		Example: `DEPRECATED: signv1 subcommand is deprecated, use 'hangar sign' instead.
+
+# Validate the signed images by sigstore public key file.
+hangar signv1 validate \
 	--file IMAGE_LIST.txt \
 	--sigstore-pubkey SIGSTORE.pub \
 	--arch amd64,arm64 \
 	--os linux \
 	--exact-repository "registry.example.io/library/NAME"`,
+		Deprecated: "use 'hangar sign' instead",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -63,7 +66,8 @@ hangar validate \
 			if err != nil {
 				return err
 			}
-			logrus.Infof("Validateing images in %q with sigstore public key %q",
+			logrus.Warnf("DEPRECATED: signv1 is deprecated, use 'hangar sign' instead!")
+			logrus.Infof("Validating images in %q with sigstore public key %q",
 				cc.file, cc.publicKey)
 			if err := validate(h); err != nil {
 				return err
@@ -94,7 +98,7 @@ hangar validate \
 	return cc
 }
 
-func (cc *signValidateCmd) prepareHangar() (hangar.Hangar, error) {
+func (cc *signValidateV1Cmd) prepareHangar() (hangar.Hangar, error) {
 	if cc.file == "" {
 		return nil, fmt.Errorf("image list file not provided, use '--file' option to specify the image list file")
 	}
@@ -148,7 +152,7 @@ func (cc *signValidateCmd) prepareHangar() (hangar.Hangar, error) {
 		return nil, fmt.Errorf("failed to get status of file %q: %w",
 			cc.publicKey, err)
 	}
-	s, err := hangar.NewSigner(&hangar.SignerOpts{
+	s, err := hangar.NewSignerV1(&hangar.SignerV1Opts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
 			Arch:                cc.arch,

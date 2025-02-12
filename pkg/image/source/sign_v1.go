@@ -20,21 +20,21 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-type SignOptions struct {
+type SignV1Options struct {
 	SigstorePrivateKey string
 	SigstorePassphrase []byte
 	Set                types.FilterSet
 	Policy             *signaturev5.Policy
 }
 
-func (s *Source) Sign(
+func (s *Source) SignV1(
 	ctx context.Context,
-	opts *SignOptions,
+	opts *SignV1Options,
 ) error {
 	switch s.mime {
 	case manifestv5.DockerV2ListMediaType:
 		// manifest is docker image list
-		num, err := s.signDockerV2ListMediaType(ctx, opts)
+		num, err := s.signV1DockerV2ListMediaType(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ func (s *Source) Sign(
 		return nil
 	case imgspecv1.MediaTypeImageIndex:
 		// manifest is oci image list
-		num, err := s.signMediaTypeImageIndex(ctx, opts)
+		num, err := s.signV1MediaTypeImageIndex(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (s *Source) Sign(
 		return nil
 	case manifestv5.DockerV2Schema2MediaType:
 		// manifest is docker image schema2
-		err := s.signDockerV2Schema2MediaType(ctx, opts)
+		err := s.signV1DockerV2Schema2MediaType(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func (s *Source) Sign(
 			s.mime)
 	case imgspecv1.MediaTypeImageManifest:
 		// manifest is oci image
-		err := s.signMediaTypeImageManifest(ctx, opts)
+		err := s.signV1MediaTypeImageManifest(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -79,9 +79,9 @@ func (s *Source) Sign(
 	}
 }
 
-func (s *Source) signDockerV2ListMediaType(
+func (s *Source) signV1DockerV2ListMediaType(
 	ctx context.Context,
-	opts *SignOptions,
+	opts *SignV1Options,
 ) (int, error) {
 	var signedNum int
 	var errs []error
@@ -103,7 +103,7 @@ func (s *Source) signDockerV2ListMediaType(
 			continue
 		}
 
-		err = signImage(ctx, &signOptions{
+		err = signImageV1(ctx, &signV1Options{
 			sigstorePrivateKey:           opts.SigstorePrivateKey,
 			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
 
@@ -129,9 +129,9 @@ func (s *Source) signDockerV2ListMediaType(
 	return signedNum, nil
 }
 
-func (s *Source) signMediaTypeImageIndex(
+func (s *Source) signV1MediaTypeImageIndex(
 	ctx context.Context,
-	opts *SignOptions,
+	opts *SignV1Options,
 ) (int, error) {
 	var copiedNum int
 	var errs []error
@@ -153,7 +153,7 @@ func (s *Source) signMediaTypeImageIndex(
 			continue
 		}
 
-		err = signImage(ctx, &signOptions{
+		err = signImageV1(ctx, &signV1Options{
 			sigstorePrivateKey:           opts.SigstorePrivateKey,
 			sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
 
@@ -179,9 +179,9 @@ func (s *Source) signMediaTypeImageIndex(
 	return copiedNum, nil
 }
 
-func (s *Source) signDockerV2Schema2MediaType(
+func (s *Source) signV1DockerV2Schema2MediaType(
 	ctx context.Context,
-	opts *SignOptions,
+	opts *SignV1Options,
 ) error {
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
@@ -196,7 +196,7 @@ func (s *Source) signDockerV2Schema2MediaType(
 		return err
 	}
 
-	err = signImage(ctx, &signOptions{
+	err = signImageV1(ctx, &signV1Options{
 		sigstorePrivateKey:           opts.SigstorePrivateKey,
 		sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
 
@@ -212,9 +212,9 @@ func (s *Source) signDockerV2Schema2MediaType(
 	return nil
 }
 
-func (s *Source) signMediaTypeImageManifest(
+func (s *Source) signV1MediaTypeImageManifest(
 	ctx context.Context,
-	opts *SignOptions,
+	opts *SignV1Options,
 ) error {
 	arch := s.ociConfig.Architecture
 	osInfo := s.ociConfig.OS
@@ -229,7 +229,7 @@ func (s *Source) signMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	err = signImage(ctx, &signOptions{
+	err = signImageV1(ctx, &signV1Options{
 		sigstorePrivateKey:           opts.SigstorePrivateKey,
 		sigstorePrivateKeyPassphrase: opts.SigstorePassphrase,
 
@@ -245,7 +245,7 @@ func (s *Source) signMediaTypeImageManifest(
 	return nil
 }
 
-type signOptions struct {
+type signV1Options struct {
 	sigstorePrivateKey           string
 	sigstorePrivateKeyPassphrase []byte
 	sourceRef                    typesv5.ImageReference
@@ -254,9 +254,9 @@ type signOptions struct {
 	sourceMIME                   string
 }
 
-func signImage(
+func signImageV1(
 	ctx context.Context,
-	o *signOptions,
+	o *signV1Options,
 ) error {
 	copyOpts := &copyv5.Options{
 		SignBySigstorePrivateKeyFile:     o.sigstorePrivateKey,

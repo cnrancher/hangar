@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type signOpts struct {
+type signOptsV1 struct {
 	file           string
 	arch           []string
 	os             []string
@@ -32,26 +32,30 @@ type signOpts struct {
 	tlsVerify      commonFlag.OptionalBool
 }
 
-type signCmd struct {
+type signCmdV1 struct {
 	*baseCmd
-	*signOpts
+	*signOptsV1
 }
 
-func newSignCmd() *signCmd {
-	cc := &signCmd{
-		signOpts: new(signOpts),
+func newSignV1Cmd() *signCmdV1 {
+	cc := &signCmdV1{
+		signOptsV1: new(signOptsV1),
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "sign -f IMAGE_LIST.txt --key SIGSTORE.key",
-		Short: "Sign multiple container images with sigstore private key",
-		Long:  ``,
-		Example: `# Sign the images with sigstore private key file.
-hangar sign \
+		Use:    "signv1 -f IMAGE_LIST.txt --key SIGSTORE.key",
+		Short:  "Sign multiple container images with sigstore private key (DEPRECATED: signv1 is deprecated, use hangar sign instead)",
+		Long:   ``,
+		Hidden: true, // NOTE: Sign V1 is deprecated and will be hide
+		Example: `DEPRECATED: signv1 subcommand is deprecated, use 'hangar sign' instead.
+
+# Sign the images with sigstore private key file.
+hangar signv1 \
 	--file IMAGE_LIST.txt \
 	--sigstore-key SIGSTORE.key \
 	--sigstore-passphrase-file "/path/to/passphrase/file" \
 	--arch amd64,arm64 \
 	--os linux`,
+		Deprecated: "use 'hangar sign' instead",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -64,6 +68,7 @@ hangar sign \
 			if err != nil {
 				return err
 			}
+			logrus.Warnf("DEPRECATED: signv1 is deprecated, use 'hangar sign' instead!")
 			logrus.Infof("Signing images in %q with sigstore priv-key %q.",
 				cc.file, cc.privateKey)
 			if err := run(h); err != nil {
@@ -96,13 +101,13 @@ hangar sign \
 
 	addCommands(
 		cc.cmd,
-		newSignValidateCmd(),
+		newSignValidateV1Cmd(),
 	)
 
 	return cc
 }
 
-func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
+func (cc *signCmdV1) prepareHangar() (hangar.Hangar, error) {
 	if cc.file == "" {
 		return nil, fmt.Errorf("image list file not provided, use '--file' option to specify the image list file")
 	}
@@ -184,7 +189,7 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 		}
 	}
 
-	s, err := hangar.NewSigner(&hangar.SignerOpts{
+	s, err := hangar.NewSignerV1(&hangar.SignerV1Opts{
 		CommonOpts: hangar.CommonOpts{
 			Images:              images,
 			Arch:                cc.arch,
@@ -214,7 +219,7 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 }
 
 // getRegistrySet only gets the registry set: map[registry-url]true.
-func (cc *signCmd) getRegistrySet(images []string) map[string]bool {
+func (cc *signCmdV1) getRegistrySet(images []string) map[string]bool {
 	set := map[string]bool{}
 	if cc.registry != "" {
 		// The registry of image list were overrided by command option.

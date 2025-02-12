@@ -424,6 +424,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			Destination:        dest,
 			Set:                l.common.imageSpecSet,
 			Policy:             l.common.policy,
+			Annotations:        img.Annotations,
 		})
 		if err != nil {
 			if errors.Is(err, utils.ErrNoAvailableImage) {

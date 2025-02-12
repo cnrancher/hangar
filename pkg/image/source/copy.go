@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/image/copy"
@@ -30,6 +31,7 @@ type CopyOptions struct {
 	SigstorePassphrase []byte
 	RemoveSignatures   bool
 	CopyProvenance     bool
+	Annotations        map[string]string
 
 	Destination *destination.Destination
 	Set         types.FilterSet
@@ -286,12 +288,16 @@ func (s *Source) copyMediaTypeImageIndex(
 		dig := m.Digest
 		annotations := m.Annotations
 
+		var isAttestations bool
+		var attOriginalDigest string
 		if private.IsAttestations(&m) && opts.CopyProvenance {
 			// Skip image SLSA provenance
 			d := m.Annotations["vnd.docker.reference.digest"]
 			if !allowedDigests[d] {
 				continue
 			}
+			isAttestations = true
+			attOriginalDigest = d
 		} else if !allowedDigests[dig.String()] {
 			continue
 		}
@@ -345,8 +351,13 @@ func (s *Source) copyMediaTypeImageIndex(
 			}
 		}
 
-		destRef, err := opts.Destination.ReferenceMultiArch(
-			osInfo, osVersion, arch, variant, dig.Encoded())
+		var destRef typesv5.ImageReference
+		if isAttestations && opts.Destination.Type() == types.TypeDocker {
+			destRef, err = opts.Destination.ReferenceAtt(strings.TrimPrefix(attOriginalDigest, "sha256:"))
+		} else {
+			destRef, err = opts.Destination.ReferenceMultiArch(
+				osInfo, osVersion, arch, variant, dig.Encoded())
+		}
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -596,10 +607,20 @@ func (s *Source) copyMediaTypeImageManifest(
 	variant := s.ociConfig.Variant
 
 	// Skip image
-	if arch == "unknown" && osInfo == "unknown" {
+	var isAttestations bool
+	var attOriginalDigest string
+	if opts.Annotations != nil && private.IsAttestations(&imgspecv1.Descriptor{
+		Annotations: opts.Annotations,
+		Platform: &imgspecv1.Platform{
+			Architecture: arch,
+			OS:           osInfo,
+		},
+	}) {
 		if !opts.CopyProvenance {
 			return utils.ErrNoAvailableImage
 		}
+		isAttestations = true
+		attOriginalDigest = opts.Annotations["vnd.docker.reference.digest"]
 	} else if !opts.Set.Allow(arch, osInfo, variant) {
 		return utils.ErrNoAvailableImage
 	}
@@ -613,8 +634,13 @@ func (s *Source) copyMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	destRef, err := opts.Destination.ReferenceMultiArch(
-		osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
+	var destRef typesv5.ImageReference
+	if isAttestations {
+		destRef, err = opts.Destination.ReferenceAtt(strings.TrimPrefix(attOriginalDigest, "sha256:"))
+	} else {
+		destRef, err = opts.Destination.ReferenceMultiArch(
+			osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
+	}
 	if err != nil {
 		return err
 	}

@@ -18,15 +18,25 @@ func RetryOptions() *retry.Options {
 		MaxRetry: retryMaxTimes,
 		Delay:    retryDelay,
 		IsErrorRetryable: func(err error) bool {
-			if !retry.IsErrorRetryable(err) {
-				return false
-			}
 			s := err.Error()
 			switch {
 			case strings.Contains(s, "not found") ||
 				strings.Contains(s, "manifest unknow"):
+				// Workaround for Harbor V2 registry
 				return false
+			case strings.Contains(s, "no such file"):
+				return false
+			}
+
+			if retry.IsErrorRetryable(err) {
+				return true
+			}
+
+			// Workaround to retry for some timeout/server error
+			switch {
 			case strings.Contains(s, "500 Internal Server Error"):
+				return true
+			case strings.Contains(s, "timeout"):
 				return true
 			}
 			return true

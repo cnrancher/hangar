@@ -129,7 +129,7 @@ func newCommon(o *CommonOpts) (*common, error) {
 	return c, nil
 }
 
-func (c *common) SaveFailedImages() error {
+func (c *common) FailedImages() error {
 	if len(c.failedImageSet) == 0 {
 		return nil
 	}

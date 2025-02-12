@@ -187,6 +187,26 @@ func (d *Destination) Reference() (typesv5.ImageReference, error) {
 	return alltransportsv5.ParseImageName(d.referenceName)
 }
 
+func (d *Destination) ReferenceAttName(
+	sha256sum string,
+) string {
+	switch d.imageType {
+	case types.TypeDir,
+		types.TypeOci:
+		return filepath.Join(d.referenceName, sha256sum)
+	default:
+		return fmt.Sprintf("%s:sha256-%s.att",
+			strings.TrimSuffix(d.referenceName, ":"+d.tag), sha256sum)
+	}
+}
+
+func (d *Destination) ReferenceAtt(
+	sha256sum string,
+) (typesv5.ImageReference, error) {
+	refName := d.ReferenceAttName(sha256sum)
+	return alltransportsv5.ParseImageName(refName)
+}
+
 func (d *Destination) ReferenceMultiArch(
 	os, osVersion, arch, variant, sha256sum string,
 ) (typesv5.ImageReference, error) {

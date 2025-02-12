@@ -13,9 +13,11 @@
 *.zip
 *.key
 *.pub
+*.csv
 *.spdx
 *.spdx.json
 scan-report.*
+sign-validate*
 tmp*
 data.json
 charts-repo-cache
@@ -27,7 +29,8 @@ charts-repo-cache
 saved-image-cache
 
 # vscode config
-/.vscode/
+.vscode/*
+!launch.json.template
 
 # Dapper
 .dapper

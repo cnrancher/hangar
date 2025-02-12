@@ -16,7 +16,7 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-func (s *Source) ValidateSignature(
+func (s *Source) ValidateSignatureV1(
 	ctx context.Context,
 	publicKey string,
 	repository string,
@@ -25,7 +25,7 @@ func (s *Source) ValidateSignature(
 	switch s.mime {
 	case manifestv5.DockerV2ListMediaType:
 		// manifest is docker image list
-		num, err := s.validateSignatureDockerV2ListMediaType(ctx, publicKey, repository, set)
+		num, err := s.validateSignatureV1DockerV2ListMediaType(ctx, publicKey, repository, set)
 		if err != nil {
 			return err
 		}
@@ -36,7 +36,7 @@ func (s *Source) ValidateSignature(
 		return nil
 	case imgspecv1.MediaTypeImageIndex:
 		// manifest is oci image list
-		num, err := s.validateSignatureMediaTypeImageIndex(ctx, publicKey, repository, set)
+		num, err := s.validateSignatureV1MediaTypeImageIndex(ctx, publicKey, repository, set)
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func (s *Source) ValidateSignature(
 		return nil
 	case manifestv5.DockerV2Schema2MediaType:
 		// manifest is docker image schema2
-		err := s.validateSignatureDockerV2Schema2MediaType(ctx, publicKey, repository, set)
+		err := s.validateSignatureV1DockerV2Schema2MediaType(ctx, publicKey, repository, set)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func (s *Source) ValidateSignature(
 			s.mime)
 	case imgspecv1.MediaTypeImageManifest:
 		// manifest is oci image
-		err := s.validateSignatureMediaTypeImageManifest(ctx, publicKey, repository, set)
+		err := s.validateSignatureV1MediaTypeImageManifest(ctx, publicKey, repository, set)
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (s *Source) ValidateSignature(
 	}
 }
 
-func (s *Source) validateSignatureDockerV2ListMediaType(
+func (s *Source) validateSignatureV1DockerV2ListMediaType(
 	ctx context.Context,
 	publicKey string,
 	repository string,
@@ -95,7 +95,7 @@ func (s *Source) validateSignatureDockerV2ListMediaType(
 			errs = append(errs, err)
 			continue
 		}
-		if err := validateImageSignature(ctx, &signValidateOptions{
+		if err := validateImageSignatureV1(ctx, &signValidateV1Options{
 			sigstorePubkey: publicKey,
 			repository:     repository,
 			imageRef:       sourceRef,
@@ -117,7 +117,7 @@ func (s *Source) validateSignatureDockerV2ListMediaType(
 	return validateNum, nil
 }
 
-func (s *Source) validateSignatureMediaTypeImageIndex(
+func (s *Source) validateSignatureV1MediaTypeImageIndex(
 	ctx context.Context,
 	publicKey string,
 	repository string,
@@ -142,7 +142,7 @@ func (s *Source) validateSignatureMediaTypeImageIndex(
 			errs = append(errs, err)
 			continue
 		}
-		if err := validateImageSignature(ctx, &signValidateOptions{
+		if err := validateImageSignatureV1(ctx, &signValidateV1Options{
 			sigstorePubkey: publicKey,
 			repository:     repository,
 			imageRef:       sourceRef,
@@ -164,7 +164,7 @@ func (s *Source) validateSignatureMediaTypeImageIndex(
 	return validateNum, nil
 }
 
-func (s *Source) validateSignatureDockerV2Schema2MediaType(
+func (s *Source) validateSignatureV1DockerV2Schema2MediaType(
 	ctx context.Context,
 	publicKey string,
 	repository string,
@@ -184,7 +184,7 @@ func (s *Source) validateSignatureDockerV2Schema2MediaType(
 		return err
 	}
 
-	if err := validateImageSignature(ctx, &signValidateOptions{
+	if err := validateImageSignatureV1(ctx, &signValidateV1Options{
 		sigstorePubkey: publicKey,
 		repository:     repository,
 		imageRef:       sourceRef,
@@ -195,7 +195,7 @@ func (s *Source) validateSignatureDockerV2Schema2MediaType(
 	return nil
 }
 
-func (s *Source) validateSignatureMediaTypeImageManifest(
+func (s *Source) validateSignatureV1MediaTypeImageManifest(
 	ctx context.Context,
 	publicKey string,
 	repository string,
@@ -214,7 +214,7 @@ func (s *Source) validateSignatureMediaTypeImageManifest(
 	if err != nil {
 		return err
 	}
-	if err := validateImageSignature(ctx, &signValidateOptions{
+	if err := validateImageSignatureV1(ctx, &signValidateV1Options{
 		sigstorePubkey: publicKey,
 		repository:     repository,
 		imageRef:       sourceRef,
@@ -225,16 +225,16 @@ func (s *Source) validateSignatureMediaTypeImageManifest(
 	return nil
 }
 
-type signValidateOptions struct {
+type signValidateV1Options struct {
 	sigstorePubkey string
 	repository     string
 	imageRef       typesv5.ImageReference
 	sysCtx         *typesv5.SystemContext
 }
 
-func validateImageSignature(
+func validateImageSignatureV1(
 	ctx context.Context,
-	opts *signValidateOptions,
+	opts *signValidateV1Options,
 ) error {
 	v := sign.NewValidator(&sign.ValidatorOption{
 		Reference:     opts.imageRef,

@@ -103,10 +103,15 @@ hangar load \
 
 	flags.BoolVarP(&cc.skipLogin, "skip-login", "", false,
 		"skip check the destination registry is logged in (used in shell script)")
+
 	flags.StringVarP(&cc.sigstorePrivateKey, "sigstore-private-key", "", "",
 		"sign images by sigstore private key when mirroring")
+	flags.MarkDeprecated("sigstore-private-key", "signv1 is deprecated, use 'hangar sign' instead")
+	flags.MarkHidden("sigstore-private-key")
 	flags.StringVarP(&cc.sigstorePassphraseFile, "sigstore-passphrase-file", "", "",
 		"passphrase file of the sigstore private key")
+	flags.MarkDeprecated("sigstore-passphrase-file", "signv1 is deprecated, use 'hangar sign' instead")
+	flags.MarkHidden("sigstore-passphrase-file")
 
 	addCommands(
 		cc.cmd,
@@ -175,6 +180,9 @@ func (cc *loadCmd) prepareHangar() (hangar.Hangar, error) {
 	}
 
 	var passphrase []byte
+	if cc.sigstorePrivateKey != "" {
+		logrus.Warnf("DEPRECATED: signv1 is deprecated, use 'hangar sign' to sign image instead!")
+	}
 	if cc.sigstorePrivateKey != "" && cc.sigstorePassphraseFile != "" {
 		b, err := os.ReadFile(cc.sigstorePassphraseFile)
 		if err != nil {

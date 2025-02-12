@@ -36,7 +36,7 @@ type imageScanner struct {
 }
 
 func newImageScanner(o *ScannerOption) (*imageScanner, error) {
-	logrus.Debugf("Create scanner with options %v", utils.PrintObject(o))
+	logrus.Debugf("Create scanner with options %v", utils.ToJSON(o))
 	s := &imageScanner{
 		insecureSkipTLSVerify: o.InsecureSkipTLSVerify,
 		offline:               o.Offline,

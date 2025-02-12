@@ -33,6 +33,12 @@ func Test_IsMirrorFormat(t *testing.T) {
 	if !assert.False(imagelist.IsMirrorFormat("nginx")) {
 		return
 	}
+	if !assert.False(imagelist.IsMirrorFormat("docker.io/library/nginx@sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b")) {
+		return
+	}
+	if !assert.False(imagelist.IsMirrorFormat("docker.io/library/nginx:sha256-01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b.sig")) {
+		return
+	}
 }
 
 func Test_IsDefaultFormat(t *testing.T) {
@@ -47,6 +53,12 @@ func Test_IsDefaultFormat(t *testing.T) {
 		return
 	}
 	if !assert.True(imagelist.IsDefaultFormat("docker.io/library/nginx:latest")) {
+		return
+	}
+	if !assert.True(imagelist.IsDefaultFormat("docker.io/library/nginx@sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b")) {
+		return
+	}
+	if !assert.True(imagelist.IsDefaultFormat("docker.io/library/nginx:sha256-01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b.sig")) {
 		return
 	}
 	if !assert.False(imagelist.IsDefaultFormat("")) {
@@ -78,6 +90,12 @@ func Test_Detect(t *testing.T) {
 		return
 	}
 	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("127.0.0.1:5000/foo/bar/abc:latest")) {
+		return
+	}
+	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("docker.io/library/nginx@sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b")) {
+		return
+	}
+	if !assert.Equal(imagelist.TypeDefault, imagelist.Detect("docker.io/library/nginx:sha256-01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b.sig")) {
 		return
 	}
 	if !assert.Equal(imagelist.TypeMirror, imagelist.Detect("a b c")) {
