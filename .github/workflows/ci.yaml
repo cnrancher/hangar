@@ -72,6 +72,17 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.13'
+    - name: Setup pytest dependencies
+      run: |
+        set -x
+        pip install pytest tox
+        pip install -r test/requirements.txt
+    - name: Flake check
+      env:
+        REGISTRY_URL: 127.0.0.1:5000
+      run: |
+        cd test/
+        tox -e flake8
     - name: Build single target
       env:
         TAG: ${{ github.ref_name }}
@@ -84,9 +95,6 @@ jobs:
     - name: Setup testing environment
       run: |
         set -x
-        pip install pytest tox
-        pip install -r test/requirements.txt
-
         sudo mkdir -p /etc/containers/registries.d
         sudo cp package/default-policy.json /etc/containers/policy.json
         sudo cp package/registries.d/default.yaml /etc/containers/registries.d/default.yaml

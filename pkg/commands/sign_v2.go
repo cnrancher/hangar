@@ -35,6 +35,7 @@ type signOpts struct {
 	autoYes   bool
 
 	privateKey              string
+	passphraseFile          string
 	signManifestIndex       bool
 	tlogUpload              bool
 	issueCertificate        bool
@@ -101,6 +102,8 @@ func newSignCmd() *signCmd {
 		"path to the private key file, KMS URI or Kubernetes Secret")
 	flags.SetAnnotation("key", cobra.BashCompFilenameExt, []string{})
 	flags.SetAnnotation("certificate", cobra.BashCompFilenameExt, []string{"cert"})
+	flags.StringVarP(&cc.passphraseFile, "passphrase-file", "", "",
+		"private key passphrase file")
 	flags.BoolVarP(&cc.signManifestIndex, "sign-manifest-index", "", true,
 		"create cosign sigstore signature for manifest index")
 	flags.BoolVar(&cc.tlogUpload, "tlog-upload", true,
@@ -183,12 +186,20 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 			return nil, fmt.Errorf("private key file not provided, " +
 				"use '--key' option to specify the private key file")
 		}
-		fmt.Printf("Enter the password of private key: ")
-		p, err := utils.ReadPassword(signalContext)
-		if err != nil {
-			return nil, err
+		if cc.passphraseFile != "" {
+			b, err := os.ReadFile(cc.passphraseFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file %q: %w", cc.passphraseFile, err)
+			}
+			os.Setenv("COSIGN_PASSWORD", strings.TrimSpace(string(b)))
+		} else {
+			fmt.Printf("Enter the password of private key: ")
+			p, err := utils.ReadPassword(signalContext)
+			if err != nil {
+				return nil, err
+			}
+			os.Setenv("COSIGN_PASSWORD", string(p))
 		}
-		os.Setenv("COSIGN_PASSWORD", string(p))
 	} else {
 		logrus.Infof("Using OIDC Provider [%v]", cc.oidcProvider)
 	}

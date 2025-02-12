@@ -3,10 +3,10 @@
 """
 Automatin tests for following commands:
     "hangar generate-sigstore-key"
-    "hangar sign"
-    "hangar sign validate"
-    "hangar mirror (with --sigstore-private-key option provided)"
-    "hangar load (with --sigstore-private-key option provided)"
+    "hangar signv1"
+    "hangar signv1 validate"
+    "hangar mirror (V1: with --sigstore-private-key option provided)"
+    "hangar load (V1: with --sigstore-private-key option provided)"
 """
 
 from .common import run_hangar, check, prepare
@@ -23,10 +23,10 @@ def test_login():
     ]))
 
 
-def test_sign_help():
+def test_sign_v1_help():
     check(run_hangar(["generate-sigstore-key", "--help"]))
-    check(run_hangar(["sign", "--help"]))
-    check(run_hangar(["sign", "validate", "--help"]))
+    check(run_hangar(["signv1", "--help"]))
+    check(run_hangar(["signv1", "validate", "--help"]))
 
 
 def test_generate_sigstore_key():
@@ -47,7 +47,7 @@ def test_generate_sigstore_key():
     assert 'BEGIN ENCRYPTED COSIGN PRIVATE KEY' in key
 
 
-def test_load_sigstore_sign():
+def test_load_sigstore_sign_v1():
     FAILED = "sign-failed-1.txt"
     prepare(FAILED)
     log = run_hangar([
@@ -80,7 +80,7 @@ def test_load_sigstore_sign():
     check(log, FAILED)
 
     log = run_hangar([
-        "sign",
+        "signv1",
         "validate",
         "--jobs=4",
         "--file=data/sign/save.txt",
@@ -93,7 +93,7 @@ def test_load_sigstore_sign():
     check(log, FAILED)
 
 
-def test_mirror_sigstore_sign():
+def test_mirror_sigstore_sign_v1():
     FAILED = "sign-failed-2.txt"
     prepare(FAILED)
     log = run_hangar([
@@ -128,7 +128,7 @@ def test_mirror_sigstore_sign():
     check(log, FAILED)
 
     log = run_hangar([
-        "sign",
+        "signv1",
         "validate",
         "--jobs=4",
         "--file=data/sign/mirror.txt",
@@ -141,11 +141,11 @@ def test_mirror_sigstore_sign():
     check(log, FAILED)
 
 
-def test_sign():
+def test_sign_v1():
     FAILED = "sign-failed-3.txt"
     prepare(FAILED)
     log = run_hangar([
-        "sign",
+        "signv1",
         "--jobs=4",
         "--file=data/sign/sign.txt",
         "--registry", REGISTRY_URL,
@@ -158,7 +158,7 @@ def test_sign():
     check(log, FAILED)
 
     log = run_hangar([
-        "sign",
+        "signv1",
         "validate",
         "--jobs=4",
         "--file=data/sign/sign.txt",
