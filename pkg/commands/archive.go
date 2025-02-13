@@ -17,9 +17,15 @@ func newArchiveCmd() *archiveCmd {
 		Use:   "archive",
 		Short: "Action for Hangar archive file",
 		Long:  "",
-		Example: `
-# Show images in archive file:
-hangar archive ls -f SAVED_ARCHIVE.zip`,
+		Example: `# Show images in archive file:
+hangar archive ls --help
+
+# Export images from archive file
+hangar archive export --help
+
+# Merge multiple archive files
+hangar archive merge --help
+`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -28,6 +34,7 @@ hangar archive ls -f SAVED_ARCHIVE.zip`,
 			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cc.cmd.Help()
 			return nil
 		},
 	})

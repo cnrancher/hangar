@@ -22,7 +22,6 @@ func RetryOptions() *retry.Options {
 			switch {
 			case strings.Contains(s, "not found") ||
 				strings.Contains(s, "manifest unknow"):
-				// Workaround for Harbor V2 registry
 				return false
 			case strings.Contains(s, "no such file"):
 				return false

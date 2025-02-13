@@ -2,12 +2,17 @@ package manifest
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"strings"
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	"github.com/containers/common/pkg/retry"
 	imagev5 "github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
 	typesv5 "github.com/containers/image/v5/types"
+	"github.com/sirupsen/logrus"
 )
 
 // Inspector provides similar functions of 'skopeo inspect' command.
@@ -136,4 +141,94 @@ func (p *Inspector) Inspect(ctx context.Context) (*typesv5.ImageInspectInfo, err
 		return nil, err
 	}
 	return info, nil
+}
+
+func (p *Inspector) Provenance(ctx context.Context) ([]byte, error) {
+	var (
+		b   []byte
+		img typesv5.Image
+		err error
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		img, err = imagev5.FromUnparsedImage(
+			ctx, p.systemContext, imagev5.UnparsedInstance(p.source, nil))
+		layers := img.LayerInfos()
+		for _, l := range layers {
+			if len(l.Annotations) == 0 {
+				logrus.Debugf("skip non-provenance layer %v", l.Digest)
+				continue
+			}
+			var t string
+			for k, v := range l.Annotations {
+				if !strings.Contains(k, "intoto") {
+					continue
+				}
+				if !strings.Contains(k, "predicate") {
+					continue
+				}
+				t = v
+			}
+			if strings.Contains(t, "slsa") {
+				rc, _, err := p.source.GetBlob(ctx, l, none.NoCache)
+				if err != nil {
+					return fmt.Errorf("failed to get blob: %w", err)
+				}
+				b, err = io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					return fmt.Errorf("failed to read blob: %w", err)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("SLSA provenance data not found in image")
+	}, p.retryOpts); err != nil {
+		return nil, fmt.Errorf("inspector.Provenance: %w", err)
+	}
+	return b, nil
+}
+
+func (p *Inspector) SBOM(ctx context.Context) ([]byte, error) {
+	var (
+		b   []byte
+		img typesv5.Image
+		err error
+	)
+	if err = retry.IfNecessary(ctx, func() error {
+		img, err = imagev5.FromUnparsedImage(
+			ctx, p.systemContext, imagev5.UnparsedInstance(p.source, nil))
+		layers := img.LayerInfos()
+		for _, l := range layers {
+			if len(l.Annotations) == 0 {
+				logrus.Debugf("skip non-provenance layer %v", l.Digest)
+				continue
+			}
+			var t string
+			for k, v := range l.Annotations {
+				if !strings.Contains(k, "intoto") {
+					continue
+				}
+				if !strings.Contains(k, "predicate") {
+					continue
+				}
+				t = v
+			}
+			if strings.Contains(t, "bom") {
+				rc, _, err := p.source.GetBlob(ctx, l, none.NoCache)
+				if err != nil {
+					return fmt.Errorf("failed to get blob: %w", err)
+				}
+				b, err = io.ReadAll(rc)
+				rc.Close()
+				if err != nil {
+					return fmt.Errorf("failed to read blob: %w", err)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("SBOM data not found in image")
+	}, p.retryOpts); err != nil {
+		return nil, fmt.Errorf("inspector.SBOM: %w", err)
+	}
+	return b, nil
 }
