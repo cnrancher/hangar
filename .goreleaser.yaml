@@ -32,7 +32,7 @@ release:
   prerelease: auto
 
 archives:
-  - format: tar.gz
+  - formats: [ tar.gz ]
     wrap_in_directory: true
     files:
       - LICENSE

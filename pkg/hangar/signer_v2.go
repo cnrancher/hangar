@@ -62,6 +62,7 @@ type SignerV2 struct {
 	// allow HTTP & insecure TLS certificate registry
 	insecureSkipTLSVerify bool
 
+	cacheMu         *sync.Mutex
 	authConfigCache map[string]*authn.AuthConfig
 
 	// certIdentity is the fulcio certificate (for keyless validate)
@@ -160,6 +161,7 @@ func NewSignerV2(o *Signerv2Opts) (*SignerV2, error) {
 		Registry:                o.Registry,
 		Project:                 o.Project,
 
+		cacheMu:         &sync.Mutex{},
 		authConfigCache: make(map[string]*authn.AuthConfig),
 	}
 	if s.report == nil {
@@ -258,6 +260,7 @@ func (s *SignerV2) worker(ctx context.Context, o any) {
 		return
 	}
 
+	s.cacheMu.Lock()
 	var c *authn.AuthConfig
 	if p, ok := s.authConfigCache[obj.source.Registry()]; ok {
 		c = p
@@ -270,6 +273,7 @@ func (s *SignerV2) worker(ctx context.Context, o any) {
 		}
 		s.authConfigCache[obj.source.Registry()] = c
 	}
+	s.cacheMu.Unlock()
 
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).
 		Infof("Signing [%v]", obj.source.ReferenceNameWithoutTransport())
@@ -412,6 +416,7 @@ func (s *SignerV2) validateWorker(ctx context.Context, o any) {
 		return
 	}
 
+	s.cacheMu.Lock()
 	var c *authn.AuthConfig
 	if p, ok := s.authConfigCache[obj.source.Registry()]; ok {
 		c = p
@@ -424,6 +429,7 @@ func (s *SignerV2) validateWorker(ctx context.Context, o any) {
 		}
 		s.authConfigCache[obj.source.Registry()] = c
 	}
+	s.cacheMu.Unlock()
 
 	var results []*signv2.ImageResult
 	results, err = obj.source.ValidateSignatureV2(validateContext, &source.ValidateV2Options{

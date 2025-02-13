@@ -30,13 +30,13 @@ def test_view():
     log = run_hangar([
         "view",
         "sbom",
-        "registry.suse.com/bci/base:15.6",
+        "registry.suse.com/bci/bci-base:15.6",
     ], timeout=600)
     check(log)
 
     log = run_hangar([
         "view",
         "provenance",
-        "registry.suse.com/bci/base:15.6",
+        "registry.suse.com/bci/bci-base:15.6",
     ], timeout=600)
     check(log)
