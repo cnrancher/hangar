@@ -242,10 +242,15 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 		OIDCIssuer:              cc.oidcIssuer,
 		OIDCProvider:            cc.oidcProvider,
 		InsecureSkipTLSVerify:   !cc.tlsVerify.Value(),
+		AutoYes:                 cc.autoYes,
 		SignManifestIndex:       cc.signManifestIndex,
 		Registry:                cc.registry,
 		Project:                 cc.project,
 	})
+
+	if err := s.InitGlobalSignerVerifier(signalContext); err != nil {
+		return nil, fmt.Errorf("failed to init sign verifier: %w", err)
+	}
 
 	logrus.Infof("Arch List: [%v]", strings.Join(cc.arch, ","))
 	logrus.Infof("OS List: [%v]", strings.Join(cc.os, ","))

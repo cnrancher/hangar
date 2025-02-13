@@ -76,5 +76,6 @@ func (s *Signer) keyOptions() *options.KeyOpts {
 		OIDCClientSecret:         "",
 		OIDCProvider:             s.oidcProvider,
 		InsecureSkipFulcioVerify: false,
+		SkipConfirmation:         s.skipConfotmation,
 	}
 }

@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/rekor"
 	cremote "github.com/sigstore/cosign/v2/pkg/cosign/remote"
 	"github.com/sigstore/cosign/v2/pkg/oci"
@@ -24,6 +26,11 @@ import (
 	rekor_internal "github.com/cnrancher/hangar/pkg/image/sign_v2/internal/rekor"
 )
 
+var (
+	globalSV      *SignerVerifier
+	globalSVMutex = &sync.Mutex{}
+)
+
 type Signer struct {
 	image                   string
 	key                     string
@@ -35,9 +42,9 @@ type Signer struct {
 	oidcClientID            string
 	oidcProvider            string
 	insecureSkipTLSVerify   bool
+	skipConfotmation        bool
 	authConfig              authn.AuthConfig
 
-	sv     *SignerVerifier
 	signer cosign_internal.Signer
 }
 
@@ -52,6 +59,7 @@ type SignerOption struct {
 	OIDCProvider            string
 
 	InsecureSkipTLSVerify bool
+	SkipConfotmation      bool
 	AuthConfig            authn.AuthConfig
 }
 
@@ -67,35 +75,40 @@ func NewSigner(o *SignerOption, image string) *Signer {
 		oidcClientID:            o.OIDCClientID,
 		oidcProvider:            o.OIDCProvider,
 		insecureSkipTLSVerify:   o.InsecureSkipTLSVerify,
+		skipConfotmation:        o.SkipConfotmation,
 		authConfig:              o.AuthConfig,
 		signer:                  nil,
 	}
 	return s
 }
 
-func (s *Signer) initSignerVerifier(
+func InitGlobalSignerVerifier(
 	ctx context.Context,
+	key string,
+	ko *options.KeyOpts,
 ) error {
-	if s.sv != nil {
+	globalSVMutex.Lock()
+	defer globalSVMutex.Unlock()
+
+	if globalSV != nil {
 		return nil
 	}
 
 	var err error
-	ko := s.keyOptions()
 	genKey := false
 	switch {
-	case s.key != "":
-		s.sv, err = signerFromKeyRef(ctx, s.key, ko.PassFunc)
+	case key != "":
+		globalSV, err = signerFromKeyRef(ctx, key, ko.PassFunc)
 	default:
 		genKey = true
 		logrus.Infof("Generating ephemeral keys...")
-		s.sv, err = signerFromNewKey()
+		globalSV, err = signerFromNewKey()
 	}
 	if err != nil {
 		return err
 	}
 	if genKey {
-		if s.sv, err = keylessSigner(ctx, ko, s.sv); err != nil {
+		if globalSV, err = keylessSigner(ctx, ko, globalSV); err != nil {
 			return err
 		}
 	}
@@ -106,11 +119,7 @@ func (s *Signer) initSignerVerifier(
 // Reference: https://github.com/sigstore/cosign/blob/v2.4.2/cmd/cosign/cli/sign/sign.go#L133
 func (s *Signer) Sign(ctx context.Context) error {
 	logrus.Debugf("Start sign image %v", s.image)
-	if err := s.initSignerVerifier(ctx); err != nil {
-		return err
-	}
-
-	dd := cremote.NewDupeDetector(s.sv)
+	dd := cremote.NewDupeDetector(globalSV)
 	// Set up an ErrDone consideration to return along "success" paths
 	var ErrDone error
 	if !s.recursive {
@@ -174,7 +183,7 @@ func (s *Signer) signDigest(
 		return fmt.Errorf("failed to generate payload: %w", err)
 	}
 
-	s.signer = payload_internal.NewSigner(*s.sv)
+	s.signer = payload_internal.NewSigner(globalSV)
 	if s.tlogUpload {
 		rClient, err := rekor.NewClient(s.rekorURL)
 		if err != nil {

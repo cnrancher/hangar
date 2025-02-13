@@ -15,6 +15,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/verify"
 	"github.com/sirupsen/logrus"
@@ -61,6 +62,9 @@ type SignerV2 struct {
 
 	// allow HTTP & insecure TLS certificate registry
 	insecureSkipTLSVerify bool
+
+	// autoYes
+	autoYes bool
 
 	cacheMu         *sync.Mutex
 	authConfigCache map[string]*authn.AuthConfig
@@ -123,6 +127,8 @@ type Signerv2Opts struct {
 	// allow HTTP & insecure TLS certificate registry
 	InsecureSkipTLSVerify bool
 
+	AutoYes bool
+
 	// CertIdentity is the fulcio certificate (for keyless validate)
 	CertIdentity string
 
@@ -152,6 +158,7 @@ func NewSignerV2(o *Signerv2Opts) (*SignerV2, error) {
 		oidcClientID:            o.OIDCClientID,
 		oidcProvider:            o.OIDCProvider,
 		insecureSkipTLSVerify:   o.InsecureSkipTLSVerify,
+		autoYes:                 o.AutoYes,
 		certIdentity:            o.CertIdentity,
 		certOidcIssuer:          o.CertOidcIssuer,
 		signManifestIndex:       o.SignManifestIndex,
@@ -173,6 +180,21 @@ func NewSignerV2(o *Signerv2Opts) (*SignerV2, error) {
 		return nil, err
 	}
 	return s, nil
+}
+
+func (s *SignerV2) InitGlobalSignerVerifier(ctx context.Context) error {
+	ko := &options.KeyOpts{
+		KeyRef:                   s.privateKey,
+		PassFunc:                 generate.GetPass,
+		RekorURL:                 s.rekorURL,
+		OIDCIssuer:               s.oidcIssuer,
+		OIDCClientID:             s.oidcClientID,
+		OIDCClientSecret:         "",
+		OIDCProvider:             s.oidcProvider,
+		InsecureSkipFulcioVerify: false,
+		SkipConfirmation:         s.autoYes,
+	}
+	return signv2.InitGlobalSignerVerifier(ctx, s.privateKey, ko)
 }
 
 func (s *SignerV2) sign(ctx context.Context) {
@@ -288,6 +310,7 @@ func (s *SignerV2) worker(ctx context.Context, o any) {
 			OIDCClientID:            s.oidcClientID,
 			OIDCProvider:            s.oidcProvider,
 			InsecureSkipTLSVerify:   s.insecureSkipTLSVerify,
+			SkipConfotmation:        s.autoYes,
 			AuthConfig:              *c,
 		},
 		SignManifestIndex: s.signManifestIndex,

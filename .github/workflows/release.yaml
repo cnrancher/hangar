@@ -8,7 +8,7 @@ jobs:
   release:
     permissions:
       contents: write # required for creating GH release
-      id-token: write # required for reading vault secrets
+      id-token: write # required for OIDC
     runs-on: ubuntu-latest
     steps:
     - name: Login to DockerHub
@@ -67,9 +67,17 @@ jobs:
         TAG: ${{ github.ref_name }}
         REGISTRY: ${{ vars.PUBLIC_REGISTRY }}
         REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
+    - name: Install hangar
+      uses: ./.github/actions/install-hangar
+      with:
+        version: v1.9.0-beta.3
     - name: Image Push Prime
       run: |
         make image-push
+
+        echo "${{ vars.PRIME_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}" > 1.txt
+        hangar sign -f 1.txt --oidc-provider github-actions --auto-yes
+        rm 1.txt
       env:
         TAG: ${{ github.ref_name }}
         REGISTRY: ${{ vars.PRIME_REGISTRY }}
