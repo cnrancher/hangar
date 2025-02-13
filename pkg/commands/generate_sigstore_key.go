@@ -23,7 +23,7 @@ type generateSigstoreKeyCmd struct {
 	*generateSigstoreKeyOpts
 }
 
-func newgenerateSigstoreKeyCmd() *generateSigstoreKeyCmd {
+func newGenerateSigstoreKeyCmd() *generateSigstoreKeyCmd {
 	cc := &generateSigstoreKeyCmd{
 		generateSigstoreKeyOpts: new(generateSigstoreKeyOpts),
 	}

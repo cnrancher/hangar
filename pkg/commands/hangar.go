@@ -80,9 +80,10 @@ func (cc *hangarCmd) addCommands() {
 		newInspectCmd(),
 		newConvertListCmd(),
 		newGenerateListCmd(),
-		newgenerateSigstoreKeyCmd(),
+		newGenerateSigstoreKeyCmd(),
 		newSignCmd(),
 		newSignV1Cmd(),
+		newViewCmd(),
 		newScanCmd(),
 	)
 }
