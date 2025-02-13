@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install hangar
+        uses: ./.github/actions/install-hangar
       - name: Install Go
         uses: actions/setup-go@v5
         with:
