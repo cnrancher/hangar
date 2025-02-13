@@ -3,7 +3,7 @@ description: "Install hangar in workflow"
 inputs:
   version:
     description: "Hangar version"
-    default: "v1.9.0-beta.3"
+    default: "v1.9.0-beta.4"
     required: true
 
 runs:
@@ -11,8 +11,9 @@ runs:
   steps:
   - name: Install Hangar
     shell: bash
-    run:
+    run: |
       set -ex
-      if [[ $(uname -m) ]]
       curl -fsL https://github.com/cnrancher/hangar/releases/download/${{ inputs.version }}/hangar_Linux_$(uname -m).tar.gz | tar zx
       sudo mv hangar_Linux_$(uname -m)/hangar /usr/local/bin/hangar
+
+      hangar version
