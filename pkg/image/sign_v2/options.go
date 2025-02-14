@@ -71,6 +71,7 @@ func (s *Signer) keyOptions() *options.KeyOpts {
 		KeyRef:                   s.key,
 		PassFunc:                 generate.GetPass,
 		RekorURL:                 s.rekorURL,
+		FulcioURL:                s.fulcioURL,
 		OIDCIssuer:               s.oidcIssuer,
 		OIDCClientID:             s.oidcClientID,
 		OIDCClientSecret:         "",

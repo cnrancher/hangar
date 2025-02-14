@@ -50,6 +50,9 @@ type SignerV2 struct {
 	// rekorURL is the address of rekor STL server
 	rekorURL string
 
+	// fulcioURL is the address of sigstore PKG server
+	fulcioURL string
+
 	// OIDC provider to be used to issue ID token
 	oidcIssuer string
 
@@ -114,6 +117,9 @@ type Signerv2Opts struct {
 	// rekorURL is the address of rekor STL server
 	RekorURL string
 
+	// fulcioURL is the address of sigstore PKG server
+	FulcioURL string
+
 	// OIDC provider to be used to issue ID token
 	OIDCIssuer string
 
@@ -155,6 +161,7 @@ func NewSignerV2(o *Signerv2Opts) (*SignerV2, error) {
 		ignoreTlog:              o.IgnoreTlog,
 		recordCreationTimestamp: o.RecordCreationTimestamp,
 		rekorURL:                o.RekorURL,
+		fulcioURL:               o.FulcioURL,
 		oidcIssuer:              o.OIDCIssuer,
 		oidcClientID:            o.OIDCClientID,
 		oidcProvider:            o.OIDCProvider,
@@ -188,6 +195,7 @@ func (s *SignerV2) InitGlobalSignerVerifier(ctx context.Context) error {
 		KeyRef:                   s.privateKey,
 		PassFunc:                 generate.GetPass,
 		RekorURL:                 s.rekorURL,
+		FulcioURL:                s.fulcioURL,
 		OIDCIssuer:               s.oidcIssuer,
 		OIDCClientID:             s.oidcClientID,
 		OIDCClientSecret:         "",
@@ -307,6 +315,7 @@ func (s *SignerV2) worker(ctx context.Context, o any) {
 			TlogUpload:              s.tlogUpload,
 			RecordCreationTimestamp: s.recordCreationTimestamp,
 			RekorURL:                s.rekorURL,
+			FulcioURL:               s.fulcioURL,
 			OIDCIssuer:              s.oidcIssuer,
 			OIDCClientID:            s.oidcClientID,
 			OIDCProvider:            s.oidcProvider,

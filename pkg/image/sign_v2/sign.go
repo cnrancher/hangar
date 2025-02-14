@@ -38,6 +38,7 @@ type Signer struct {
 	tlogUpload              bool
 	recordCreationTimestamp bool
 	rekorURL                string
+	fulcioURL               string
 	oidcIssuer              string
 	oidcClientID            string
 	oidcProvider            string
@@ -54,6 +55,7 @@ type SignerOption struct {
 	TlogUpload              bool
 	RecordCreationTimestamp bool
 	RekorURL                string
+	FulcioURL               string
 	OIDCIssuer              string
 	OIDCClientID            string
 	OIDCProvider            string
@@ -71,6 +73,7 @@ func NewSigner(o *SignerOption, image string) *Signer {
 		tlogUpload:              o.TlogUpload,
 		recordCreationTimestamp: o.RecordCreationTimestamp,
 		rekorURL:                o.RekorURL,
+		fulcioURL:               o.FulcioURL,
 		oidcIssuer:              o.OIDCIssuer,
 		oidcClientID:            o.OIDCClientID,
 		oidcProvider:            o.OIDCProvider,

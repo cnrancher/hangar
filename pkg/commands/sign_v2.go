@@ -19,6 +19,7 @@ import (
 const (
 	DefaultOIDCIssuerURL = "https://oauth2.sigstore.dev/auth"
 	DefaultRekorURL      = "https://rekor.sigstore.dev"
+	DefaultFulcioURL     = "https://fulcio.sigstore.dev"
 )
 
 type signOpts struct {
@@ -42,6 +43,7 @@ type signOpts struct {
 	signContainerIdentity   string
 	recordCreationTimestamp bool
 	rekorURL                string
+	fulcioURL               string
 	oidcIssuer              string
 	oidcClientID            string
 	oidcProvider            string
@@ -117,6 +119,8 @@ func newSignCmd() *signCmd {
 			"(available: spiffe, google, github-actions, filesystem, buildkite-agent)")
 	flags.StringVar(&cc.rekorURL, "rekor-url", DefaultRekorURL,
 		"address of rekor STL server")
+	flags.StringVar(&cc.fulcioURL, "fulcio-url", DefaultFulcioURL,
+		"address of sigstore PKI server")
 
 	addCommands(
 		cc.cmd,
@@ -239,7 +243,9 @@ func (cc *signCmd) prepareHangar() (hangar.Hangar, error) {
 		TLogUpload:              cc.tlogUpload,
 		RecordCreationTimestamp: cc.recordCreationTimestamp,
 		RekorURL:                cc.rekorURL,
+		FulcioURL:               cc.fulcioURL,
 		OIDCIssuer:              cc.oidcIssuer,
+		OIDCClientID:            cc.oidcClientID,
 		OIDCProvider:            cc.oidcProvider,
 		InsecureSkipTLSVerify:   !cc.tlsVerify.Value(),
 		AutoYes:                 cc.autoYes,
