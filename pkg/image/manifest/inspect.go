@@ -160,13 +160,11 @@ func (p *Inspector) Provenance(ctx context.Context) ([]byte, error) {
 			}
 			var t string
 			for k, v := range l.Annotations {
-				if !strings.Contains(k, "intoto") {
-					continue
+				if strings.Contains(k, "predicate") || strings.Contains(k, "intoto") {
+					t = v
+					logrus.Debugf("annotaion [%v: %v]", k, v)
+					break
 				}
-				if !strings.Contains(k, "predicate") {
-					continue
-				}
-				t = v
 			}
 			if strings.Contains(t, "slsa") {
 				rc, _, err := p.source.GetBlob(ctx, l, none.NoCache)
@@ -205,15 +203,13 @@ func (p *Inspector) SBOM(ctx context.Context) ([]byte, error) {
 			}
 			var t string
 			for k, v := range l.Annotations {
-				if !strings.Contains(k, "intoto") {
-					continue
+				if strings.Contains(k, "predicate") || strings.Contains(k, "intoto") {
+					t = v
+					logrus.Debugf("annotaion [%v: %v]", k, v)
+					break
 				}
-				if !strings.Contains(k, "predicate") {
-					continue
-				}
-				t = v
 			}
-			if strings.Contains(t, "bom") {
+			if strings.Contains(t, "spdx") || strings.Contains(t, "bom") {
 				rc, _, err := p.source.GetBlob(ctx, l, none.NoCache)
 				if err != nil {
 					return fmt.Errorf("failed to get blob: %w", err)

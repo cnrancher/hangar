@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/image/manifest"
@@ -13,8 +14,9 @@ import (
 )
 
 type viewProvenanceOpts struct {
-	arch string
-	os   string
+	arch   string
+	os     string
+	output string
 
 	tlsVerify bool
 	autoYes   bool
@@ -46,6 +48,7 @@ func newViewProvenanceCmd() *viewProvenanceCmd {
 	})
 
 	flags := cc.baseCmd.cmd.Flags()
+	flags.StringVarP(&cc.output, "output", "o", "", "output filename (default: STDOUT)")
 	flags.StringVarP(&cc.arch, "override-arch", "", "", "use ARCH instead of the architecture of the machine for choosing images")
 	flags.StringVarP(&cc.os, "override-os", "", "", "use OS instead of the running OS for choosing images")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
@@ -101,6 +104,22 @@ func (cc *viewProvenanceCmd) run(args []string) error {
 	b, err = json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal provenance data: %w", err)
+	}
+	if cc.output != "" {
+		err := utils.CheckFileExistsPrompt(signalContext, cc.output, cc.autoYes)
+		if err != nil {
+			return err
+		}
+		f, err := os.OpenFile(cc.output, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open %q: %w", cc.output, err)
+		}
+		_, err = f.WriteString(string(b))
+		if err != nil {
+			return fmt.Errorf("failed to write %q: %w", cc.output, err)
+		}
+		logrus.Infof("SLSA Provenance output to %q", cc.output)
+		return nil
 	}
 	fmt.Print(string(b))
 	fmt.Println()
