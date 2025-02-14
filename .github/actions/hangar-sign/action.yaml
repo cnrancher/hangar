@@ -41,28 +41,33 @@ runs:
   - name: Hangar sign images
     shell: bash
     run: |
-      TMP_DIR=$(mktemp)
+      set -e
+      TMP_DIR=$(mktemp -d)
       WORK_DIR=$(pwd)
       cd $TMP_DIR
-      echo "${{ inputs.image }}" > images.txt
+      cat > images.txt << EOT
+      ${{ inputs.images }}
+      EOT
       echo Images:
       cat images.txt
 
       if [[ "${{ inputs.cosign_key }}" != "" ]]; then
         echo "::add-mask::${{ inputs.cosign_key }}"
         echo "::add-mask::${{ inputs.cosign_key_password }}"
-        echo "${{ inputs.cosign_key }}" > sigstore.key
-        echo "${{ inputs.cosign_key_password }}" > password.txt
+        echo -n "${{ inputs.cosign_key_password }}" > password.txt
+        cat > sigstore.key << EOT
+      ${{ inputs.cosign_key }}
+      EOT
 
         set -x
 
         hangar sign -f images.txt \
           -j=${{ inputs.jobs }} \
-          --arch=${{ input.arch }} \
-          --os=${{ input.os }} \
+          --arch=${{ inputs.arch }} \
+          --os=${{ inputs.os }} \
           --debug=${{ inputs.debug }} \
           --key=sigstore.key \
-          --passphrase-file=pasword.txt \
+          --passphrase-file=password.txt \
           --auto-yes
 
         set +x
@@ -73,8 +78,8 @@ runs:
 
         hangar sign -f images.txt \
           -j=${{ inputs.jobs }} \
-          --arch=${{ input.arch }} \
-          --os=${{ input.os }} \
+          --arch=${{ inputs.arch }} \
+          --os=${{ inputs.os }} \
           --debug=${{ inputs.debug }} \
           --oidc-provider=github-actions \
           --auto-yes
