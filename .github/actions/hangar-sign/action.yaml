@@ -62,7 +62,8 @@ runs:
           --os=${{ input.os }} \
           --debug=${{ inputs.debug }} \
           --key=sigstore.key \
-          --passphrase-file=pasword.txt
+          --passphrase-file=pasword.txt \
+          --auto-yes
 
         set +x
 
@@ -75,11 +76,13 @@ runs:
           --arch=${{ input.arch }} \
           --os=${{ input.os }} \
           --debug=${{ inputs.debug }} \
-          --oidc-provider=github-actions
+          --oidc-provider=github-actions \
+          --auto-yes
 
         set +x
 
       fi
+
       cd $WORK_DIR
       rm -rf $TMP_DIR
 
