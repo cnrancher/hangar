@@ -22,6 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	cosign_internal "github.com/cnrancher/hangar/pkg/image/sign_v2/internal/cosign"
+	fulcio_internal "github.com/cnrancher/hangar/pkg/image/sign_v2/internal/fulcio"
 	payload_internal "github.com/cnrancher/hangar/pkg/image/sign_v2/internal/payload"
 	rekor_internal "github.com/cnrancher/hangar/pkg/image/sign_v2/internal/rekor"
 )
@@ -187,6 +188,9 @@ func (s *Signer) signDigest(
 	}
 
 	s.signer = payload_internal.NewSigner(globalSV)
+	if globalSV.Cert != nil {
+		s.signer = fulcio_internal.WrapSigner(s.signer, globalSV.Cert, globalSV.Chain)
+	}
 	if s.tlogUpload {
 		rClient, err := rekor.NewClient(s.rekorURL)
 		if err != nil {
