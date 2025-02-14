@@ -2,6 +2,7 @@ package signv2
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"time"
 
@@ -39,9 +40,11 @@ func (r *Result) Pass() bool {
 }
 
 type ImageResult struct {
-	Digest   digest.Digest `json:"digest" yaml:"digest"`
-	Platform Platform      `json:"platform" yaml:"platform"`
+	Digest    digest.Digest `json:"digest" yaml:"digest"`
+	MediaType string        `json:"mediaType" yaml:"mediaType"`
+	Platform  Platform      `json:"platform" yaml:"platform"`
 
+	TLogVerified             bool   `json:"tlogVerified" yaml:"tlogVerified"`
 	CertificateSubject       string `json:"certificateSubject,omitempty" yaml:"certificateSubject,omitempty"`
 	CertificateIssuer        string `json:"certificateIssuer,omitempty" yaml:"certificateIssuer,omitempty"`
 	GithubWorkflowTrigger    string `json:"githubWorkflowTrigger,omitempty" yaml:"githubWorkflowTrigger,omitempty"`
@@ -79,15 +82,17 @@ func (r *Report) WriteCSV(f io.Writer) error {
 		"image",                    // 0
 		"arch",                     // 1
 		"os",                       // 2
-		"certificateIssuer",        // 3
-		"certificateSubject",       // 4
-		"githubWorkflowName",       // 5
-		"githubWorkflowRef",        // 6
-		"githubWorkflowRepository", // 7
-		"githubWorkflowSha",        // 8
-		"githubWorkflowTrigger",    // 9
-		"payload",                  // 10
-		"digest",                   // 11
+		"payload",                  // 3
+		"digest",                   // 4
+		"tlogVerify",               // 5
+		"mediaType",                // 6
+		"certificateIssuer",        // 7
+		"certificateSubject",       // 8
+		"githubWorkflowName",       // 9
+		"githubWorkflowRef",        // 10
+		"githubWorkflowRepository", // 11
+		"githubWorkflowSha",        // 12
+		"githubWorkflowTrigger",    // 13
 	}
 	cw := csv.NewWriter(f)
 	defer cw.Flush()
@@ -104,18 +109,20 @@ func (r *Report) WriteCSV(f io.Writer) error {
 		reference := result.Reference
 		for _, image := range result.Images {
 			line = []string{
-				reference,                      // 0
-				image.Platform.Arch,            // 1
-				image.Platform.OS,              // 2
-				image.CertificateIssuer,        // 3
-				image.CertificateSubject,       // 4
-				image.GithubWorkflowName,       // 5
-				image.GithubWorkflowRef,        // 6
-				image.GithubWorkflowRepository, // 7
-				image.GithubWorkflowSha,        // 8
-				image.GithubWorkflowTrigger,    // 9
-				image.Payload,                  // 10
-				image.Digest.String(),          // 11
+				reference,                             // 0
+				image.Platform.Arch,                   // 1
+				image.Platform.OS,                     // 2
+				image.Payload,                         // 3
+				image.Digest.String(),                 // 4
+				fmt.Sprintf("%v", image.TLogVerified), // 5
+				image.MediaType,                       // 6
+				image.CertificateIssuer,               // 7
+				image.CertificateSubject,              // 8
+				image.GithubWorkflowName,              // 9
+				image.GithubWorkflowRef,               // 10
+				image.GithubWorkflowRepository,        // 11
+				image.GithubWorkflowSha,               // 12
+				image.GithubWorkflowTrigger,           // 13
 			}
 			if err := cw.Write(line); err != nil {
 				return err

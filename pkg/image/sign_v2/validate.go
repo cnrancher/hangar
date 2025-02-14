@@ -34,8 +34,9 @@ type Validator struct {
 }
 
 type ValidatorOption struct {
-	Digest   digest.Digest
-	Platform Platform
+	Digest    digest.Digest
+	Platform  Platform
+	MediaType string
 
 	verify.VerifyCommand
 }
@@ -44,8 +45,9 @@ func NewValidator(o *ValidatorOption, image string) *Validator {
 	v := &Validator{
 		image: image,
 		result: &ImageResult{
-			Digest:   o.Digest,
-			Platform: o.Platform,
+			Digest:    o.Digest,
+			Platform:  o.Platform,
+			MediaType: o.MediaType,
 		},
 		cmd: o.VerifyCommand,
 	}
@@ -215,13 +217,16 @@ func (v *Validator) Validate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("resolving attachment type %s for image %s: %w", v.cmd.Attachment, v.image, err)
 	}
-	verified, _, err := cosign.VerifyImageSignatures(ctx, ref, co)
+	verified, bundleVerified, err := cosign.VerifyImageSignatures(ctx, ref, co)
 	if err != nil {
 		if strings.Contains(err.Error(), "no signatures found") {
 			v.result.Payload = err.Error()
 			return nil
 		}
 		return err
+	}
+	if bundleVerified || co.RekorClient != nil {
+		v.result.TLogVerified = true
 	}
 	for _, sig := range verified {
 		cert, err := sig.Cert()

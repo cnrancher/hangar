@@ -85,6 +85,7 @@ func (s *Source) validateSignatureV2DockerV2ListMediaType(
 		// Validate manifest index signature
 		image := fmt.Sprintf("%v/%v/%v@%v", s.registry, s.project, s.name, s.manifestDigest)
 		o := opts.ValidatorOption
+		o.MediaType = s.mime
 		o.Digest = s.manifestDigest
 		r, err := validateImageSignatureV2(ctx, image, &o)
 		if err != nil {
@@ -106,6 +107,7 @@ func (s *Source) validateSignatureV2DockerV2ListMediaType(
 		}
 		image := fmt.Sprintf("%v/%v/%v@%v", s.registry, s.project, s.name, dig)
 		o := opts.ValidatorOption
+		o.MediaType = m.MediaType
 		o.Digest = dig
 		o.Platform.Arch = arch
 		o.Platform.OS = osInfo
@@ -141,6 +143,7 @@ func (s *Source) validateSignatureV2MediaTypeImageIndex(
 		// Validate manifest index signature
 		image := fmt.Sprintf("%v/%v/%v@%v", s.registry, s.project, s.name, s.manifestDigest)
 		o := opts.ValidatorOption
+		o.MediaType = s.mime
 		o.Digest = s.manifestDigest
 		r, err := validateImageSignatureV2(ctx, image, &o)
 		if err != nil {
@@ -165,6 +168,7 @@ func (s *Source) validateSignatureV2MediaTypeImageIndex(
 		o.Digest = dig
 		o.Platform.Arch = arch
 		o.Platform.OS = osInfo
+		o.MediaType = m.MediaType
 		o.Platform.Variant = variant
 		o.Platform.OSFeatures = m.Platform.OSFeatures
 		o.Platform.OSVersion = m.Platform.OSVersion
@@ -204,6 +208,7 @@ func (s *Source) validateSignatureV2DockerV2Schema2MediaType(
 	o.Digest = s.manifestDigest
 	o.Platform.Arch = arch
 	o.Platform.OS = osInfo
+	o.MediaType = s.mime
 	o.Platform.Variant = variant
 	o.Platform.OSFeatures = s.ociConfig.OSFeatures
 	o.Platform.OSVersion = s.ociConfig.OSVersion
@@ -231,6 +236,7 @@ func (s *Source) validateSignatureV2MediaTypeImageManifest(
 	o := opts.ValidatorOption
 	o.Digest = s.manifestDigest
 	o.Platform.Arch = arch
+	o.MediaType = s.mime
 	o.Platform.OS = osInfo
 	o.Platform.Variant = variant
 	o.Platform.OSFeatures = s.ociConfig.OSFeatures

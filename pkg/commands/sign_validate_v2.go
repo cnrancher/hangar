@@ -111,11 +111,12 @@ hangar sign validate \
 		"address of rekor STL server")
 	flags.BoolVar(&cc.offline, "offline", false,
 		"only allow offline verification")
+	flags.MarkHidden("offline")
 	flags.BoolVar(&cc.ignoreTlog, "insecure-ignore-tlog", false,
-		"ignore transparency log verification, to be used when an artifact signature has not been uploaded to the transparency log. Artifacts "+
-			"cannot be publicly verified when not included in a log")
+		"ignore transparency log verification, to be used when an artifact signature has not been uploaded to the transparency log.")
 	flags.BoolVarP(&cc.validateManifestIndex, "validate-manifest-index", "", true,
 		"validate cosign sigstore signature of the manifest index")
+	flags.MarkHidden("validate-manifest-index")
 	flags.StringVar(&cc.certIdentity, "certificate-identity", "",
 		"The identity expected in a valid Fulcio certificate. Valid values include email address, DNS names, IP addresses, and URIs. Must be set for keyless flows.")
 	flags.StringVar(&cc.certOidcIssuer, "certificate-oidc-issuer", "",

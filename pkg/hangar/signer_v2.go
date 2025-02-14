@@ -152,6 +152,7 @@ func NewSignerV2(o *Signerv2Opts) (*SignerV2, error) {
 		publicKey:               o.PublicKey,
 		privateKey:              o.PrivateKey,
 		tlogUpload:              o.TLogUpload,
+		ignoreTlog:              o.IgnoreTlog,
 		recordCreationTimestamp: o.RecordCreationTimestamp,
 		rekorURL:                o.RekorURL,
 		oidcIssuer:              o.OIDCIssuer,

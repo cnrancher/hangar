@@ -58,9 +58,9 @@ func newSignCmd() *signCmd {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "sign",
-		Short:   "hangar sign --key cosign.key <IMAGE>",
+		Short:   "Sign images with cosign sigstore private key",
 		Long:    ``,
-		Example: ``,
+		Example: `hangar sign --key cosign.key <IMAGE>`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -100,21 +100,21 @@ func newSignCmd() *signCmd {
 
 	flags.StringVarP(&cc.privateKey, "key", "p", "",
 		"path to the private key file, KMS URI or Kubernetes Secret")
-	flags.SetAnnotation("key", cobra.BashCompFilenameExt, []string{})
-	flags.SetAnnotation("certificate", cobra.BashCompFilenameExt, []string{"cert"})
+	flags.SetAnnotation("key", cobra.BashCompFilenameExt, []string{"key"})
 	flags.StringVarP(&cc.passphraseFile, "passphrase-file", "", "",
 		"private key passphrase file")
 	flags.BoolVarP(&cc.signManifestIndex, "sign-manifest-index", "", true,
 		"create cosign sigstore signature for manifest index")
+	flags.MarkHidden("sign-manifest-index")
 	flags.BoolVar(&cc.tlogUpload, "tlog-upload", true,
-		"whether or not to upload to the tlog")
+		"whether or not to upload to the cosign transparency log server")
 	flags.StringVar(&cc.oidcIssuer, "oidc-issuer", DefaultOIDCIssuerURL,
 		"OIDC provider to be used to issue ID token")
 	flags.StringVar(&cc.oidcClientID, "oidc-client-id", "sigstore",
 		"OIDC client ID for application")
 	flags.StringVar(&cc.oidcProvider, "oidc-provider", "",
-		"Specify the provider to get the OIDC token from (Optional). If unset, all options will be tried. "+
-			"Options include: [spiffe, google, github-actions, filesystem, buildkite-agent]")
+		"Specify the provider to get the OIDC token from (Optional) "+
+			"(available: spiffe, google, github-actions, filesystem, buildkite-agent)")
 	flags.StringVar(&cc.rekorURL, "rekor-url", DefaultRekorURL,
 		"address of rekor STL server")
 

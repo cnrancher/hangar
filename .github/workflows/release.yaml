@@ -43,7 +43,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.62
+        version: v1.63
     - name: Verify
       run: |
         make verify
@@ -70,7 +70,7 @@ jobs:
     - name: Install hangar
       uses: ./.github/actions/install-hangar
       with:
-        version: v1.9.0-beta.4
+        version: v1.9.0-beta.5
     - name: Image Push Prime
       run: |
         make image-push
