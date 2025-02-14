@@ -81,6 +81,7 @@ jobs:
     permissions:
       id-token: write # required for hangar sign OIDC keyless mode
     runs-on: ubuntu-latest
+    needs: [ release ]
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
