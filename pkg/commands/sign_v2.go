@@ -75,8 +75,13 @@ func newSignCmd() *signCmd {
 			if err != nil {
 				return err
 			}
-			logrus.Infof("Signing images in %q with sigstore priv-key %q.",
-				cc.file, cc.privateKey)
+			if cc.privateKey != "" {
+				logrus.Infof("Signing images in %q with sigstore priv-key %q.",
+					cc.file, cc.privateKey)
+			} else {
+				logrus.Infof("Signing images in %q with OIDC provider %q in keyless mode",
+					cc.file, cc.oidcProvider)
+			}
 			if err := run(h); err != nil {
 				return err
 			}
@@ -92,7 +97,7 @@ func newSignCmd() *signCmd {
 	flags.StringSliceVarP(&cc.os, "os", "", []string{"linux"}, "OS list of images")
 	flags.StringVarP(&cc.registry, "registry", "", "", "override all image registry URL in image list")
 	flags.StringVarP(&cc.project, "project", "", "", "override all image projects in image list")
-	flags.StringVarP(&cc.failed, "failed", "o", "scan-failed.txt", "file name of the scan failed image list")
+	flags.StringVarP(&cc.failed, "failed", "o", "sign-failed.txt", "file name of the scan failed image list")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, scan images parallelly (1-20)")
 	flags.DurationVarP(&cc.timeout, "timeout", "", time.Minute*10, "timeout when scan each images")
 	commonFlag.OptionalBoolFlag(flags, &cc.tlsVerify, "tls-verify", "require HTTPS and verify certificates")

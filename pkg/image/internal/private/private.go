@@ -21,9 +21,8 @@ func RetryOptions() *retry.Options {
 			s := err.Error()
 			switch {
 			case strings.Contains(s, "not found") ||
-				strings.Contains(s, "manifest unknow"):
-				return false
-			case strings.Contains(s, "no such file"):
+				strings.Contains(s, "manifest unknow") ||
+				strings.Contains(s, "no such file"):
 				return false
 			}
 
@@ -33,12 +32,12 @@ func RetryOptions() *retry.Options {
 
 			// Workaround to retry for some timeout/server error
 			switch {
-			case strings.Contains(s, "500 Internal Server Error"):
-				return true
-			case strings.Contains(s, "timeout"):
+			case strings.Contains(s, "500 Internal Server Error") ||
+				strings.Contains(s, "timeout") ||
+				strings.Contains(s, "stopped after 10 redirects"):
 				return true
 			}
-			return true
+			return false
 		},
 	}
 }
