@@ -8,7 +8,6 @@ jobs:
   release:
     permissions:
       contents: write # required for creating GH release
-      id-token: write # required for OIDC
     runs-on: ubuntu-latest
     steps:
     - name: Login to DockerHub
@@ -17,7 +16,7 @@ jobs:
         registry: ${{ vars.PUBLIC_REGISTRY }}
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-    - name: Login to Prime
+    - name: Login to TCR
       uses: docker/login-action@v3
       with:
         registry: ${{ vars.PRIME_REGISTRY }}
@@ -59,18 +58,14 @@ jobs:
       with:
         distribution: goreleaser
         version: "~> v2"
-        args: release --clean --verbose
+        args: release --clean --verbosePrime
     - name: Image Push DockerHub
       run: |
         make image-push
       env:
         TAG: ${{ github.ref_name }}
-        REGISTRY: ${{ vars.PUBLIC_REGISTRY }}
+        REGISTRY: ${{ vars.PUBLIC_REGISTRY }}PRIME_REGISTRY
         REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
-    - name: Install hangar
-      uses: ./.github/actions/install-hangar
-      with:
-        version: v1.9.0-beta.6
     - name: Image Push Prime
       run: |
         make image-push
@@ -82,3 +77,25 @@ jobs:
         TAG: ${{ github.ref_name }}
         REGISTRY: ${{ vars.PRIME_REGISTRY }}
         REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
+  image-sign:
+    permissions:
+      id-token: write # required for hangar sign OIDC keyless mode
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.ref_name}}
+    - name: Login to TCR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ vars.PRIME_REGISTRY }}
+        username: ${{ secrets.PRIME_USERNAME }}
+        password: ${{ secrets.PRIME_TOKEN }}
+    - name: Hangar Sign
+      uses: ./.github/actions/hangar-sign
+      with:
+        version: v1.9.0-beta.6
+        images: |
+          ${{ vars.PRIME_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}

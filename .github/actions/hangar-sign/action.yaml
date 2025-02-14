@@ -1,0 +1,86 @@
+name: "Hangar Sign Actions"
+description: "hangar sign images in workflow"
+inputs:
+  version:
+    description: "Hangar version"
+    default: "v1.9.0-beta.6"
+    required: true
+  images:
+    description: "Image list"
+    default: ""
+    required: true
+  cosign_key:
+    description: "sign image with cosign private key (Optional: Sign image in keyless mode if not provided)"
+  cosign_key_password:
+    description: "cosign private key password"
+  debug:
+    description: "enable debug output"
+    default: "false"
+  jobs:
+    description: "sign worker num"
+    default: "3"
+  arch:
+    description: "sign image arch"
+    default: "amd64,arm64"
+  os:
+    description: "sign image os"
+    default: "linux"
+
+runs:
+  using: "composite"
+  steps:
+  - name: Install Hangar
+    shell: bash
+    run: |
+      set -ex
+      curl -fsL https://github.com/cnrancher/hangar/releases/download/${{ inputs.version }}/hangar_Linux_$(uname -m).tar.gz | tar zx
+      sudo mv hangar_Linux_$(uname -m)/hangar /usr/local/bin/hangar
+      sudo rm -rf hangar_*
+
+      hangar version
+  - name: Hangar sign images
+    shell: bash
+    run: |
+      TMP_DIR=$(mktemp)
+      WORK_DIR=$(pwd)
+      cd $TMP_DIR
+      echo "${{ inputs.image }}" > images.txt
+      echo Images:
+      cat images.txt
+
+      if [[ "${{ inputs.cosign_key }}" != "" ]]; then
+        echo "::add-mask::${{ inputs.cosign_key }}"
+        echo "::add-mask::${{ inputs.cosign_key_password }}"
+        echo "${{ inputs.cosign_key }}" > sigstore.key
+        echo "${{ inputs.cosign_key_password }}" > password.txt
+
+        set -x
+
+        hangar sign -f images.txt \
+          -j=${{ inputs.jobs }} \
+          --arch=${{ input.arch }} \
+          --os=${{ input.os }} \
+          --debug=${{ inputs.debug }} \
+          --key=sigstore.key \
+          --passphrase-file=pasword.txt
+
+        set +x
+
+      else
+
+        set -x
+
+        hangar sign -f images.txt \
+          -j=${{ inputs.jobs }} \
+          --arch=${{ input.arch }} \
+          --os=${{ input.os }} \
+          --debug=${{ inputs.debug }} \
+          --oidc-provider=github-actions
+
+        set +x
+
+      fi
+      cd $WORK_DIR
+      rm -rf $TMP_DIR
+
+      echo Done

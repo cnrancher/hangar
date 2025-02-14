@@ -15,5 +15,6 @@ runs:
       set -ex
       curl -fsL https://github.com/cnrancher/hangar/releases/download/${{ inputs.version }}/hangar_Linux_$(uname -m).tar.gz | tar zx
       sudo mv hangar_Linux_$(uname -m)/hangar /usr/local/bin/hangar
+      sudo rm -rf hangar_*
 
       hangar version
