@@ -19,9 +19,9 @@ jobs:
     - name: Login to TCR
       uses: docker/login-action@v3
       with:
-        registry: ${{ vars.PRIME_REGISTRY }}
-        username: ${{ secrets.PRIME_USERNAME }}
-        password: ${{ secrets.PRIME_TOKEN }}
+        registry: ${{ vars.TCR_REGISTRY }}
+        username: ${{ secrets.TCR_USERNAME }}
+        password: ${{ secrets.TCR_TOKEN }}
     - name: Setup QEMU
       uses: docker/setup-qemu-action@v3
     - name: Setup Docker Buildx
@@ -58,24 +58,24 @@ jobs:
       with:
         distribution: goreleaser
         version: "~> v2"
-        args: release --clean --verbosePrime
+        args: release --clean --verbose
     - name: Image Push DockerHub
       run: |
         make image-push
       env:
         TAG: ${{ github.ref_name }}
-        REGISTRY: ${{ vars.PUBLIC_REGISTRY }}PRIME_REGISTRY
+        REGISTRY: ${{ vars.PUBLIC_REGISTRY }}
         REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
     - name: Image Push Prime
       run: |
         make image-push
 
-        echo "${{ vars.PRIME_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}" > 1.txt
+        echo "${{ vars.TCR_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}" > 1.txt
         hangar sign -f 1.txt --oidc-provider github-actions --auto-yes
         rm 1.txt
       env:
         TAG: ${{ github.ref_name }}
-        REGISTRY: ${{ vars.PRIME_REGISTRY }}
+        REGISTRY: ${{ vars.TCR_REGISTRY }}
         REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
   image-sign:
     permissions:
@@ -91,12 +91,12 @@ jobs:
     - name: Login to TCR
       uses: docker/login-action@v3
       with:
-        registry: ${{ vars.PRIME_REGISTRY }}
-        username: ${{ secrets.PRIME_USERNAME }}
-        password: ${{ secrets.PRIME_TOKEN }}
+        registry: ${{ vars.TCR_REGISTRY }}
+        username: ${{ secrets.TCR_USERNAME }}
+        password: ${{ secrets.TCR_TOKEN }}
     - name: Hangar Sign
       uses: ./.github/actions/hangar-sign
       with:
         version: v1.9.0-beta.6
         images: |
-          ${{ vars.PRIME_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}
+          ${{ vars.TCR_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}
