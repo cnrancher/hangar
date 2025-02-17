@@ -8,12 +8,14 @@ on:
       - dev*
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: org-cnrancher-runner-dind-x64
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Install hangar test
         uses: ./.github/actions/install-hangar
+        with:
+          version: v1.9.0-beta.12
       - name: Install Go
         uses: actions/setup-go@v5
         with:
@@ -32,10 +34,10 @@ jobs:
           version: v1.63
       - name: Verify
         run: |
-          make verify
+          ./scripts/verify.sh
       - name: Test
         run: |
-          make test
+          ./scripts/test.sh
       - name: Build
         env:
           TAG: ${{ github.ref_name }}
@@ -47,13 +49,13 @@ jobs:
           args: build --clean --snapshot
       - name: Image Build
         run: |
-          make image
+          ./scripts/image.sh
         env:
           TAG: dev
-          REGISTRY: ${{ vars.PUBLIC_REGISTRY }}
+          REGISTRY: ${{ vars.TCR_REGISTRY }}
           REPO: ${{ vars.PUBLIC_REGISTRY_REPO }}
   validation-test:
-    runs-on: ubuntu-latest
+    runs-on: org-cnrancher-runner-dind-x64
     if: ${{ github.event_name != 'pull_request' }}
     services:
       registry:

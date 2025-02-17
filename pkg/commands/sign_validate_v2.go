@@ -75,8 +75,13 @@ hangar sign validate \
 			if err != nil {
 				return err
 			}
-			logrus.Infof("Validating images in %q with sigstore public key %q",
-				cc.file, cc.publicKey)
+			if cc.publicKey != "" {
+				logrus.Infof("Validating images in %q with sigstore public key %q",
+					cc.file, cc.publicKey)
+			} else {
+				logrus.Infof("Validating images in %q in keyless mode with OIDC issuer %q",
+					cc.file, cc.certOidcIssuer)
+			}
 			if err := validate(h); err != nil {
 				return err
 			}
