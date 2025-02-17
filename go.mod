@@ -20,7 +20,7 @@ require (
 	github.com/rancher/rke v1.7.2
 	github.com/sigstore/cosign/v2 v2.4.2
 	github.com/sigstore/rekor v1.3.9
-	github.com/sigstore/sigstore v1.8.12
+	github.com/sigstore/sigstore v1.8.14
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.5
 	github.com/spf13/cobra v1.8.1
