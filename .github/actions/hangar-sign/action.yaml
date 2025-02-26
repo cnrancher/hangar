@@ -70,6 +70,7 @@ runs:
       echo Images:
       cat images.txt
 
+      HANGAR_SIGN_OPTIONS="--oidc-provider=github-actions "
       if [[ "${{ inputs.cosign_key }}" != "" ]]; then
         echo "::add-mask::${{ inputs.cosign_key }}"
         echo "::add-mask::${{ inputs.cosign_key_password }}"
@@ -78,36 +79,55 @@ runs:
       ${{ inputs.cosign_key }}
       EOT
 
-        set -x
+          HANGAR_SIGN_OPTIONS="--key=sigstore.key --passphrase-file=password.txt "
+      fi
 
-        hangar sign -f images.txt \
-          -j=${{ inputs.jobs }} \
-          --arch=${{ inputs.arch }} \
-          --os=${{ inputs.os }} \
-          --debug=${{ inputs.debug }} \
-          --key=sigstore.key \
-          --passphrase-file=password.txt \
-          --auto-yes
+      set -x
 
-        set +x
+      hangar sign -f images.txt \
+        -j=${{ inputs.jobs }} \
+        --arch=${{ inputs.arch }} \
+        --os=${{ inputs.os }} \
+        --debug=${{ inputs.debug }} \
+        ${HANGAR_SIGN_OPTIONS} \
+        --failed=sign-failed.txt \
+        --auto-yes || true
 
-      else
+      set +x
 
-        set -x
+      if [[ -e 'sign-failed.txt' ]]; then
+          echo "Some image failed to sign:" >&2
+          cat sign-failed.txt
+          echo
+          echo "Retrying..."
 
-        hangar sign -f images.txt \
-          -j=${{ inputs.jobs }} \
-          --arch=${{ inputs.arch }} \
-          --os=${{ inputs.os }} \
-          --debug=${{ inputs.debug }} \
-          --oidc-provider=github-actions \
-          --auto-yes
+          set -x
 
-        set +x
+          hangar sign -f images.txt \
+            -j=${{ inputs.jobs }} \
+            --arch=${{ inputs.arch }} \
+            --os=${{ inputs.os }} \
+            --debug=${{ inputs.debug }} \
+            ${HANGAR_SIGN_OPTIONS} \
+            --failed=sign-failed-1.txt \
+            --auto-yes || true
 
+          set +x
+
+          if [[ -e 'sign-failed-1.txt' ]]; then
+              echo "There are still some image(s) failed to sign:" >&2
+              cat sign-failed-1.txt >&2
+              FAILED=true
+          fi
       fi
 
       cd $WORK_DIR
       rm -rf $TMP_DIR
+
+      if [[ ${FAILED:-} = 'true' ]]; then
+          echo
+          echo FAILED >&2
+          exit 1
+      fi
 
       echo Done
