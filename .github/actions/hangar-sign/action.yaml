@@ -18,7 +18,7 @@ inputs:
     default: "false"
   jobs:
     description: "sign worker num"
-    default: "3"
+    default: "1"
   arch:
     description: "sign image arch"
     default: "amd64,arm64"
