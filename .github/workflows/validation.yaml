@@ -1,4 +1,4 @@
-name: CI
+name: Validation Test
 on:
   workflow_dispatch:
     inputs:
