@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	signv2 "github.com/cnrancher/hangar/pkg/image/sign_v2"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"github.com/containers/common/pkg/retry"
 	manifestv5 "github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -226,5 +228,9 @@ func signImageV2(
 	logrus.Debugf("Start sign image [%v] with key [%v] OIDC Provider [%v]",
 		image, o.Key, o.OIDCProvider)
 
-	return signer.Sign(ctx)
+	err := retry.IfNecessary(ctx, func() error {
+		return signer.Sign(ctx)
+	}, private.RetryOptions())
+
+	return err
 }

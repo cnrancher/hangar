@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	signv2 "github.com/cnrancher/hangar/pkg/image/sign_v2"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
+	"github.com/containers/common/pkg/retry"
 	manifestv5 "github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -254,7 +256,13 @@ func validateImageSignatureV2(
 	opts *signv2.ValidatorOption,
 ) (*signv2.ImageResult, error) {
 	v := signv2.NewValidator(opts, image)
-	if err := v.Validate(ctx); err != nil {
+	logrus.Debugf("Start validate image [%v] with key [%v] OIDC Provider [%v]",
+		image, opts.KeyRef, opts.CertOidcIssuer)
+
+	err := retry.IfNecessary(ctx, func() error {
+		return v.Validate(ctx)
+	}, private.RetryOptions())
+	if err != nil {
 		return nil, err
 	}
 	return v.Result(), nil
