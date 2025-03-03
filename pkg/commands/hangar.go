@@ -78,6 +78,7 @@ func (cc *hangarCmd) addCommands() {
 		newSyncCmd(),
 		newArchiveCmd(),
 		newInspectCmd(),
+		newMergeManifestCmd(),
 		newConvertListCmd(),
 		newGenerateListCmd(),
 		newGenerateSigstoreKeyCmd(),
