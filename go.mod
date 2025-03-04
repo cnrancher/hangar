@@ -6,7 +6,7 @@ toolchain go1.23.6
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/STARRY-S/zip v0.2.2-beta.1
+	github.com/STARRY-S/zip v0.2.2
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.59.1
 	github.com/aquasecurity/trivy-db v0.0.0-20241209111357-8c398f13db0e
