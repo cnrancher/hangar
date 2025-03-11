@@ -61,7 +61,7 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	}
 
 	var source typesv5.ImageSource
-	retry.IfNecessary(ctx, func() error {
+	err = retry.IfNecessary(ctx, func() error {
 		// NewImageSource requires network connection
 		source, err = ref.NewImageSource(ctx, systemContext)
 		return err
