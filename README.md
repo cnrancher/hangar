@@ -11,23 +11,26 @@
 
 > English | [简体中文](https://hangar.cnrancher.com/zh/)
 
-Hangar is a command line utility for container images, it's main features are:
-- Copy multi-platform container images between registry servers.
-- Save and load multi-platform container images between archive files.
-- Container image signing functions with sigstore key-pairs.
-- Container image vulnerability scanning.
+
+Hangar is a command line utility for container images with following features:
+
+- Multi-platform container images.
+- Copy container images between registry servers.
+- Export container images as archive files and import them into image repositories.
+- Sign container images with sigstore key-pairs.
+- Scan container image vulnerabilities.
 
 ## Why use hangar?
 
 - Hangar does not require any container runtime (daemon) to copy container images.
-- Hangar is not restricted by the platform of the runtime system, it supports Linux/Unix systems.
+- Hangar is cross-platform and works in all Unix-like operating systems.
 - Hangar supports both [docker images](https://github.com/moby/docker-image-spec/blob/main/README.md) and [OCI images](https://github.com/opencontainers/image-spec).
-- Hangar supports copy/save/load/sign/scan multi-platform images parallelly to increase speed.
-- Hanagr is designed to save/load multi-platform container images with archve files in Air-Gapped environments.
+- Hangar supports copying/saving/loading/signing/scanning images in parallel to increase speed.
+- Hanagr is designed to export container images as archive files and import them into image repositories in Air-Gapped environments.
 
 ## Getting started
 
-The getting started instruction of Hangar is available in [documents](https://hangar.cnrancher.com/docs/v1.9/).
+The getting started instruction of Hangar is available in [documentation](https://hangar.cnrancher.com/docs/v1.9/).
 
 ## Contributing
 
