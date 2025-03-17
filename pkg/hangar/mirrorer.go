@@ -283,6 +283,11 @@ func (m *Mirrorer) worker(ctx context.Context, o any) {
 		return
 	}
 
+	if obj.source.IsHelmChart() {
+		// Do not create manifest index for OCI helm chart.
+		return
+	}
+
 	copiedImage := obj.source.GetCopiedImage()
 	if len(copiedImage.Images) == 0 {
 		return

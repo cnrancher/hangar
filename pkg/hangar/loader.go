@@ -338,6 +338,7 @@ func (l *Loader) worker(ctx context.Context, o any) {
 		}
 		allowedDigests[img.Digest.String()] = true
 	}
+	var skipManifestIndex bool
 	var copiedManifestImages = make(manifest.Images, 0)
 	for _, img := range obj.image.Images {
 		if img.Digest == "" {
@@ -438,6 +439,10 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			return
 		}
 
+		if src.IsHelmChart() {
+			skipManifestIndex = true
+		}
+
 		var mi *manifest.Image
 		mi, err = manifest.NewImageByInspect(
 			copyContext, dest.ReferenceNameDigest(img.Digest), dest.SystemContext(),
@@ -450,6 +455,9 @@ func (l *Loader) worker(ctx context.Context, o any) {
 			img.Arch, img.Variant, img.OS, img.OSVersion, img.OSFeatures)
 		mi.Annotations = img.Annotations
 		copiedManifestImages = append(copiedManifestImages, mi)
+	}
+	if skipManifestIndex {
+		return
 	}
 
 	destManifestImages := dest.ManifestImages()

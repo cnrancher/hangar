@@ -200,6 +200,12 @@ func (d *Destination) ReferenceAttName(
 	}
 }
 
+func (d *Destination) ReferenceHelmChart(
+	sha256sum string,
+) (typesv5.ImageReference, error) {
+	return d.ReferenceMultiArch("", "", "", "", sha256sum)
+}
+
 func (d *Destination) ReferenceAtt(
 	sha256sum string,
 ) (typesv5.ImageReference, error) {

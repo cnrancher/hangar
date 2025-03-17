@@ -23,6 +23,7 @@ import (
 	signaturev5 "github.com/containers/image/v5/signature"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
 	typesv5 "github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -31,7 +32,9 @@ type CopyOptions struct {
 	SigstorePassphrase []byte
 	RemoveSignatures   bool
 	CopyProvenance     bool
-	Annotations        map[string]string
+
+	// Annotation option is used for load command.
+	Annotations map[string]string
 
 	Destination *destination.Destination
 	Set         types.FilterSet
@@ -606,23 +609,34 @@ func (s *Source) copyMediaTypeImageManifest(
 	osFeatures := s.ociConfig.OSFeatures
 	variant := s.ociConfig.Variant
 
-	// Skip image
-	var isAttestations bool
-	var attOriginalDigest string
-	if opts.Annotations != nil && private.IsAttestations(&imgspecv1.Descriptor{
+	descriptor := &imgspecv1.Descriptor{
 		Annotations: opts.Annotations,
 		Platform: &imgspecv1.Platform{
 			Architecture: arch,
 			OS:           osInfo,
 		},
-	}) {
+	}
+	// Check whether the image should be skip
+	var err error
+	var destRef typesv5.ImageReference
+	switch {
+	case private.IsAttestations(descriptor):
 		if !opts.CopyProvenance {
 			return utils.ErrNoAvailableImage
 		}
-		isAttestations = true
-		attOriginalDigest = opts.Annotations["vnd.docker.reference.digest"]
-	} else if !opts.Set.Allow(arch, osInfo, variant) {
-		return utils.ErrNoAvailableImage
+		attOriginalDigest := digest.Digest(opts.Annotations["vnd.docker.reference.digest"])
+		destRef, err = opts.Destination.ReferenceAtt(attOriginalDigest.Encoded())
+	case s.IsHelmChart():
+		destRef, err = opts.Destination.ReferenceHelmChart(s.manifestDigest.Encoded())
+	default:
+		if !opts.Set.Allow(arch, osInfo, variant) {
+			return utils.ErrNoAvailableImage
+		}
+		destRef, err = opts.Destination.ReferenceMultiArch(
+			osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
+	}
+	if err != nil {
+		return err
 	}
 	skipCopy := false
 	if opts.SigstorePrivateKey == "" && opts.Destination.HaveDigest(s.manifestDigest) {
@@ -631,16 +645,6 @@ func (s *Source) copyMediaTypeImageManifest(
 	}
 
 	sourceRef, err := s.Reference()
-	if err != nil {
-		return err
-	}
-	var destRef typesv5.ImageReference
-	if isAttestations {
-		destRef, err = opts.Destination.ReferenceAtt(strings.TrimPrefix(attOriginalDigest, "sha256:"))
-	} else {
-		destRef, err = opts.Destination.ReferenceMultiArch(
-			osInfo, osVersion, arch, variant, s.manifestDigest.Encoded())
-	}
 	if err != nil {
 		return err
 	}
