@@ -111,24 +111,54 @@ func (cc *archiveLsCmd) run(args []string) error {
 		size := 0.0
 		for l := range layers {
 			n := fmt.Sprintf("share/sha256/%v", l)
-			s, _ := reader.FileCompressedSize(n)
+			s, err := reader.FileCompressedSize(n)
+			if err != nil {
+				logrus.Warnf("failed to get %v layer compressed size: %v", l, err)
+			}
 			size += float64(s)
 		}
 
 		hasProvenance := false
 		if i := slices.Index(image.ArchList, unknownPlatform); i >= 0 {
 			hasProvenance = true
-			image.ArchList = append(image.ArchList[:i], image.ArchList[i+1:]...)
+			// image.ArchList = append(image.ArchList[:i], image.ArchList[i+1:]...)
+			image.ArchList = slices.Delete(image.ArchList, i, i+1)
 		}
 		if i := slices.Index(image.OsList, unknownPlatform); i >= 0 {
 			hasProvenance = true
-			image.OsList = append(image.OsList[:i], image.OsList[i+1:]...)
+			// image.OsList = append(image.OsList[:i], image.OsList[i+1:]...)
+			image.OsList = slices.Delete(image.OsList, i, i+1)
 		}
-		s := fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fM",
-			i+1, image.Source, image.Tag,
-			strings.Join(image.ArchList, ","),
-			strings.Join(image.OsList, ","),
-			size/1024.0/1024.0)
+		var s string
+		archList := strings.Join(image.ArchList, ",")
+		osList := strings.Join(image.OsList, ",")
+		if archList == "" {
+			archList = "NOARCH"
+		}
+		if osList == "" {
+			osList = "NOOS"
+		}
+		switch {
+		case size < 10e5:
+			s = fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fK",
+				i+1, image.Source, image.Tag,
+				archList,
+				osList,
+				size/1024.0)
+		case size < 10e9:
+			s = fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fM",
+				i+1, image.Source, image.Tag,
+				archList,
+				osList,
+				size/1024.0/1024.0)
+		case size < 10e12:
+			s = fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fG",
+				i+1, image.Source, image.Tag,
+				archList,
+				osList,
+				size/1024.0/1024.0/1024.0)
+		}
+
 		if hasProvenance {
 			s += " | (with attestation)"
 		}

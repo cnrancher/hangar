@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/retry"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"helm.sh/helm/v3/pkg/registry"
 )
 
 const (
@@ -60,4 +61,8 @@ func IsAttestations(m *imgspecv1.Descriptor) bool {
 		return false
 	}
 	return true
+}
+
+func IsHelmChart(m *imgspecv1.Manifest) bool {
+	return m.Config.MediaType == registry.ConfigMediaType
 }

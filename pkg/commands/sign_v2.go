@@ -39,8 +39,6 @@ type signOpts struct {
 	passphraseFile          string
 	signManifestIndex       bool
 	tlogUpload              bool
-	issueCertificate        bool
-	signContainerIdentity   string
 	recordCreationTimestamp bool
 	rekorURL                string
 	fulcioURL               string
