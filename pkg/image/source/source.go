@@ -11,6 +11,7 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
+	"helm.sh/helm/v3/pkg/registry"
 
 	manifestv5 "github.com/containers/image/v5/manifest"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
@@ -599,4 +600,18 @@ func (s *Source) IsSigstoreSignature() bool {
 		}
 	}
 	return false
+}
+
+func (s *Source) IsHelmChart() bool {
+	if s.mime != imgspecv1.MediaTypeImageManifest {
+		return false
+	}
+	if s.ociManifest.Config.MediaType != registry.ConfigMediaType {
+		return false
+	}
+	return true
+}
+
+func (s *Source) ManifestDigest() digest.Digest {
+	return s.manifestDigest
 }

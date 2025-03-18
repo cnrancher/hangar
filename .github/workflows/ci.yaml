@@ -8,7 +8,7 @@ on:
       - dev*
 jobs:
   ci:
-    runs-on: org-cnrancher-runner-dind-x64
+    runs-on: ${{ github.repository_owner == 'cnrancher' && 'org-cnrancher-runner-dind-x64' || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

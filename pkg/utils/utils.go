@@ -266,9 +266,8 @@ func GetProjectName(image string) string {
 	case 2:
 		if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 			return DefaultProject
-		} else {
-			return s[0]
 		}
+		return s[0]
 	case 3:
 		return s[1]
 	default:
@@ -305,9 +304,8 @@ func GetRegistryName(image string) string {
 	case 2:
 		if strings.ContainsAny(s[0], ".:") || s[0] == LocalHost {
 			return s[0]
-		} else {
-			return DockerHubRegistry
 		}
+		return DockerHubRegistry
 	case 3:
 		return s[0]
 	default:

@@ -1,7 +1,8 @@
 <div align="center">
   <h1>Hangar</h1>
   <p>
-    <a href="https://build.opensuse.org/package/show/home:StarryWang/Hangar"><img alt="GitHub pre-release" src="https://build.opensuse.org/projects/home:StarryWang/packages/Hangar/badge.svg?type=default"></a>
+    <a href="https://build.opensuse.org/package/show/home:StarryWang/Hangar"><img src="https://build.opensuse.org/projects/home:StarryWang/packages/Hangar/badge.svg?type=default"></a>
+    <a href="https://aur.archlinux.org/packages/hangar"><img src="https://img.shields.io/aur/version/hangar"></a>
     <a href="https://goreportcard.com/report/github.com/cnrancher/hangar"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/hangar"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/hangar?color=default&label=release&logo=github"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub pre-release" src="https://img.shields.io/github/v/release/cnrancher/hangar?include_prereleases&label=pre-release&logo=github"></a>
@@ -11,8 +12,7 @@
 
 > English | [简体中文](https://hangar.cnrancher.com/zh/)
 
-
-Hangar is a command line utility for container images with following features:
+Hangar is a command line utility for container images with the following features:
 
 - Multi-platform container images.
 - Copy container images between registry servers.
@@ -26,11 +26,11 @@ Hangar is a command line utility for container images with following features:
 - Hangar is cross-platform and works in all Unix-like operating systems.
 - Hangar supports both [docker images](https://github.com/moby/docker-image-spec/blob/main/README.md) and [OCI images](https://github.com/opencontainers/image-spec).
 - Hangar supports copying/saving/loading/signing/scanning images in parallel to increase speed.
-- Hanagr is designed to export container images as archive files and import them into image repositories in Air-Gapped environments.
+- Hangar is designed to export container images as archive files and import them into image repositories in Air-Gapped environments.
 
 ## Getting started
 
-The getting started instruction of Hangar is available in [documentation](https://hangar.cnrancher.com/docs/v1.9/).
+For documentation, visit the [Hangar Documentation](https://hangar.cnrancher.com/docs/v1.9).
 
 ## Contributing
 
