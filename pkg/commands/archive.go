@@ -45,6 +45,7 @@ hangar archive merge --help
 		newArchiveLsCmd(),
 		newArchiveMergeCmd(),
 		newArchiveExportCmd(),
+		newArchiveStoreCmd(),
 	)
 	return cc
 }

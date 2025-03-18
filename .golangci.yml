@@ -93,6 +93,11 @@ issues:
       text: 'Expect WriteFile permissions to be 0600 or less'
       linters:
         - gosec
+    # Permit image blobs to 0644
+    - path: 'pkg/hangar/archive/oci/chart.go'
+      text: 'Expect WriteFile permissions to be 0600 or less'
+      linters:
+        - gosec
     # Permit cobra cmd as unused parameter
     - path: 'pkg/commands/*'
       text: "unused-parameter: parameter 'cmd' seems to be unused"

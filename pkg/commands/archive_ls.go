@@ -11,6 +11,8 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 type archiveLsCmd struct {
@@ -118,6 +120,7 @@ func (cc *archiveLsCmd) run(args []string) error {
 			size += float64(s)
 		}
 
+		isHelmChart := false
 		hasProvenance := false
 		if i := slices.Index(image.ArchList, unknownPlatform); i >= 0 {
 			hasProvenance = true
@@ -132,11 +135,12 @@ func (cc *archiveLsCmd) run(args []string) error {
 		var s string
 		archList := strings.Join(image.ArchList, ",")
 		osList := strings.Join(image.OsList, ",")
-		if archList == "" {
+		if archList == "" && osList == "" {
 			archList = "NOARCH"
-		}
-		if osList == "" {
 			osList = "NOOS"
+			if len(image.Images) == 1 && image.Images[0].MediaType == imgspecv1.MediaTypeImageManifest {
+				isHelmChart = true
+			}
 		}
 		switch {
 		case size < 10e5:
@@ -159,8 +163,11 @@ func (cc *archiveLsCmd) run(args []string) error {
 				size/1024.0/1024.0/1024.0)
 		}
 
-		if hasProvenance {
+		switch {
+		case hasProvenance:
 			s += " | (with attestation)"
+		case isHelmChart:
+			s += " | (helm chart)"
 		}
 		fmt.Println(s)
 	}

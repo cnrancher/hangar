@@ -109,7 +109,7 @@ You can also download the KDM JSON file and clone chart repos manually:
 	flags.StringVarP(&cc.rke2Images, "rke2-images", "", "", "output KDM RKE2 linux image list if specified")
 	flags.StringVarP(&cc.rke2WindowsImages, "rke2-windows-images", "", "", "output KDM RKE2 Windows image list if specified")
 	flags.StringVarP(&cc.k3sImages, "k3s-images", "", "", "output KDM K3s linux image list if specified")
-	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", false, "require HTTPS and verify certificates")
+	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 
 	return cc
