@@ -94,7 +94,7 @@ issues:
       linters:
         - gosec
     # Permit image blobs to 0644
-    - path: 'pkg/hangar/archive/oci/chart.go'
+    - path: 'pkg/hangar/archive/oci/common.go'
       text: 'Expect WriteFile permissions to be 0600 or less'
       linters:
         - gosec

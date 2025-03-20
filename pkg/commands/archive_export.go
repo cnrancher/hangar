@@ -33,9 +33,10 @@ func newArchiveExportCmd() *archiveExportCmd {
 	}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "export",
-		Short: "Export images from hangar archive file into a new archive file",
-		Long:  "Export some images from hangar archive file into a new archive file by image list file.",
+		Use:     "export",
+		Short:   "Export images from hangar archive file into a new archive file",
+		Aliases: []string{"e"},
+		Long:    "Export some images from hangar archive file into a new archive file by image list file.",
 		Example: `
 # Export images from archive file
 hangar archive export \

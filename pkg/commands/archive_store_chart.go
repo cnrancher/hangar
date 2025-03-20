@@ -28,9 +28,26 @@ func newStoreChartCmd() *storeChartCmd {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "chart",
-		Short:   "store helm chart in Hangar archive file",
+		Short:   "Store OCI format Helm Chart in archive",
+		Aliases: []string{"charts", "c"},
 		Long:    "",
-		Example: ``,
+		Example: `# Add OCI Helm Chart to archive file
+hangar archive store chart \
+	--file saved_images.zip \
+	oci://example.com/chart \
+	--name NAME --version VERSION
+
+# Add multiple tgz Helm Charts to archive file
+hangar archive store chart \
+	--file saved_images.zip \
+	./path/to/chart1.tgz \
+	./path/to/chart2.tgz
+
+# Add Helm Chart from HTTP Helm Repo
+hangar archive store chart \
+	--file saved_images.zip \
+	https://example.com/chart/repo \
+	--name NAME --version VERSION`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -47,7 +64,7 @@ func newStoreChartCmd() *storeChartCmd {
 	})
 
 	flags := cc.baseCmd.cmd.Flags()
-	flags.StringVarP(&cc.file, "file", "f", "", "Path to the Hangar archive file (.zip)")
+	flags.StringVarP(&cc.file, "file", "f", "", "Path to the Hangar archive file (zip)")
 	flags.StringVarP(&cc.version, "version", "v", "", "Chart version (optional)")
 	flags.StringVarP(&cc.name, "name", "n", "", "Chart name of the helm repository")
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "Require HTTPS and verify certificates")
@@ -76,14 +93,15 @@ func (cc *storeChartCmd) run(args []string) error {
 
 	for _, a := range args {
 		chart := oci.NewChart(&oci.ChartOptions{
-			URL:                a,
-			Name:               cc.name,
-			Version:            cc.version,
-			InsecureSkipVerify: !cc.tlsVerify,
-			SystemContext:      cc.baseCmd.newSystemContext(),
-			Policy:             policy,
+			CommonOpts: oci.CommonOpts{
+				InsecureSkipVerify: !cc.tlsVerify,
+				SystemContext:      cc.baseCmd.newSystemContext(),
+				Policy:             policy,
+			},
+			URL:     a,
+			Name:    cc.name,
+			Version: cc.version,
 		})
-		logrus.Infof("Fetching chart %q", a)
 		if err := chart.Fetch(signalContext); err != nil {
 			return fmt.Errorf("failed to fetch %q, name %q, version %q: %w",
 				a, cc.name, cc.version, err)
@@ -92,7 +110,7 @@ func (cc *storeChartCmd) run(args []string) error {
 			return fmt.Errorf("failed to write chart %q to archive: %w",
 				chart.CacheDir(), err)
 		}
-		logrus.Infof("Store chart %q", chart.Source())
+		logrus.Infof("Add OCI Helm Chart [%v]", chart.Source())
 	}
 	return nil
 }

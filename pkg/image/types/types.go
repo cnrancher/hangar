@@ -91,20 +91,20 @@ func (s FilterSet) AllowArch(arch string) bool {
 	if len(s["arch"]) == 0 {
 		return true
 	}
-	if len(arch) > 0 {
-		return s["arch"][arch]
+	if len(arch) == 0 {
+		return true
 	}
-	return false
+	return s["arch"][arch]
 }
 
 func (s FilterSet) AllowOS(os string) bool {
 	if len(s["os"]) == 0 {
 		return true
 	}
-	if len(os) > 0 {
-		return s["os"][os]
+	if len(os) == 0 {
+		return true
 	}
-	return false
+	return s["os"][os]
 }
 
 func (s FilterSet) AllowVariant(v string) bool {
@@ -114,8 +114,5 @@ func (s FilterSet) AllowVariant(v string) bool {
 	if len(v) == 0 {
 		return true
 	}
-	if len(v) > 0 {
-		return s["variant"][v]
-	}
-	return false
+	return s["variant"][v]
 }

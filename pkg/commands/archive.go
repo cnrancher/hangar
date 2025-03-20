@@ -14,9 +14,10 @@ func newArchiveCmd() *archiveCmd {
 	cc := &archiveCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "archive",
-		Short: "Action for Hangar archive file",
-		Long:  "",
+		Use:     "archive",
+		Short:   "Action for Hangar archive file",
+		Aliases: []string{"a"},
+		Long:    "",
 		Example: `# Show images in archive file:
 hangar archive ls --help
 

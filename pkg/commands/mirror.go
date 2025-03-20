@@ -49,9 +49,10 @@ func newMirrorCmd() *mirrorCmd {
 		mirrorOpts: new(mirrorOpts),
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "mirror -f IMAGE_LIST.txt -d DESTINATION_REGISTRY",
-		Short: "Mirror images between registry servers",
-		Long:  ``,
+		Use:     "mirror -f IMAGE_LIST.txt -d DESTINATION_REGISTRY",
+		Aliases: []string{"m"},
+		Short:   "Mirror images between registry servers",
+		Long:    ``,
 		Example: `# Mirror images from SOURCE REGISTRY to DESTINATION REGISTRY.
 hangar mirror \
 	--file IMAGE_LIST.txt \

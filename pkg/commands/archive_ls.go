@@ -3,14 +3,18 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
+	"github.com/cnrancher/hangar/pkg/hangar/archive/oci"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"helm.sh/helm/v3/pkg/registry"
 
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -27,9 +31,10 @@ func newArchiveLsCmd() *archiveLsCmd {
 	cc := &archiveLsCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "ls",
-		Short: "Show images (index) in Hangar archive file",
-		Long:  "",
+		Use:     "ls",
+		Short:   "Show images (index) in Hangar archive file",
+		Aliases: []string{"list"},
+		Long:    "",
 		Example: `
 # Show images in archive file:
 hangar archive ls -f SAVED_ARCHIVE.zip`,
@@ -121,6 +126,7 @@ func (cc *archiveLsCmd) run(args []string) error {
 		}
 
 		isHelmChart := false
+		isCustomFile := false
 		hasProvenance := false
 		if i := slices.Index(image.ArchList, unknownPlatform); i >= 0 {
 			hasProvenance = true
@@ -139,7 +145,31 @@ func (cc *archiveLsCmd) run(args []string) error {
 			archList = "NOARCH"
 			osList = "NOOS"
 			if len(image.Images) == 1 && image.Images[0].MediaType == imgspecv1.MediaTypeImageManifest {
-				isHelmChart = true
+				f, err := reader.LoadFile(filepath.Join(archive.SharedBlobDir, "sha256", image.Images[0].Digest.Encoded()))
+				if err != nil {
+					logrus.Warnf("failed to find config blob: %v", err)
+					continue
+				}
+				b, err := io.ReadAll(f)
+				if err != nil {
+					logrus.Warnf("failed to read config blob: %v", err)
+					f.Close()
+					continue
+				}
+				f.Close()
+				m := &imgspecv1.Manifest{}
+				if err := json.Unmarshal(b, &m); err != nil {
+					logrus.Warnf("failed to load manifest: %v", err)
+					continue
+				}
+				if len(m.Layers) > 0 {
+					switch m.Layers[0].MediaType {
+					case oci.FileLayerMediaType:
+						isCustomFile = true
+					case registry.ChartLayerMediaType:
+						isHelmChart = true
+					}
+				}
 			}
 		}
 		switch {
@@ -149,13 +179,13 @@ func (cc *archiveLsCmd) run(args []string) error {
 				archList,
 				osList,
 				size/1024.0)
-		case size < 10e9:
+		case size < 10e8:
 			s = fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fM",
 				i+1, image.Source, image.Tag,
 				archList,
 				osList,
 				size/1024.0/1024.0)
-		case size < 10e12:
+		default:
 			s = fmt.Sprintf("%4d | %s:%s | %s | %s | %.2fG",
 				i+1, image.Source, image.Tag,
 				archList,
@@ -168,6 +198,8 @@ func (cc *archiveLsCmd) run(args []string) error {
 			s += " | (with attestation)"
 		case isHelmChart:
 			s += " | (helm chart)"
+		case isCustomFile:
+			s += " | (custom file)"
 		}
 		fmt.Println(s)
 	}

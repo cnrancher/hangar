@@ -200,10 +200,23 @@ func (d *Destination) ReferenceAttName(
 	}
 }
 
+func (d *Destination) ReferenceNameHelmChart(
+	sha256sum string,
+) string {
+	switch d.imageType {
+	case types.TypeDir,
+		types.TypeOci:
+		return filepath.Join(d.referenceName, sha256sum)
+	default:
+		// Helm chart/Custom File does not need multi-platform manifest list
+		return d.referenceName
+	}
+}
+
 func (d *Destination) ReferenceHelmChart(
 	sha256sum string,
 ) (typesv5.ImageReference, error) {
-	return d.ReferenceMultiArch("", "", "", "", sha256sum)
+	return alltransportsv5.ParseImageName(d.ReferenceNameHelmChart(sha256sum))
 }
 
 func (d *Destination) ReferenceAtt(

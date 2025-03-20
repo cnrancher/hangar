@@ -39,9 +39,10 @@ func newSaveCmd() *saveCmd {
 		saveOpts: new(saveOpts),
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "save -f IMAGE_LIST.txt -d SAVED_ARCHIVE.zip",
-		Short: "Save images from registry server into local archive file",
-		Long:  "",
+		Use:     "save -f IMAGE_LIST.txt -d SAVED_ARCHIVE.zip",
+		Aliases: []string{"s"},
+		Short:   "Save images from registry server into local archive file",
+		Long:    "",
 		Example: `
 hangar save \
 	--file IMAGE_LIST.txt \
