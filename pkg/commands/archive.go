@@ -43,6 +43,7 @@ hangar archive merge --help
 	// flags := cc.baseCmd.cmd.Flags()
 
 	addCommands(cc.cmd,
+		newArchiveInitCmd(),
 		newArchiveLsCmd(),
 		newArchiveMergeCmd(),
 		newArchiveExportCmd(),

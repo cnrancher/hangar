@@ -27,7 +27,7 @@ func newInspectCmd() *inspectCmd {
 	cc := &inspectCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:     "inspect IMAGR_REFERENCE",
+		Use:     "inspect IMAGE_REFERENCE",
 		Aliases: []string{"i"},
 		Short:   "Inspect provides basic functions of 'skopeo inspect' to inspect image manifest",
 		Long:    "",
