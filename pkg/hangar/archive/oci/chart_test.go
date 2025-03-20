@@ -20,39 +20,47 @@ var policy = &signature.Policy{
 var opts = []*ChartOptions{
 	// Repository URL
 	{
-		URL:                "https://charts.rancher.cn/2.10-prime/latest/",
-		Name:               "rancher",
-		Version:            "2.10.3-ent",
-		InsecureSkipVerify: false,
-		SystemContext:      utils.CopySystemContext(nil),
-		Policy:             policy,
+		CommonOpts: CommonOpts{
+			InsecureSkipVerify: false,
+			SystemContext:      utils.CopySystemContext(nil),
+			Policy:             policy,
+		},
+		URL:     "https://charts.rancher.cn/2.10-prime/latest/",
+		Name:    "rancher",
+		Version: "2.10.3-ent",
 	},
 	// Tarball URL
 	{
-		URL:                "https://charts.rancher.cn/2.10-prime/latest/rancher-2.10.1-ent.tgz",
-		Name:               "",
-		Version:            "",
-		InsecureSkipVerify: false,
-		SystemContext:      utils.CopySystemContext(nil),
-		Policy:             policy,
+		CommonOpts: CommonOpts{
+			InsecureSkipVerify: false,
+			SystemContext:      utils.CopySystemContext(nil),
+			Policy:             policy,
+		},
+		URL:     "https://charts.rancher.cn/2.10-prime/latest/rancher-2.10.1-ent.tgz",
+		Name:    "",
+		Version: "",
 	},
 	// OCI repository
 	{
-		URL:                "oci://ghcr.io/nginx/charts",
-		Name:               "nginx-ingress",
-		Version:            "2.0.1",
-		InsecureSkipVerify: false,
-		SystemContext:      utils.CopySystemContext(nil),
-		Policy:             policy,
+		CommonOpts: CommonOpts{
+			InsecureSkipVerify: false,
+			SystemContext:      utils.CopySystemContext(nil),
+			Policy:             policy,
+		},
+		URL:     "oci://ghcr.io/nginx/charts",
+		Name:    "nginx-ingress",
+		Version: "2.0.1",
 	},
 	// Directory (skip if not exists)
 	{
-		URL:                "./test/charts",
-		Name:               "rancher-eks-operator",
-		Version:            "",
-		InsecureSkipVerify: false,
-		SystemContext:      utils.CopySystemContext(nil),
-		Policy:             policy,
+		CommonOpts: CommonOpts{
+			InsecureSkipVerify: false,
+			SystemContext:      utils.CopySystemContext(nil),
+			Policy:             policy,
+		},
+		URL:     "./test/charts",
+		Name:    "rancher-eks-operator",
+		Version: "",
 	},
 }
 

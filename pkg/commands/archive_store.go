@@ -11,9 +11,10 @@ type archiveStoreCmd struct {
 func newArchiveStoreCmd() *archiveStoreCmd {
 	cc := &archiveStoreCmd{}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "store",
-		Short: "store files in Hangar archive file",
-		Long:  "",
+		Use:     "store",
+		Short:   "store files in Hangar archive file",
+		Aliases: []string{"s"},
+		Long:    "",
 		Example: `# Store chart file into hangar archive file
 hangar archive store chart --help
 

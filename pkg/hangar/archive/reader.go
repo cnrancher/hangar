@@ -3,6 +3,7 @@ package archive
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -210,4 +211,8 @@ func (r *Reader) FileCompressedSize(name string) (int, error) {
 		}
 	}
 	return 0, os.ErrNotExist
+}
+
+func (r *Reader) LoadFile(name string) (fs.File, error) {
+	return r.zr.Open(name)
 }

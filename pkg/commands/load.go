@@ -46,8 +46,9 @@ func newLoadCmd() *loadCmd {
 		loadOpts: new(loadOpts),
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "load -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
-		Short: "Load images from zip archive created by 'save' command to registry server",
+		Use:     "load -s SAVED_ARCHIVE.zip -d REGISTRY_SERVER",
+		Aliases: []string{"l"},
+		Short:   "Load images from zip archive created by 'save' command to registry server",
 		Long: `Load images from zip archive created by 'save' command to registry server.
 
 The load command will create Harbor V2 projects for destination registry automatically.

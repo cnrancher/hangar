@@ -28,9 +28,10 @@ func newArchiveMergeCmd() *archiveMergeCmd {
 	}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:   "merge",
-		Short: "Merge multiple hangar archive files into one new archive file",
-		Long:  "",
+		Use:     "merge",
+		Aliases: []string{"m"},
+		Short:   "Merge multiple hangar archive files into one new archive file",
+		Long:    "",
 		Example: `
 # Merge multiple archive files
 hangar archive merge \
