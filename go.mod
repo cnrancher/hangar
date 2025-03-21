@@ -18,7 +18,7 @@ require (
 	github.com/rancher/rke v1.7.3
 	github.com/sigstore/cosign/v2 v2.4.3
 	github.com/sigstore/rekor v1.3.9
-	github.com/sigstore/sigstore v1.9.0
+	github.com/sigstore/sigstore v1.9.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spdx/tools-golang v0.5.5
 	github.com/spf13/cobra v1.9.1
