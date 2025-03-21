@@ -1,0 +1,7 @@
+- [INFO] Index version: v1.2.0
+- [INFO] Images:
+   1 | docker.io/hangar-helm/rancher:2.10.3-ent | NOARCH | NOOS | 16.50K | (helm chart)
+   2 | docker.io/hangar-helm/rancher:2.10.1-ent | NOARCH | NOOS | 16.47K | (helm chart)
+   3 | ghcr.io/nginx/charts/nginx-ingress:2.0.1 | NOARCH | NOOS | 41.67K | (helm chart)
+   4 | docker.io/hangar-file/save.txt:latest | NOARCH | NOOS | 0.16K | (custom file)
+   5 | docker.io/hangar-file/v2.10.3-ent_sha256sum.txt:latest | NOARCH | NOOS | 0.45K | (custom file)
