@@ -66,6 +66,8 @@ hangar archive export \
 	flags.StringVarP(&cc.failed, "failed", "", "export-failed.txt", "export failed image list file name")
 	flags.BoolVarP(&cc.autoYes, "auto-yes", "y", false, "answer yes automatically (used in shell script)")
 
+	addCommands(cc.cmd, newExportFileCmd())
+
 	return cc
 }
 

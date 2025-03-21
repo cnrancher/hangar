@@ -26,7 +26,7 @@ func newStoreFileCmd() *storeFile {
 	}
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "file",
-		Short:   "Store OCI format Custom File in archive (Experimental)",
+		Short:   "Store OCI format Custom File in archive",
 		Aliases: []string{"files", "f"},
 		Long:    "",
 		Example: `# Add files to archive

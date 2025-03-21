@@ -5,6 +5,7 @@ Automatin tests for following commands:
     "hangar archive init"
     "hangar archive store chart"
     "hangar arcihve store file
+    "hangar archive export file"
     "hangar archive ls"
 """
 
@@ -81,6 +82,24 @@ def test_store_chart():
         "file",
         "-f", ARCHIVE_NAME,
         "https://dl.rancher.cn/2.10/v2.10.3-ent_sha256sum.txt",
+    ])
+
+    # Extract custom file
+    run_hangar([
+        "archive",
+        "export",
+        "file",
+        "-f", ARCHIVE_NAME,
+        "-n", "v2.10.3-ent_sha256sum.txt",
+        "-y",
+    ])
+    run_hangar([
+        "archive",
+        "export",
+        "file",
+        "-f", ARCHIVE_NAME,
+        "-n", "save.txt",
+        "-y",
     ])
 
 
