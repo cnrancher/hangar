@@ -34,7 +34,7 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: 1.23.x
+        go-version: 1.24.x
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -42,7 +42,7 @@ jobs:
     - name: Lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.63
+        version: v1.64
     - name: Verify
       run: |
         ./scripts/verify.sh
@@ -93,6 +93,6 @@ jobs:
     - name: Hangar Sign
       uses: ./.github/actions/hangar-sign
       with:
-        version: v1.9.0
+        version: v1.9.1
         images: |
           ${{ vars.TCR_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}

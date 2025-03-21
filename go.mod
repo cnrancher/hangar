@@ -1,8 +1,6 @@
 module github.com/cnrancher/hangar
 
-go 1.23.5
-
-toolchain go1.23.6
+go 1.24
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
