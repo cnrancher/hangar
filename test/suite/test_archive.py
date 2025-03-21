@@ -8,9 +8,11 @@ Automatin tests for following commands:
     "hangar sync validate"
     "hangar load"
     "hangar load validate"
-    "hangar archive ls"
     "hangar archive merge"
     "hangar archive export"
+    "hangar archive store chart"
+    "hangar arcihve store file
+    "hangar archive ls"
 """
 
 import pytest

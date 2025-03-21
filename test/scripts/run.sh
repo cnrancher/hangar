@@ -50,7 +50,7 @@ done
 tox -e flake8
 
 if [[ ${HARBOR:-} = "" ]] && [[ ${DISTRIBUTION:-} = "" ]]; then
-    HARBOR=1
+    # HARBOR=1
     DISTRIBUTION=1
 fi
 
