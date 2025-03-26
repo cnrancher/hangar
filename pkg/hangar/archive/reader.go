@@ -85,8 +85,24 @@ func (r *Reader) Index() ([]byte, error) {
 	return b, nil
 }
 
-// Decompress decompresses the file/directory in archive.
+// Decompress decompresses the file/directory from archive.
 func (r *Reader) Decompress(name string, destination string) error {
+	var err error
+	baseDir := path.Dir(name) + string(os.PathSeparator)
+	if strings.HasSuffix(name, string(os.PathSeparator)) {
+		// Recursive to decompress a directory
+		for _, f := range r.zr.File {
+			if f.Name == name || !strings.HasPrefix(f.Name, name) {
+				continue
+			}
+			if err = r.Decompress(f.Name, destination); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Decompress a single file
 	var file *zip.File
 	for _, f := range r.zr.File {
 		if f.Name != name {
@@ -96,26 +112,11 @@ func (r *Reader) Decompress(name string, destination string) error {
 		break
 	}
 	if file == nil {
+		logrus.Warnf("failed to find file %q in archive", name)
 		return os.ErrNotExist
 	}
-
-	var err error
-	baseDir := path.Dir(name) + string(os.PathSeparator)
 	target := filepath.Join(destination, strings.TrimPrefix(file.Name, baseDir))
 	switch {
-	case file.Mode().IsDir():
-		if err = os.MkdirAll(target, file.Mode()); err != nil {
-			return err
-		}
-		// Decompress all files inside the directory.
-		for _, f := range r.zr.File {
-			if f.Name == baseDir || !strings.HasPrefix(f.Name, baseDir) {
-				continue
-			}
-			if err = r.Decompress(f.Name, destination); err != nil {
-				return err
-			}
-		}
 	case file.Mode().IsRegular():
 		if err = os.MkdirAll(path.Dir(target), 0755); err != nil {
 			return err
