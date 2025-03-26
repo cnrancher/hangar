@@ -36,7 +36,8 @@ func RetryOptions() *retry.Options {
 			case strings.Contains(s, "500 Internal Server Error") ||
 				strings.Contains(s, "timeout") ||
 				strings.Contains(s, "stopped after 10 redirects") ||
-				strings.Contains(s, "reset by peer"):
+				strings.Contains(s, "reset by peer") ||
+				strings.Contains(s, "Digest did not match"):
 				return true
 			}
 			return false

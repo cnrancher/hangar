@@ -159,9 +159,9 @@ func (u *Updater) appendDir(base string) error {
 		if fname == "" {
 			return nil
 		}
-		// if not a dir, write file content
-		if fi.IsDir() && !strings.HasSuffix(fname, string(os.PathSeparator)) {
-			fname += string(os.PathSeparator)
+		if fi.IsDir() {
+			// Only write the regular file into the zip archive.
+			return nil
 		}
 		writer, err := u.zu.AppendHeader(&zip.FileHeader{
 			Name:     fname,
