@@ -1,110 +1,119 @@
+version: "2"
 run:
-  timeout: 10m
-  go: "1.23"
+  go: "1.24"
   tests: false
   allow-parallel-runners: true
-
-# output:
-#   format: github-actions
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    # - dupl # check duplicated code
-    - goconst # check strings that can turn into constants
-    - gofmt # check fmt
-    - goimports # check imports
-    - gosec # check for security problems
-    - govet # check vet
-    - importas # check consistent import aliasing
-    - ineffassign # check ineffectual assignments
-    - misspell # check for misspelled English words
-    - nakedret # check naked returns in functions
-    - prealloc # check preallocated slice declarations
-    - revive # replacement for golint
-    - unconvert # check redundant type conversions
-    - whitespace # check for trailing whitespace and tabs
-
-linters-settings:
-  revive:
+    - goconst
+    - gosec
+    - govet
+    - importas
+    - ineffassign
+    - misspell
+    - nakedret
+    - prealloc
+    - revive
+    - unconvert
+    - whitespace
+  settings:
+    gosec:
+      excludes:
+        - G115 # https://github.com/moby/moby/issues/48358#issuecomment-2323339603
+    importas:
+      alias:
+        # Kubernetes
+        - pkg: k8s.io/api/core/v1
+          alias: corev1
+        - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
+          alias: apiextensionsv1
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: k8s.io/apimachinery/pkg/util/runtime
+          alias: utilruntime
+        - pkg: sigs.k8s.io/controller-runtime/pkg/client
+          alias: runtimeclient
+      no-unaliased: true
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        - name: unexported-return
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: increment-decrement
-      - name: var-naming
-      - name: var-declaration
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
-      - name: unexported-return
-  importas:
-    no-unaliased: true
-    alias:
-      # Kubernetes
-      - pkg: k8s.io/api/core/v1
-        alias: corev1
-      - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
-        alias: apiextensionsv1
-      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
-        alias: metav1
-      - pkg: k8s.io/apimachinery/pkg/util/runtime
-        alias: utilruntime
-      - pkg: sigs.k8s.io/controller-runtime/pkg/client
-        alias: runtimeclient
-  gosec:
-    excludes:
-      - G115 # https://github.com/moby/moby/issues/48358#issuecomment-2323339603
-
-issues:
-  exclude-files:
-    - "zz_generated_*"
-  exclude-rules:
-    - path: 'pkg/image/scan/report.go'
-      text: "don't use ALL_CAPS in Go names"
-      linters:
-        - revive
-    # Permit insecure skip tls verify
-    - path: 'pkg/*'
-      text: 'TLS InsecureSkipVerify may be true'
-      linters:
-        - gosec
-    # Permit insecure skip tls verify
-    - path: 'pkg/*'
-      text: 'TLS InsecureSkipVerify set true'
-      linters:
-        - gosec
-    # Permit pubkey permission to 0644
-    - path: 'pkg/commands/generate_sigstore_key.go'
-      text: 'Expect WriteFile permissions to be 0600 or less'
-      linters:
-        - gosec
-    # Permit image blobs to 0644
-    - path: 'pkg/hangar/archive/oci/common.go'
-      text: 'Expect WriteFile permissions to be 0600 or less'
-      linters:
-        - gosec
-    # Permit cobra cmd as unused parameter
-    - path: 'pkg/commands/*'
-      text: "unused-parameter: parameter 'cmd' seems to be unused"
-      linters:
-        - revive
-    # Permit cobra args as unused parameter
-    - path: 'pkg/commands/*'
-      text: "unused-parameter: parameter 'args' seems to be unused"
-      linters:
-        - revive
+      - linters:
+          - revive
+        path: pkg/image/scan/report.go
+        text: don't use ALL_CAPS in Go names
+      # Permit insecure skip tls verify
+      - linters:
+          - gosec
+        path: pkg/*
+        text: TLS InsecureSkipVerify may be true
+      # Permit insecure skip tls verify
+      - linters:
+          - gosec
+        path: pkg/*
+        text: TLS InsecureSkipVerify set true
+      # Permit pubkey permission to 0644
+      - linters:
+          - gosec
+        path: pkg/commands/generate_sigstore_key.go
+        text: Expect WriteFile permissions to be 0600 or less
+      # Permit image blobs to 0644
+      - linters:
+          - gosec
+        path: pkg/hangar/archive/oci/common.go
+        text: Expect WriteFile permissions to be 0600 or less
+      # Permit cobra cmd as unused parameter
+      - linters:
+          - revive
+        path: pkg/commands/*
+        text: 'unused-parameter: parameter ''cmd'' seems to be unused'
+      - linters:
+          - revive
+        path: pkg/commands/*
+        text: 'unused-parameter: parameter ''args'' seems to be unused'
+    paths:
+      - zz_generated_*
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - zz_generated_*
+      - third_party$
+      - builtin$
+      - examples$
