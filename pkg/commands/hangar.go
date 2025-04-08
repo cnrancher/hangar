@@ -38,10 +38,9 @@ func newHangarCmd() *hangarCmd {
 	cc := &hangarCmd{}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use: "hangar",
-		Long: `Hangar is a simple and easy-to-use command line utility for mirroring
-multi-architecture & multi-platform container images between image registries.
-Aiming to simplify the process of copying container images between registries.
+		Use:   "hangar",
+		Short: "Multi-platform container image command-line utility. ",
+		Long: `Multi-platform container image command-line utility.
 
 https://hangar.cnrancher.com
 `,
