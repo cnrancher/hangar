@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/STARRY-S/zip v0.2.3-beta.3
+	github.com/STARRY-S/zip v0.2.3
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/aquasecurity/trivy v0.59.1
 	github.com/aquasecurity/trivy-db v0.0.0-20241209111357-8c398f13db0e
