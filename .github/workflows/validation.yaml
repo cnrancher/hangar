@@ -23,6 +23,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: 1.24.x
+        cache: false
     - name: Login to DockerHub # Avoid Rate Limit
       uses: docker/login-action@v3
       with:
