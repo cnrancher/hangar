@@ -27,7 +27,7 @@ require (
 	golang.org/x/term v0.31.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.17.2
+	helm.sh/helm/v3 v3.17.3
 	modernc.org/sqlite v1.37.0
 	sigs.k8s.io/yaml v1.4.0
 )
