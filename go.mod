@@ -9,7 +9,7 @@ require (
 	github.com/aquasecurity/trivy v0.59.1
 	github.com/aquasecurity/trivy-db v0.0.0-20241209111357-8c398f13db0e
 	github.com/aquasecurity/trivy-java-db v0.0.0-20240109071736-184bd7481d48
-	github.com/containers/common v0.62.3
+	github.com/containers/common v0.63.0
 	github.com/containers/image/v5 v5.35.0
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/google/go-containerregistry v0.20.3
@@ -194,7 +194,7 @@ require (
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
@@ -328,7 +328,7 @@ require (
 	github.com/oleiade/reflections v1.1.0 // indirect
 	github.com/open-policy-agent/opa v1.1.0 // indirect
 	github.com/opencontainers/runtime-spec v1.2.1 // indirect
-	github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271 // indirect
+	github.com/opencontainers/runtime-tools v0.9.1-0.20250303011046-260e151b8552 // indirect
 	github.com/opencontainers/selinux v1.12.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/openvex/discovery v0.1.1-0.20240802171711-7c54efc57553 // indirect
@@ -472,6 +472,6 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.18.1 // indirect
 	sigs.k8s.io/release-utils v0.11.1 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.3 // indirect
-	tags.cncf.io/container-device-interface v0.8.0 // indirect
-	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
+	tags.cncf.io/container-device-interface v1.0.1 // indirect
+	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
