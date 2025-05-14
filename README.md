@@ -1,7 +1,7 @@
 <div align="center">
   <h1>Hangar</h1>
   <p>
-    <a href="https://build.opensuse.org/package/show/home:StarryWang/Hangar"><img src="https://build.opensuse.org/projects/home:StarryWang/packages/Hangar/badge.svg?type=default"></a>
+    <a href="https://build.opensuse.org/package/show/home:StarryWang/hangar"><img src="https://build.opensuse.org/projects/home:StarryWang/packages/hangar/badge.svg?type=default"></a>
     <a href="https://aur.archlinux.org/packages/hangar"><img src="https://img.shields.io/aur/version/hangar"></a>
     <a href="https://goreportcard.com/report/github.com/cnrancher/hangar"><img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/cnrancher/hangar"></a>
     <a href="https://github.com/cnrancher/hangar/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/cnrancher/hangar?color=default&label=release&logo=github"></a>
