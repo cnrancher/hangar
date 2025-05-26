@@ -1,6 +1,6 @@
 module github.com/cnrancher/hangar
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
@@ -12,7 +12,7 @@ require (
 	github.com/containers/common v0.63.0
 	github.com/containers/image/v5 v5.35.0
 	github.com/go-git/go-git/v5 v5.16.0
-	github.com/google/go-containerregistry v0.20.3
+	github.com/google/go-containerregistry v0.20.5
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/rancher/rke v1.8.2
@@ -167,7 +167,7 @@ require (
 	github.com/containers/ocicrypt v1.2.1 // indirect
 	github.com/containers/storage v1.58.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.14.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -177,9 +177,9 @@ require (
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/dlclark/regexp2 v1.4.0 // indirect
-	github.com/docker/cli v28.0.4+incompatible // indirect
+	github.com/docker/cli v28.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v28.0.4+incompatible // indirect
+	github.com/docker/docker v28.1.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -307,6 +307,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/buildkit v0.18.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/go-archive v0.1.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/moby/sys/capability v0.4.0 // indirect
@@ -421,23 +422,23 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.34.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.59.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.35.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.34.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/oauth2 v0.29.0 // indirect
-	golang.org/x/sync v0.13.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 	google.golang.org/api v0.228.0 // indirect
 	google.golang.org/genproto v0.0.0-20250303144028-a0af3efb3deb // indirect
