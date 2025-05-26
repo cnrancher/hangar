@@ -42,6 +42,10 @@ func addRancherPrimeCharts(v string, o *listgenerator.GeneratorOption, dev bool)
 func addRancherPrimeSystemCharts(
 	v string, o *listgenerator.GeneratorOption, dev bool,
 ) {
+	if semver.Compare(v, "v2.11.0-0") >= 0 {
+		// SystemChart was removed on v2.11
+		return
+	}
 	majorMinor := semver.MajorMinor(v)
 	var branch string
 	if dev {
@@ -54,7 +58,7 @@ func addRancherPrimeSystemCharts(
 		Type   chartimages.ChartRepoType
 		Branch string
 	}{
-		Type:   chartimages.RepoTypeDefault,
+		Type:   chartimages.RepoTypeSystem,
 		Branch: branch,
 	}
 }
@@ -84,6 +88,11 @@ func addRancherPrimeGCSystemCharts(v string, o *listgenerator.GeneratorOption, d
 	var url string
 	var branch string
 
+	if semver.Compare(v, "v2.11.0-0") >= 0 {
+		// SystemChart was removed on v2.11
+		return
+	}
+
 	// GC starts use global system-charts from v2.9
 	if semver.Compare(v, "v2.9.0") >= 0 {
 		url = RancherPrimeSystemChartsRepo
@@ -105,7 +114,7 @@ func addRancherPrimeGCSystemCharts(v string, o *listgenerator.GeneratorOption, d
 		Type   chartimages.ChartRepoType
 		Branch string
 	}{
-		Type:   chartimages.RepoTypeDefault,
+		Type:   chartimages.RepoTypeSystem,
 		Branch: branch,
 	}
 }

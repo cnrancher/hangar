@@ -172,9 +172,13 @@ func (cc *generateListCmd) prepareGenerator() error {
 		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.10"):
 			option.MinKubeVersion = "v1.28.0"
 		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.11"):
-			option.MinKubeVersion = "v1.29.0"
+			option.MinKubeVersion = "v1.30.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.12"):
+			option.MinKubeVersion = "v1.31.0"
+		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.13"):
+			option.MinKubeVersion = "v1.32.0"
 		default:
-			option.MinKubeVersion = "v1.21.0"
+			option.MinKubeVersion = "v1.30.0"
 		}
 	}
 	logrus.Infof("Min Kube-Version for Rancher [%v]: %v", cc.rancherVersion, option.MinKubeVersion)
