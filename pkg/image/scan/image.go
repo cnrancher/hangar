@@ -12,10 +12,10 @@ import (
 	artifactimage "github.com/aquasecurity/trivy/pkg/fanal/artifact/image"
 	"github.com/aquasecurity/trivy/pkg/fanal/image"
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
-	"github.com/aquasecurity/trivy/pkg/scanner"
-	"github.com/aquasecurity/trivy/pkg/scanner/langpkg"
-	"github.com/aquasecurity/trivy/pkg/scanner/local"
-	"github.com/aquasecurity/trivy/pkg/scanner/ospkg"
+	"github.com/aquasecurity/trivy/pkg/scan"
+	"github.com/aquasecurity/trivy/pkg/scan/langpkg"
+	"github.com/aquasecurity/trivy/pkg/scan/local"
+	"github.com/aquasecurity/trivy/pkg/scan/ospkg"
 	"github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 	"github.com/cnrancher/hangar/pkg/utils"
@@ -32,7 +32,7 @@ type imageScanner struct {
 	scanners              types.Scanners
 
 	cache        cache.Cache
-	localScanner local.Scanner
+	localService local.Service
 }
 
 func newImageScanner(o *ScannerOption) (*imageScanner, error) {
@@ -92,8 +92,8 @@ func (s *imageScanner) initLocalScanner() {
 	langpkgScanner := langpkg.NewScanner()
 	config := db.Config{}
 	client := vulnerability.NewClient(config)
-	localScanner := local.NewScanner(applierApplier, ospkgScanner, langpkgScanner, client)
-	s.localScanner = localScanner
+	localService := local.NewService(applierApplier, ospkgScanner, langpkgScanner, client)
+	s.localService = localService
 	logrus.Debugf("localScanner of Image Scanner initialized")
 }
 
@@ -177,7 +177,7 @@ func (s *imageScanner) Scan(
 		return nil, fmt.Errorf("artifactimage.NewArtifact failed: %v", err)
 	}
 
-	ss := scanner.NewScanner(s.localScanner, artifactArtifact)
+	ss := scan.NewService(s.localService, artifactArtifact)
 	logrus.Debugf("Start scan artifact")
 	report, err := ss.ScanArtifact(ctx, s.scanOptions())
 	if err != nil {

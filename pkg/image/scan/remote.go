@@ -12,7 +12,7 @@ import (
 	"github.com/aquasecurity/trivy/pkg/fanal/image"
 	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 	"github.com/aquasecurity/trivy/pkg/rpc/client"
-	"github.com/aquasecurity/trivy/pkg/scanner"
+	"github.com/aquasecurity/trivy/pkg/scan"
 	"github.com/aquasecurity/trivy/pkg/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/containers/image/v5/pkg/docker/config"
@@ -29,7 +29,7 @@ type remoteScanner struct {
 	scanners              types.Scanners
 
 	remoteCache   *cache.RemoteCache
-	clientScanner *client.Scanner
+	clientService *client.Service
 }
 
 func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
@@ -81,12 +81,12 @@ func (s *remoteScanner) initCache() {
 }
 
 func (s *remoteScanner) initClientScanner() {
-	clientScanner := client.NewScanner(client.ScannerOption{
+	clientService := client.NewService(client.ServiceOption{
 		RemoteURL: s.trivyServerURL,
 		Insecure:  s.insecureSkipTLSVerify,
 	}, []client.Option(nil)...)
-	s.clientScanner = &clientScanner
-	logrus.Debugf("clientScanner of Remote Scanner initialized")
+	s.clientService = &clientService
+	logrus.Debugf("clientService of Remote Scanner initialized")
 }
 
 // scanOptions generates the trivy ScanOptions used by scanner.
@@ -169,7 +169,7 @@ func (s *remoteScanner) Scan(
 		return nil, fmt.Errorf("artifactimage.NewArtifact failed: %v", err)
 	}
 
-	ss := scanner.NewScanner(s.clientScanner, artifactArtifact)
+	ss := scan.NewService(s.clientService, artifactArtifact)
 	logrus.Debugf("Start scan artifact")
 	report, err := ss.ScanArtifact(ctx, s.scanOptions())
 	if err != nil {
