@@ -46,13 +46,13 @@ type ScannerOption struct {
 	Scanners []string
 }
 
-func NewScanner(o ScannerOption) (Scanner, error) {
+func NewScanner(ctx context.Context, o ScannerOption) (Scanner, error) {
 	if o.CacheDirectory == "" {
 		o.CacheDirectory = utils.TrivyCacheDir()
 	}
 
 	if o.TrivyServerURL != "" {
-		return newRemoteScanner(&o)
+		return newRemoteScanner(ctx, &o)
 	}
 	return newImageScanner(&o)
 }
@@ -66,13 +66,13 @@ var (
 	ErrScannerNotInitialized = errors.New("scanner not initialized")
 )
 
-func InitScanner(o ScannerOption) error {
+func InitScanner(ctx context.Context, o ScannerOption) error {
 	if globalScanner != nil {
 		return nil
 	}
 
 	var err error
-	globalScanner, err = NewScanner(o)
+	globalScanner, err = NewScanner(ctx, o)
 	if err != nil {
 		return err
 	}
