@@ -78,7 +78,7 @@ func (cc *viewSBOMCmd) run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get image attestation digest: %w", err)
 	}
-	inspector, err := manifest.NewInspector(signalContext, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: refName,
 		SystemContext: &types.SystemContext{
 			OCIInsecureSkipTLSVerify:    !cc.tlsVerify,

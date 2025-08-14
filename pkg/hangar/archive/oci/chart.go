@@ -147,7 +147,7 @@ func (c *Chart) fromOCI(ctx context.Context) error {
 			src.ReferenceName(), dest.ReferenceName(), err)
 	}
 
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: fmt.Sprintf("oci:%v", filepath.Join(c.cacheDir, src.ManifestDigest().Encoded())),
 		SystemContext: dest.SystemContext(),
 	})

@@ -86,7 +86,7 @@ func (cc *mergeManifestCmd) run(args []string) error {
 	ctx := signalContext
 	spec := args[1:]
 	for _, i := range spec {
-		inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+		inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 			ReferenceName: i,
 			SystemContext: &types.SystemContext{
 				ArchitectureChoice:          "",

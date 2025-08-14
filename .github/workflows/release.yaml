@@ -92,6 +92,5 @@ jobs:
     - name: Hangar Sign
       uses: ./.github/actions/hangar-sign
       with:
-        version: v1.9.1
         images: |
           ${{ vars.TCR_REGISTRY }}/${{ vars.PUBLIC_REGISTRY_REPO }}/hangar:${{ github.ref_name }}

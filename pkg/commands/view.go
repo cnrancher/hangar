@@ -60,7 +60,7 @@ func getImageAttestationReference(
 	if archInfo == "" {
 		archInfo = runtime.GOARCH
 	}
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: fmt.Sprintf("docker://%v", image),
 		SystemContext: &types.SystemContext{
 			ArchitectureChoice:          archInfo,
