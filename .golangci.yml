@@ -60,6 +60,11 @@ linters:
         - name: unreachable-code
         - name: redefines-builtin-id
         - name: unexported-return
+    misspell:
+      locale: US
+      ignore-rules: []
+      extra-words: []
+      mode: default
   exclusions:
     generated: lax
     presets:
@@ -101,6 +106,10 @@ linters:
           - revive
         path: pkg/commands/*
         text: 'unused-parameter: parameter ''args'' seems to be unused'
+      - linters:
+          - revive
+        path: pkg/*
+        text: 'avoid meaningless'
     paths:
       - zz_generated_*
       - third_party$

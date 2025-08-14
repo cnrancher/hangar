@@ -265,7 +265,7 @@ func (cc *scanCmd) prepareScanner() error {
 		return err
 	}
 	// Init global scanner.
-	err = scan.InitScanner(scan.ScannerOption{
+	err = scan.InitScanner(signalContext, scan.ScannerOption{
 		TrivyServerURL:        cc.trivyServerURL,
 		Offline:               cc.offline,
 		InsecureSkipTLSVerify: !cc.tlsVerify,

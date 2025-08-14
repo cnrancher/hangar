@@ -32,7 +32,7 @@ type remoteScanner struct {
 	clientService *client.Service
 }
 
-func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
+func newRemoteScanner(ctx context.Context, o *ScannerOption) (*remoteScanner, error) {
 	logrus.Debugf("Create scanner with options %v", utils.ToJSON(o))
 	s := &remoteScanner{
 		trivyServerURL:        o.TrivyServerURL,
@@ -42,7 +42,7 @@ func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
 		scanners:              nil,
 		cacheDirectory:        o.CacheDirectory,
 	}
-	s.initCache()
+	s.initCache(ctx)
 	s.initClientScanner()
 
 	if len(o.Scanners) == 0 {
@@ -70,11 +70,11 @@ func newRemoteScanner(o *ScannerOption) (*remoteScanner, error) {
 	return s, nil
 }
 
-func (s *remoteScanner) initCache() {
-	remoteCache := cache.NewRemoteCache(cache.RemoteOptions{
+func (s *remoteScanner) initCache(ctx context.Context) {
+	remoteCache := cache.NewRemoteCache(ctx, cache.RemoteOptions{
 		ServerAddr:    s.trivyServerURL,
 		CustomHeaders: http.Header{},
-		Insecure:      s.insecureSkipTLSVerify,
+		// Insecure:      s.insecureSkipTLSVerify,
 	})
 	s.remoteCache = remoteCache
 	logrus.Debugf("remote cache of Remote Scanner initialized")
