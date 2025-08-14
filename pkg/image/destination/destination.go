@@ -252,7 +252,7 @@ func (d *Destination) MIME() string {
 }
 
 func (d *Destination) InspectRAW(ctx context.Context) ([]byte, string, error) {
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: d.referenceName,
 	})
 	if err != nil {
@@ -310,7 +310,7 @@ func (d *Destination) initReferenceName() error {
 
 func (d *Destination) initManifest(ctx context.Context) error {
 	var err error
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: d.referenceName,
 		SystemContext: d.systemCtx,
 	})

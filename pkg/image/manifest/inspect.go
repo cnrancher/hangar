@@ -8,6 +8,7 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 	"github.com/containers/common/pkg/retry"
+	"github.com/containers/image/v5/docker"
 	imagev5 "github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
@@ -17,8 +18,7 @@ import (
 
 // Inspector provides similar functions of 'skopeo inspect' command.
 type Inspector struct {
-	// reference name
-	name          string
+	reference     typesv5.ImageReference
 	systemContext *typesv5.SystemContext
 	source        typesv5.ImageSource
 	retryOpts     *retry.Options
@@ -35,7 +35,7 @@ type InspectorOption struct {
 	RetryOpts *retry.Options
 }
 
-func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
+func NewInspector(o *InspectorOption) (*Inspector, error) {
 	var (
 		ref           typesv5.ImageReference = o.Reference
 		systemContext *typesv5.SystemContext = o.SystemContext
@@ -51,7 +51,7 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 		systemContext = &typesv5.SystemContext{}
 	}
 	p := &Inspector{
-		name:          o.ReferenceName,
+		reference:     ref,
 		systemContext: systemContext,
 		source:        nil,
 		retryOpts:     o.RetryOpts,
@@ -59,22 +59,32 @@ func NewInspector(ctx context.Context, o *InspectorOption) (*Inspector, error) {
 	if p.retryOpts == nil {
 		p.retryOpts = private.RetryOptions()
 	}
-
-	var source typesv5.ImageSource
-	err = retry.IfNecessary(ctx, func() error {
-		// NewImageSource requires network connection
-		source, err = ref.NewImageSource(ctx, systemContext)
-		return err
-	}, p.retryOpts)
-	if err != nil {
-		return nil, err
-	}
-	p.source = source
-
 	return p, nil
 }
 
+func (p *Inspector) initSource(ctx context.Context) error {
+	if p.source != nil {
+		return nil
+	}
+
+	var source typesv5.ImageSource
+	var err error
+	err = retry.IfNecessary(ctx, func() error {
+		// NewImageSource requires network connection
+		source, err = p.reference.NewImageSource(ctx, p.systemContext)
+		return err
+	}, p.retryOpts)
+	if err != nil {
+		return err
+	}
+	p.source = source
+	return nil
+}
+
 func (p *Inspector) Close() error {
+	if p.source == nil {
+		return nil
+	}
 	return p.source.Close()
 }
 
@@ -84,6 +94,9 @@ func (p *Inspector) Raw(ctx context.Context) ([]byte, string, error) {
 		mime string
 		err  error
 	)
+	if err := p.initSource(ctx); err != nil {
+		return nil, "", err
+	}
 	if err = retry.IfNecessary(ctx, func() error {
 		b, mime, err = p.source.GetManifest(ctx, nil)
 		return err
@@ -98,6 +111,9 @@ func (p *Inspector) Config(ctx context.Context) ([]byte, error) {
 		img typesv5.Image
 		err error
 	)
+	if err := p.initSource(ctx); err != nil {
+		return nil, err
+	}
 	if err = retry.IfNecessary(ctx, func() error {
 		img, err = imagev5.FromUnparsedImage(
 			ctx, p.systemContext, imagev5.UnparsedInstance(p.source, nil))
@@ -113,6 +129,9 @@ func (p *Inspector) ConfigInfo(ctx context.Context) (*typesv5.BlobInfo, error) {
 		img typesv5.Image
 		err error
 	)
+	if err := p.initSource(ctx); err != nil {
+		return nil, err
+	}
 	if err = retry.IfNecessary(ctx, func() error {
 		img, err = imagev5.FromUnparsedImage(
 			ctx, p.systemContext, imagev5.UnparsedInstance(p.source, nil))
@@ -125,6 +144,10 @@ func (p *Inspector) ConfigInfo(ctx context.Context) (*typesv5.BlobInfo, error) {
 }
 
 func (p *Inspector) Inspect(ctx context.Context) (*typesv5.ImageInspectInfo, error) {
+	if err := p.initSource(ctx); err != nil {
+		return nil, err
+	}
+
 	image, err := imagev5.FromUnparsedImage(
 		ctx, p.systemContext, imagev5.UnparsedInstance(p.source, nil))
 	if err != nil {
@@ -144,6 +167,10 @@ func (p *Inspector) Inspect(ctx context.Context) (*typesv5.ImageInspectInfo, err
 }
 
 func (p *Inspector) Provenance(ctx context.Context) ([]byte, error) {
+	if err := p.initSource(ctx); err != nil {
+		return nil, err
+	}
+
 	var (
 		b   []byte
 		img typesv5.Image
@@ -187,6 +214,10 @@ func (p *Inspector) Provenance(ctx context.Context) ([]byte, error) {
 }
 
 func (p *Inspector) SBOM(ctx context.Context) ([]byte, error) {
+	if err := p.initSource(ctx); err != nil {
+		return nil, err
+	}
+
 	var (
 		b   []byte
 		img typesv5.Image
@@ -227,4 +258,21 @@ func (p *Inspector) SBOM(ctx context.Context) ([]byte, error) {
 		return nil, fmt.Errorf("inspector.SBOM: %w", err)
 	}
 	return b, nil
+}
+
+func (p *Inspector) Tags(ctx context.Context) ([]string, error) {
+	var tags []string
+	var err error
+	err = retry.IfNecessary(ctx, func() error {
+		tags, err = docker.GetRepositoryTags(ctx, p.systemContext, p.reference)
+		return err
+	}, p.retryOpts)
+	return tags, err
+}
+
+func (p *Inspector) Delete(ctx context.Context) error {
+	err := retry.IfNecessary(ctx, func() error {
+		return p.reference.DeleteImage(ctx, p.systemContext)
+	}, p.retryOpts)
+	return err
 }

@@ -31,7 +31,7 @@ type Image struct {
 func NewImageByInspect(
 	ctx context.Context, referenceName string, sysContext *typesv5.SystemContext,
 ) (*Image, error) {
-	inspector, err := NewInspector(ctx, &InspectorOption{
+	inspector, err := NewInspector(&InspectorOption{
 		ReferenceName: referenceName,
 		SystemContext: sysContext,
 	})

@@ -79,7 +79,7 @@ func (cc *inspectCmd) run(args []string) error {
 	}
 
 	ctx := signalContext
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		ReferenceName: args[0],
 		SystemContext: &types.SystemContext{
 			ArchitectureChoice:          cc.arch,

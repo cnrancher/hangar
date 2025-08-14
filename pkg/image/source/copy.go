@@ -131,7 +131,7 @@ func (s *Source) copyDockerV2ListMediaType(
 		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
 			// Inspect source image to fix missing variant/osVersion/osFeature keys
 			// FYI: https://github.com/cnrancher/hangar/issues/83
-			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 				Reference:     sourceRef,
 				SystemContext: s.SystemContext(),
 			})
@@ -204,7 +204,7 @@ func (s *Source) copyDockerV2ListMediaType(
 		switch opts.Destination.Type() {
 		case types.TypeDir, types.TypeOci:
 			// Only the save functions needs image layers info.
-			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 				Reference:     destRef,
 				SystemContext: opts.Destination.SystemContext(),
 			})
@@ -321,7 +321,7 @@ func (s *Source) copyMediaTypeImageIndex(
 		if needInspectConfig(osInfo, arch, variant, osVersion, osFeatures) {
 			// Inspect source image to fix missing variant/osVersion/osFeature keys
 			// FYI: https://github.com/cnrancher/hangar/issues/83
-			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 				Reference:     sourceRef,
 				SystemContext: s.SystemContext(),
 			})
@@ -400,7 +400,7 @@ func (s *Source) copyMediaTypeImageIndex(
 		switch opts.Destination.Type() {
 		case types.TypeDir, types.TypeOci:
 			// Only the save functions needs image layers info.
-			inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+			inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 				Reference:     destRef,
 				SystemContext: opts.Destination.SystemContext(),
 			})
@@ -555,7 +555,7 @@ func (s *Source) copyDockerV2Schema1MediaType(
 
 	// Need to re-inspect the copied destination image digest
 	// since the copied image mediaType was changed.
-	inspector, err := manifest.NewInspector(ctx, &manifest.InspectorOption{
+	inspector, err := manifest.NewInspector(&manifest.InspectorOption{
 		Reference:     destRef,
 		SystemContext: opts.Destination.SystemContext(),
 	})
