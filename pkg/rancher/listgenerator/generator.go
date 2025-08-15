@@ -241,8 +241,10 @@ func (g *Generator) generateFromKDMData(ctx context.Context, b []byte) error {
 	}
 	clusters := []kdmimages.ClusterType{
 		kdmimages.K3S,
-		kdmimages.RKE,
 		kdmimages.RKE2,
+	}
+	if ok, _ := utils.SemverCompare(g.rancherVersion, "v2.12.0-0"); ok < 0 {
+		clusters = append(clusters, kdmimages.RKE)
 	}
 	for _, t := range clusters {
 		getter, err := kdmimages.NewGetter(&kdmimages.GetterOptions{
