@@ -54,7 +54,7 @@ func newGenerateListCmd() *generateListCmd {
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:   "generate-list",
-		Short: "Generate Rancher image list file",
+		Short: "Generate Rancher Charts & KDM image list",
 		Long: `'generate-list' generates an image list and k8s version list from KDM data and Chart repos of Rancher.
 
 Generate the image list by simply specifying the Rancher version:
@@ -359,15 +359,15 @@ func (cc *generateListCmd) finish() error {
 
 	sort.Slice(rkeVersions, func(i, j int) bool {
 		ok, _ := utils.SemverCompare(rkeVersions[i], rkeVersions[j])
-		return ok < 0
+		return ok > 0
 	})
 	sort.Slice(rke2Versions, func(i, j int) bool {
 		ok, _ := utils.SemverCompare(rke2Versions[i], rke2Versions[j])
-		return ok < 0
+		return ok > 0
 	})
 	sort.Slice(k3sVersions, func(i, j int) bool {
 		ok, _ := utils.SemverCompare(k3sVersions[i], k3sVersions[j])
-		return ok < 0
+		return ok > 0
 	})
 
 	if cc.output != "" {
@@ -393,16 +393,22 @@ func (cc *generateListCmd) finish() error {
 	}
 	if cc.outputVersions != "" {
 		var versions []string
-		versions = append(versions, fmt.Sprintf("K3s, RKE2, RKE versions for Rancher %v:", cc.rancherVersion))
+		if len(rkeVersions) > 0 {
+			versions = append(versions, fmt.Sprintf("K3s, RKE2, RKE versions for Rancher %v:", cc.rancherVersion))
+		} else {
+			versions = append(versions, fmt.Sprintf("K3s, RKE2 versions for Rancher %v:", cc.rancherVersion))
+		}
 		versions = append(versions, "")
 		versions = append(versions, "K3s Versions:")
 		versions = append(versions, k3sVersions...)
 		versions = append(versions, "")
 		versions = append(versions, "RKE2 Versions:")
 		versions = append(versions, rke2Versions...)
-		versions = append(versions, "")
-		versions = append(versions, "RKE Versions:")
-		versions = append(versions, rkeVersions...)
+		if len(rkeVersions) > 0 {
+			versions = append(versions, "")
+			versions = append(versions, "RKE Versions:")
+			versions = append(versions, rkeVersions...)
+		}
 		err := cc.saveSlice(signalContext, cc.outputVersions, versions)
 		if err != nil {
 			return fmt.Errorf("failed to write file %q: %w", cc.outputVersions, err)

@@ -228,8 +228,8 @@ func (c *Chart) fetchChartsFromURL(ctx context.Context) error {
 	}
 	directory := filepath.Join(utils.HangarCacheDir(), utils.CacheCloneRepoDirectory,
 		c.CloneBaseDir, strings.TrimLeft(urlParsed.Path, "/"))
-	logrus.Infof("Cloning git repo into %q, branch %q",
-		directory, c.Branch)
+	logrus.Infof("Cloning %q into %q, branch %q",
+		c.URL, directory, c.Branch)
 	r, err := git.PlainCloneContext(ctx, directory, false, &option)
 	if err != nil {
 		return err
