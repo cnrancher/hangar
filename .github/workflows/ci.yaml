@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ github.repository_owner == 'cnrancher' && 'org-cnrancher-runner-dind-x64' || 'ubuntu-latest' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install hangar test
         uses: ./.github/actions/install-hangar
         with:
