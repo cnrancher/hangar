@@ -99,7 +99,7 @@ You can also download the KDM JSON file and clone chart repos manually:
 	flags.StringVarP(&cc.outputVersions, "output-versions", "", "", "output Rancher supported k8s versions (default \"[RANCHER_VERSION]-k8s-versions.txt\")")
 	flags.StringVarP(&cc.rancherVersion, "rancher", "", "", "rancher version (semver with 'v' prefix) "+
 		"(use '-ent' suffix to distinguish with Rancher Prime Manager GC) (required)")
-	flags.StringVarP(&cc.minKubeVersion, "min-kube-version", "", "", "min kube version for RKE2/K3s when generate images, example: 'v1.28' (optional)")
+	flags.StringVarP(&cc.minKubeVersion, "min-kube-version", "", "", "min RKE1 kube version when generate images, example: 'v1.28' (optional)")
 	flags.BoolVarP(&cc.dev, "dev", "", false, "switch to dev branch/URL of charts & KDM data")
 	flags.StringVarP(&cc.kdm, "kdm", "", "", "KDM file path or URL")
 	flags.StringSliceVarP(&cc.charts, "chart", "", nil, "cloned chart repo path (URL not supported)")
@@ -173,15 +173,14 @@ func (cc *generateListCmd) prepareGenerator() error {
 			option.MinKubeVersion = "v1.28.0"
 		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.11"):
 			option.MinKubeVersion = "v1.30.0"
-		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.12"):
-			option.MinKubeVersion = "v1.31.0"
-		case utils.SemverMajorMinorEqual(cc.rancherVersion, "v2.13"):
-			option.MinKubeVersion = "v1.32.0"
+		// v2.12+ does not support RKE1
 		default:
 			option.MinKubeVersion = "v1.30.0"
 		}
 	}
-	logrus.Infof("Min Kube-Version for Rancher [%v]: %v", cc.rancherVersion, option.MinKubeVersion)
+	if n, _ := utils.SemverCompare(cc.rancherVersion, "v2.12.0-0"); n < 0 {
+		logrus.Infof("Min RKE1 Version for Rancher [%v]: %v", cc.rancherVersion, option.MinKubeVersion)
+	}
 	if cc.kdm != "" {
 		if _, err := url.ParseRequestURI(cc.kdm); err != nil {
 			option.KDMPath = cc.kdm

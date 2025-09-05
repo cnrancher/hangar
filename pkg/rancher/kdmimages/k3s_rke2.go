@@ -31,7 +31,6 @@ const (
 type k3sRKE2Getter struct {
 	source             ClusterType
 	rancherVersion     string
-	minKubeVersion     string
 	data               map[string]any
 	insecureSkipVerify bool
 	removeDeprecated   bool
@@ -61,7 +60,6 @@ func newK3sRKE2Getter(o *GetterOptions) (*k3sRKE2Getter, error) {
 	return &k3sRKE2Getter{
 		source:             o.Type,
 		rancherVersion:     o.RancherVersion,
-		minKubeVersion:     o.MinKubeVersion,
 		data:               data,
 		insecureSkipVerify: o.InsecureSkipTLS,
 		removeDeprecated:   o.RemoveDeprecated,
@@ -92,16 +90,6 @@ func (g *k3sRKE2Getter) Get(ctx context.Context) error {
 		kubeVersion, ok := releaseMap["version"].(string)
 		if !ok || kubeVersion == "" {
 			continue
-		}
-
-		if g.minKubeVersion != "" {
-			// skip if kubeVersion is less than MinKubeVersion
-			if !semver.IsValid(kubeVersion) {
-				continue
-			}
-			if semver.Compare(kubeVersion, g.minKubeVersion) < 0 {
-				continue
-			}
 		}
 
 		if g.rancherVersion == "dev" {

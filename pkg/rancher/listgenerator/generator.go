@@ -36,7 +36,7 @@ type GeneratorOption struct {
 // Generator is a generator to generate image list from charts, KDM data, etc.
 type Generator struct {
 	rancherVersion string // Rancher version, should be va.b.c
-	minKubeVersion string // Minimum kube verision, should be va.b.c
+	minKubeVersion string // Minimum RKE1 kube verision, should be va.b.c
 
 	chartsPaths map[string]chartimages.ChartRepoType // map[url]type
 	chartURLs   map[string]struct {
@@ -117,7 +117,7 @@ func (g *Generator) Run(ctx context.Context) error {
 }
 
 func (g *Generator) generateFromChartPaths(ctx context.Context) error {
-	if g.chartsPaths == nil || len(g.chartsPaths) == 0 {
+	if len(g.chartsPaths) == 0 {
 		return nil
 	}
 	for path := range g.chartsPaths {
@@ -151,7 +151,7 @@ func (g *Generator) generateFromChartPaths(ctx context.Context) error {
 }
 
 func (g *Generator) generateFromChartURLs(ctx context.Context) error {
-	if g.chartURLs == nil || len(g.chartURLs) == 0 {
+	if len(g.chartURLs) == 0 {
 		return nil
 	}
 	for url := range g.chartURLs {
