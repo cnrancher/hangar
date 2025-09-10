@@ -23,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus/hooks/writer"
 	"golang.org/x/mod/semver"
 	"golang.org/x/term"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -546,6 +547,14 @@ func ToObj(data interface{}, into interface{}) error {
 
 func ToJSON(a any) string {
 	b, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		logrus.Warnf("failed to marsjal %T to JSON: %v", a, err)
+	}
+	return string(b)
+}
+
+func ToYAML(a any) string {
+	b, err := yaml.Marshal(a)
 	if err != nil {
 		logrus.Warnf("failed to marsjal %T to JSON: %v", a, err)
 	}

@@ -17,6 +17,9 @@
 *.csv
 *.spdx
 *.spdx.json
+*report.json
+*report.yaml
+*report.txt
 scan-report.*
 sign-validate*
 tmp*

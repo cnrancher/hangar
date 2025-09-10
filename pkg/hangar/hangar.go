@@ -10,6 +10,7 @@ var (
 	ErrCopyFailed     = errors.New("some images failed to copy")
 	ErrSignFailed     = errors.New("some images failed to sign")
 	ErrScanFailed     = errors.New("some images failed to scan")
+	ErrInspectFailed  = errors.New("some images failed to inspect")
 )
 
 type Hangar interface {
