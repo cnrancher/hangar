@@ -1,0 +1,2 @@
+registry.rancher.cn/cnrancher/hangar:latest
+registry.rancher.cn/cnrancher/rancher-agent:v2.10.1-ent
