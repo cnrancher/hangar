@@ -18,12 +18,14 @@ To run validation tests on your local machine:
 
 1. Build hangar on your local machine by refer to [Building without a container](https://hangar.cnrancher.com/docs/dev/build#building-without-a-container)
 
-1. Install python dependencies:
+1. Create virtual python environment by [uv]() and install python dependencies:
 
     ```sh
     cd test/
-    pip install -r requirements.txt
-    pip install tox
+
+    uv venv
+    uv pip install -r requirements.txt
+    uv pip install tox
     ```
 
 1. You need to prepare a [Harbor](https://goharbor.io) or [distribution](https://distribution.github.io/distribution/) registry server manually to run validation tests manually.
@@ -42,11 +44,10 @@ To run validation tests on your local machine:
     # Set REGISTRY_PASSWORD if needed.
     export REGISTRY_PASSWORD="Harbor123!@#"
 
-    cd suite/
     # Run specific test file.
-    pytest -s test_help.py
+    uv run pytest -s suite/test_help.py
     # Run specific test case.
-    pytest -s test_help.py::test_help
+    uv run pytest -s suite/test_help.py::test_help
     ```
 
 1. Cleanup:
