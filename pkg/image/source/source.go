@@ -20,6 +20,10 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+const (
+	unknownPlatform = "unknown"
+)
+
 // Source represents the source image to be copied or sign.
 // The type of the source image can be:
 // docker, docker-daemon, docker-archive, oci or dir
@@ -231,6 +235,68 @@ func (s *Source) InspectRAW(ctx context.Context) ([]byte, string, error) {
 	// Refresh the cached MIME.
 	s.mime = mime
 	return m, mime, err
+}
+
+func (s *Source) Platforms(skipUnknown bool) []string {
+	platformSet := map[string]bool{}
+	platforms := []string{}
+
+	switch s.mime {
+	case manifestv5.DockerV2ListMediaType:
+		// manifest is docker image list
+		for _, m := range s.schema2List.Manifests {
+			p := &m.Platform
+			if skipUnknown {
+				if p.Architecture == unknownPlatform || p.OS == unknownPlatform {
+					continue
+				}
+			}
+			platformSet[fmt.Sprintf("%v/%v", p.OS, p.Architecture)] = true
+		}
+	case imgspecv1.MediaTypeImageIndex:
+		// manifest is oci image list
+		for _, m := range s.ociIndex.Manifests {
+			p := m.Platform
+			if p == nil {
+				continue
+			}
+			if skipUnknown {
+				if p.Architecture == unknownPlatform || p.OS == unknownPlatform {
+					continue
+				}
+			}
+			platformSet[fmt.Sprintf("%v/%v", p.OS, p.Architecture)] = true
+		}
+	case manifestv5.DockerV2Schema2MediaType:
+		// manifest is docker image schema2
+		arch := s.ociConfig.Architecture
+		osInfo := s.ociConfig.OS
+		if arch == "" || osInfo == "" {
+			return platforms
+		}
+		platformSet[fmt.Sprintf("%v/%v", osInfo, arch)] = true
+	case manifestv5.DockerV2Schema1MediaType,
+		manifestv5.DockerV2Schema1SignedMediaType:
+		// manifest is docker image schema1
+		arch := s.imageInspectInfo.Architecture
+		osInfo := s.imageInspectInfo.Os
+		if arch == "" || osInfo == "" {
+			return platforms
+		}
+		platformSet[fmt.Sprintf("%v/%v", osInfo, arch)] = true
+	case imgspecv1.MediaTypeImageManifest:
+		// manifest is oci image
+		arch := s.ociConfig.Architecture
+		osInfo := s.ociConfig.OS
+		if arch == "" || osInfo == "" {
+			return platforms
+		}
+		platformSet[fmt.Sprintf("%v/%v", osInfo, arch)] = true
+	}
+	for p := range platformSet {
+		platforms = append(platforms, p)
+	}
+	return platforms
 }
 
 func (s *Source) SystemContext() *typesv5.SystemContext {
