@@ -195,7 +195,7 @@ func (s *Source) scanDockerV2Schema2MediaType(
 	refName := s.ReferenceNameWithoutTransport()
 	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
-		Digest:        s.digest,
+		Digest:        s.manifestDigest,
 		Platform: scan.Platform{
 			Arch:    arch,
 			OS:      osInfo,
@@ -228,7 +228,7 @@ func (s *Source) scanDockerV2Schema1MediaType(
 	refName := s.ReferenceNameWithoutTransport()
 	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
-		Digest:        s.digest,
+		Digest:        s.manifestDigest,
 		Platform: scan.Platform{
 			Arch:    arch,
 			OS:      osInfo,
@@ -260,7 +260,7 @@ func (s *Source) scanMediaTypeImageManifest(
 	refName := s.ReferenceNameWithoutTransport()
 	imageResult, err := scanImage(ctx, &scan.Option{
 		ReferenceName: refName,
-		Digest:        s.digest,
+		Digest:        s.manifestDigest,
 		Platform: scan.Platform{
 			Arch:    arch,
 			OS:      osInfo,
