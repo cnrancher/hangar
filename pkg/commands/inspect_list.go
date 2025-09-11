@@ -38,12 +38,12 @@ func newInspectListCmd() *inspectListCmd {
 	}
 
 	cc.baseCmd = newBaseCmd(&cobra.Command{
-		Use:     "inspect-list -f IMAGE_LIST.txt",
+		Use:     "list -f IMAGE_LIST.txt",
 		Aliases: []string{},
 		Short:   "Inspect multiple container images by image-list file",
 		Long:    "",
 		Example: `# Inspect image list file:
-hangar inspect-list --file=image-list.txt --report=inspect-report.txt`,
+hangar inspect list --file=image-list.txt --report=inspect-report.txt`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {

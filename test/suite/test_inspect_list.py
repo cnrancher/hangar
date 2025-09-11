@@ -2,7 +2,7 @@
 
 """
 Automatin tests for following commands:
-    "hangar inspect-list"
+    "hangar inspect list"
 """
 
 import os
@@ -48,12 +48,13 @@ def check_report(name):
 
 def test_inspect_list_help():
     prepare()
-    check(run_hangar(["inspect-list", "--help"]))
+    check(run_hangar(["inspect", "list", "--help"]))
 
 
 def test_inspect_list_txt():
     log = run_hangar([
-        "inspect-list",
+        "inspect",
+        "list",
         "--file", "data/inspect-list/images.txt",
         "--format", "txt",
         "--registry", "",
@@ -66,7 +67,8 @@ def test_inspect_list_txt():
 
 def test_inspect_list_json():
     log = run_hangar([
-        "inspect-list",
+        "inspect",
+        "list",
         "--file", "data/inspect-list/images.txt",
         "--format", "json",
         "--registry", "",
@@ -79,7 +81,8 @@ def test_inspect_list_json():
 
 def test_inspect_list_yaml():
     log = run_hangar([
-        "inspect-list",
+        "inspect",
+        "list",
         "--file", "data/inspect-list/images.txt",
         "--format", "yaml",
         "--registry", "",
@@ -93,7 +96,8 @@ def test_inspect_list_yaml():
 
 def test_inspect_list_csv():
     log = run_hangar([
-        "inspect-list",
+        "inspect",
+        "list",
         "--file", "data/inspect-list/images.txt",
         "--format", "csv",
         "--registry", "",
@@ -107,7 +111,8 @@ def test_inspect_list_csv():
 
 def test_inspect_list_custom():
     log = run_hangar([
-        "inspect-list",
+        "inspect",
+        "list",
         "--file", "data/inspect-list/images.txt",
         "--format", "json",
         "--registry", "",

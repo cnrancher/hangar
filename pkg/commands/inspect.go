@@ -29,13 +29,16 @@ func newInspectCmd() *inspectCmd {
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "inspect IMAGE_REFERENCE",
 		Aliases: []string{"i"},
-		Short:   "Inspect provides basic functions of 'skopeo inspect' to inspect image manifest",
+		Short:   "Inspect image manifests",
 		Long:    "",
 		Example: `# Inspect image manifest:
 hangar inspect [image-reference]
 
 # Inspect RAW docker image maniefest:
-hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
+hangar inspect docker://docker.io/cnrancher/hangar:latest --raw
+
+# Inspect multiple container image by image-list file:
+hangar inspect list -f image-list.txt`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -59,6 +62,9 @@ hangar inspect docker://docker.io/cnrancher/hangar:latest --raw`,
 	flags.BoolVarP(&cc.tlsVerify, "tls-verify", "", true, "require HTTPS and verify certificates")
 	flags.BoolVarP(&cc.raw, "raw", "", false, "output raw manifest")
 	flags.BoolVarP(&cc.config, "config", "", false, "output raw configuration")
+
+	addCommands(cc.cmd,
+		newInspectListCmd())
 
 	return cc
 }
