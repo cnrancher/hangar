@@ -12,6 +12,7 @@ from .common import run_hangar, check
 INSPECT_REPORT_TXT = "inspect-report.txt"
 INSPECT_REPORT_JSON = "inspect-report.json"
 INSPECT_REPORT_YAML = "inspect-report.yaml"
+INSPECT_REPORT_CSV = "inspect-report.csv"
 INSPECT_REPORT_CUSTOM_NAME = "custom-inspect-report.txt"
 INSPECT_FAIL_LIST = "inspect-failed.txt"
 
@@ -21,6 +22,7 @@ def prepare():
         INSPECT_REPORT_TXT,
         INSPECT_REPORT_JSON,
         INSPECT_REPORT_YAML,
+        INSPECT_REPORT_CSV,
         INSPECT_REPORT_CUSTOM_NAME,
     ]
     for list in lists:
@@ -87,6 +89,20 @@ def test_inspect_list_yaml():
     ])
     check(log, INSPECT_FAIL_LIST)
     check_report(INSPECT_REPORT_YAML)
+
+
+def test_inspect_list_csv():
+    log = run_hangar([
+        "inspect-list",
+        "--file", "data/inspect-list/images.txt",
+        "--format", "csv",
+        "--registry", "",
+        "--tls-verify=false",
+        "--jobs=10",
+        "--auto-yes",
+    ])
+    check(log, INSPECT_FAIL_LIST)
+    check_report(INSPECT_REPORT_CSV)
 
 
 def test_inspect_list_custom():

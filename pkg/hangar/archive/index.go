@@ -12,13 +12,15 @@ import (
 
 const (
 	IndexVersion = "v1.2.0"
+
+	unknownPlatform = "unknown"
 )
 
 // Index defines the data structure stores in the end of hangar archive.
 type Index struct {
 	List    []*Image  `json:"list,omitempty" yaml:"list,omitempty"`
-	Version string    `json:"version,omitempty" yaml:"version.omitempty"`
-	Time    time.Time `json:"time,omitempty" yaml:"omitempty"`
+	Version string    `json:"version,omitempty" yaml:"version,omitempty"`
+	Time    time.Time `json:"time,omitempty" yaml:"time,omitempty"`
 
 	digestSet map[digest.Digest]bool
 }
@@ -51,10 +53,10 @@ func (i *ImageSpec) IsAttestations() bool {
 	if len(i.Annotations) == 0 {
 		return false
 	}
-	if i.Arch != "unknown" {
+	if i.Arch != unknownPlatform {
 		return false
 	}
-	if i.OS != "unknown" {
+	if i.OS != unknownPlatform {
 		return false
 	}
 	if i.Annotations["vnd.docker.reference.type"] != "attestation-manifest" {
@@ -158,6 +160,22 @@ func (img *Image) IsSigstoreSignature() bool {
 		return true
 	}
 	return false
+}
+
+// Platforms returns all image supported platforms
+func (img *Image) Platforms(hasUnknown bool) []string {
+	platformSet := map[string]bool{}
+	for _, i := range img.Images {
+		if !hasUnknown && i.Arch == unknownPlatform && i.OS == unknownPlatform {
+			continue
+		}
+		platformSet[fmt.Sprintf("%v/%v%v", i.OS, i.Arch, i.Variant)] = true
+	}
+	platforms := []string{}
+	for p := range platformSet {
+		platforms = append(platforms, p)
+	}
+	return platforms
 }
 
 // CompareIndexVersion compares the loaded index version with current version.

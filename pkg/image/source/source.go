@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -548,7 +550,10 @@ func (s *Source) initManifest(ctx context.Context) error {
 func (s *Source) ImageBySet(
 	set types.FilterSet, copyProvenance bool,
 ) *archive.Image {
-	image := &archive.Image{}
+	image := &archive.Image{
+		Source: fmt.Sprintf("%v/%v/%v", s.registry, s.project, s.name),
+		Tag:    s.tag,
+	}
 	archSet := map[string]bool{}
 	osSet := map[string]bool{}
 	switch s.mime {
@@ -563,7 +568,16 @@ func (s *Source) ImageBySet(
 			archSet[arch] = true
 			osSet[osInfo] = true
 			image.Images = append(image.Images, archive.ImageSpec{
-				Digest: m.Digest,
+				Arch:        arch,
+				OS:          osInfo,
+				OSVersion:   m.Platform.OSVersion,
+				OSFeatures:  slices.Clone(m.Platform.OSFeatures),
+				Variant:     variant,
+				MediaType:   m.MediaType,
+				Layers:      nil,
+				Config:      "",
+				Digest:      m.Digest,
+				Annotations: nil,
 			})
 		}
 	case manifestv5.DockerV2Schema2MediaType:
@@ -574,7 +588,16 @@ func (s *Source) ImageBySet(
 		archSet[p.Architecture] = true
 		osSet[p.OS] = true
 		image.Images = append(image.Images, archive.ImageSpec{
-			Digest: s.manifestDigest,
+			Arch:        p.Architecture,
+			OS:          p.OS,
+			OSVersion:   p.OSVersion,
+			OSFeatures:  slices.Clone(p.OSFeatures),
+			Variant:     p.Variant,
+			MediaType:   s.mime,
+			Layers:      nil,
+			Config:      "",
+			Digest:      s.manifestDigest,
+			Annotations: nil,
 		})
 	case manifestv5.DockerV2Schema1MediaType,
 		manifestv5.DockerV2Schema1SignedMediaType:
@@ -588,7 +611,16 @@ func (s *Source) ImageBySet(
 		archSet[p.Architecture] = true
 		osSet[p.Os] = true
 		image.Images = append(image.Images, archive.ImageSpec{
-			Digest: s.manifestDigest,
+			Arch:        p.Architecture,
+			OS:          p.Os,
+			OSVersion:   "",
+			OSFeatures:  nil,
+			Variant:     p.Variant,
+			MediaType:   s.mime,
+			Layers:      nil,
+			Config:      "",
+			Digest:      s.manifestDigest,
+			Annotations: nil,
 		})
 	case imgspecv1.MediaTypeImageIndex:
 		// Filter allowed image digests
@@ -621,7 +653,16 @@ func (s *Source) ImageBySet(
 			archSet[p.Architecture] = true
 			osSet[p.OS] = true
 			image.Images = append(image.Images, archive.ImageSpec{
-				Digest: m.Digest,
+				Arch:        p.Architecture,
+				OS:          p.OS,
+				OSVersion:   p.OSVersion,
+				OSFeatures:  slices.Clone(p.OSFeatures),
+				Variant:     p.Variant,
+				MediaType:   m.MediaType,
+				Layers:      nil,
+				Config:      "",
+				Digest:      m.Digest,
+				Annotations: maps.Clone(m.Annotations),
 			})
 		}
 	case imgspecv1.MediaTypeImageManifest:
@@ -635,7 +676,16 @@ func (s *Source) ImageBySet(
 		archSet[p.Architecture] = true
 		osSet[p.OS] = true
 		image.Images = append(image.Images, archive.ImageSpec{
-			Digest: s.manifestDigest,
+			Arch:        p.Architecture,
+			OS:          p.OS,
+			OSVersion:   p.OSVersion,
+			OSFeatures:  slices.Clone(p.OSFeatures),
+			Variant:     p.Variant,
+			MediaType:   s.mime,
+			Layers:      nil,
+			Config:      "",
+			Digest:      s.manifestDigest,
+			Annotations: nil,
 		})
 	}
 	for arch := range archSet {

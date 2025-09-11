@@ -2,12 +2,14 @@ package hangar
 
 import (
 	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/cnrancher/hangar/pkg/hangar/archive"
 	"github.com/cnrancher/hangar/pkg/hangar/imagelist"
 	"github.com/cnrancher/hangar/pkg/image/source"
 	"github.com/cnrancher/hangar/pkg/image/types"
@@ -25,7 +27,7 @@ type inspectObject struct {
 
 type Inspector struct {
 	*common
-	report []inspectorReport
+	index *archive.Index
 
 	reportFile string
 	format     string
@@ -50,13 +52,9 @@ type InspectorOpts struct {
 	Project string
 }
 
-type inspectorReport struct {
-	Image     string   `json:"image" yaml:"image"`
-	Platforms []string `json:"platforms" yaml:"platforms"`
-}
-
 func NewInspector(o *InspectorOpts) (*Inspector, error) {
 	s := &Inspector{
+		index:      archive.NewIndex(),
 		reportFile: o.ReportFile,
 		format:     o.ReportFormat,
 		autoYes:    o.AutoYes,
@@ -178,34 +176,37 @@ func (s *Inspector) worker(ctx context.Context, o any) {
 		return
 	}
 	img := obj.source.ReferenceNameWithoutTransport()
-	platforms := obj.source.Platforms(true)
-	s.report = append(s.report, inspectorReport{
-		Image:     img,
-		Platforms: platforms,
-	})
-
-	if len(platforms) == 0 {
-		logrus.WithFields(logrus.Fields{"IMG": obj.id}).Warnf("Skip [%v]: no platforms found",
+	images := obj.source.ImageBySet(nil, false)
+	images.ArchList = nil
+	images.OsList = nil
+	if len(images.Images) == 0 {
+		logrus.WithFields(logrus.Fields{"IMG": obj.id}).Warnf("Skip [%v]: no images found",
 			img)
 		return
 	}
-	message := fmt.Sprintf("Image [%v]: %v",
-		img, strings.Join(platforms, ","))
+	message := fmt.Sprintf("Image [%v]: %q",
+		img, strings.Join(images.Platforms(false), ","))
 	logrus.WithFields(logrus.Fields{"IMG": obj.id}).Info(message)
+	s.index.Append(images)
 }
 
 func (s *Inspector) saveReport(ctx context.Context) error {
 	var report string
-	suffix := "txt"
+	var err error
+	suffix := s.format
 	switch s.format {
 	case "json":
-		report = utils.ToJSON(s.report)
-		suffix = s.format
+		report = utils.ToJSON(s.index)
 	case "yaml":
-		report = utils.ToYAML(s.report)
-		suffix = s.format
+		report = utils.ToYAML(s.index)
+	case "csv":
+		report, err = s.indexReportCSV()
 	default:
-		report = index2Report(s.report)
+		report = s.indexReportTXT()
+		suffix = "txt"
+	}
+	if err != nil {
+		return fmt.Errorf("failed to save report format %q: %w", s.format, err)
 	}
 
 	if s.reportFile == "" {
@@ -227,15 +228,45 @@ func (s *Inspector) saveReport(ctx context.Context) error {
 	return nil
 }
 
-func index2Report(report []inspectorReport) string {
+func (s *Inspector) indexReportTXT() string {
 	b := strings.Builder{}
-	for i, report := range report {
-		p := strings.Join(report.Platforms, ",")
-		if p == "" {
-			p = "unknown"
-		}
-		b.WriteString(fmt.Sprintf("%4d | %s | %s\n",
-			i+1, report.Image, p))
+	for i, image := range s.index.List {
+		b.WriteString(fmt.Sprintf("%4d | %s:%s | %s\n",
+			i+1, image.Source, image.Tag, strings.Join(image.Platforms(false), ",")))
 	}
 	return b.String()
+}
+
+func (s *Inspector) indexReportCSV() (string, error) {
+	line := []string{
+		"image",     // 1
+		"digest",    // 2
+		"platform",  // 3
+		"osVersion", // 4
+		"osFeature", // 5
+		"mediaType", // 6
+	}
+
+	b := &strings.Builder{}
+	cw := csv.NewWriter(b)
+	if err := cw.Write(line); err != nil {
+		return "", err
+	}
+	for _, image := range s.index.List {
+		for _, spec := range image.Images {
+			line := []string{
+				fmt.Sprintf("%v:%v", image.Source, image.Tag),            // 1
+				spec.Digest.String(),                                     // 2
+				fmt.Sprintf("%v/%v%v", spec.OS, spec.Arch, spec.Variant), // 3
+				spec.OSVersion,                     // 4
+				strings.Join(spec.OSFeatures, ","), // 5
+				spec.MediaType,                     // 6
+			}
+			if err := cw.Write(line); err != nil {
+				return "", err
+			}
+		}
+	}
+	cw.Flush()
+	return b.String(), nil
 }

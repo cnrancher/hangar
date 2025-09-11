@@ -19,6 +19,8 @@ files=(
     "suite/*.pub"
     "suite/*-report.txt"
     "suite/*-report.json"
+    "suite/*-report.yaml"
+    "suite/*-report.csv"
     "suite/scan-report.*"
     "suite/*.csv"
     "suite/__pycache__"

@@ -40,10 +40,10 @@ func newInspectListCmd() *inspectListCmd {
 	cc.baseCmd = newBaseCmd(&cobra.Command{
 		Use:     "inspect-list -f IMAGE_LIST.txt",
 		Aliases: []string{},
-		Short:   "Inspect platform of multiple images by image list file",
+		Short:   "Inspect multiple container images by image-list file",
 		Long:    "",
 		Example: `# Inspect image list file:
-hangar inspect-list --file image-list.txt --report=inspect-report.txt`,
+hangar inspect-list --file=image-list.txt --report=inspect-report.txt`,
 		PreRun: func(cmd *cobra.Command, args []string) {
 			utils.SetupLogrus(cc.hideLogTime)
 			if cc.debug {
@@ -68,7 +68,7 @@ hangar inspect-list --file image-list.txt --report=inspect-report.txt`,
 	flags.SetAnnotation("file", cobra.BashCompFilenameExt, []string{"txt"})
 	flags.SetAnnotation("file", cobra.BashCompOneRequiredFlag, []string{""})
 	flags.StringVarP(&cc.report, "report", "r", "", "inspect report filename (default: inspect-report.[FORMAT])")
-	flags.StringVarP(&cc.format, "format", "", "", "inspect report format (json/yaml/txt)")
+	flags.StringVarP(&cc.format, "format", "", "", "inspect report format (json/yaml/csv/txt)")
 	flags.StringVarP(&cc.registry, "registry", "", "", "override the registry in image list")
 	flags.StringVarP(&cc.project, "project", "", "", "override the project in image list")
 	flags.IntVarP(&cc.jobs, "jobs", "j", 1, "worker number, inspect images parallelly (1-20)")

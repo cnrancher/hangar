@@ -20,6 +20,7 @@
 *report.json
 *report.yaml
 *report.txt
+*report.csv
 scan-report.*
 sign-validate*
 tmp*

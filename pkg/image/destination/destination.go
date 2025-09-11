@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/hangar/archive"
@@ -432,7 +433,10 @@ func newDestinationFromDockerDaemon(o *Option) (*Destination, error) {
 func (d *Destination) ImageBySet(
 	set types.FilterSet, copyProvenance bool,
 ) *archive.Image {
-	image := &archive.Image{}
+	image := &archive.Image{
+		Source: fmt.Sprintf("%v/%v/%v", d.registry, d.project, d.name),
+		Tag:    d.tag,
+	}
 	if !d.Exists() {
 		return image
 	}
@@ -448,7 +452,16 @@ func (d *Destination) ImageBySet(
 			archSet[p.Architecture] = true
 			osSet[p.OS] = true
 			image.Images = append(image.Images, archive.ImageSpec{
-				Digest: m.Digest,
+				Arch:        p.Architecture,
+				OS:          p.OS,
+				OSVersion:   p.OSVersion,
+				OSFeatures:  slices.Clone(p.OSFeatures),
+				Variant:     p.Variant,
+				MediaType:   m.MediaType,
+				Layers:      nil,
+				Config:      "",
+				Digest:      m.Digest,
+				Annotations: nil,
 			})
 		}
 	case imgspecv1.MediaTypeImageIndex:
@@ -481,7 +494,16 @@ func (d *Destination) ImageBySet(
 			archSet[p.Architecture] = true
 			osSet[p.OS] = true
 			image.Images = append(image.Images, archive.ImageSpec{
-				Digest: m.Digest,
+				Arch:        p.Architecture,
+				OS:          p.OS,
+				OSVersion:   p.OSVersion,
+				OSFeatures:  slices.Clone(p.OSFeatures),
+				Variant:     p.Variant,
+				MediaType:   m.MediaType,
+				Layers:      nil,
+				Config:      "",
+				Digest:      m.Digest,
+				Annotations: nil,
 			})
 		}
 	}
