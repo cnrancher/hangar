@@ -3,7 +3,7 @@ description: "Install hangar in workflow"
 inputs:
   version:
     description: "Hangar version"
-    default: "v1.9.2"
+    default: "v1.9.3"
     required: true
 
 runs:
