@@ -7,10 +7,10 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/common/pkg/retry"
-	imagev5 "github.com/containers/image/v5/image"
-	signaturev5 "github.com/containers/image/v5/signature"
-	typesv5 "github.com/containers/image/v5/types"
+	"go.podman.io/common/pkg/retry"
+	imagev5 "go.podman.io/image/v5/image"
+	signaturev5 "go.podman.io/image/v5/signature"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 type Validator struct {

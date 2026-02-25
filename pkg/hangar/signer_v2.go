@@ -13,12 +13,12 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/source"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/generate"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/verify"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/docker/config"
 )
 
 // signv2Object is the object sending to worker pool when signing image

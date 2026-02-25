@@ -13,8 +13,8 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	signaturev5 "github.com/containers/image/v5/signature"
-	typesv5 "github.com/containers/image/v5/types"
+	signaturev5 "go.podman.io/image/v5/signature"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 const (

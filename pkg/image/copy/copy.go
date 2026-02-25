@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/containers/common/pkg/retry"
-	copyv5 "github.com/containers/image/v5/copy"
-	signaturev5 "github.com/containers/image/v5/signature"
-	typesv5 "github.com/containers/image/v5/types"
+	"go.podman.io/common/pkg/retry"
+	copyv5 "go.podman.io/image/v5/copy"
+	signaturev5 "go.podman.io/image/v5/signature"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 type Copier struct {

@@ -7,9 +7,9 @@ import (
 	"slices"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/signature/sigstore"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/image/v5/signature/sigstore"
 )
 
 type generateSigstoreKeyOpts struct {

@@ -7,12 +7,12 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
 
-	"github.com/containers/common/pkg/retry"
-	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
-	typesv5 "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/pkg/retry"
+	alltransportsv5 "go.podman.io/image/v5/transports/alltransports"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 const (

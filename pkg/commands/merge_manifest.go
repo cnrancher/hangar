@@ -7,12 +7,12 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/utils"
-	manifestv5 "github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/types"
 )
 
 type mergeManifestCmd struct {

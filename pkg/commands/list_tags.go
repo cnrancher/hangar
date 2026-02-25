@@ -7,9 +7,9 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/image/v5/types"
 )
 
 type listTagsCmd struct {

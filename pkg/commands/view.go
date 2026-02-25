@@ -8,13 +8,13 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/image/manifest"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/types"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/image/v5/types"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	manifestv5 "go.podman.io/image/v5/manifest"
 )
 
 type viewOpts struct {

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/common/pkg/auth"
-	commonFlag "github.com/containers/common/pkg/flag"
-	"github.com/containers/common/pkg/retry"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/auth"
+	commonFlag "go.podman.io/common/pkg/flag"
+	"go.podman.io/common/pkg/retry"
+	"go.podman.io/image/v5/types"
 )
 
 type loginCmd struct {

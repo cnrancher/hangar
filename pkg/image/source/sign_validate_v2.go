@@ -11,9 +11,9 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/common/pkg/retry"
-	manifestv5 "github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/pkg/retry"
+	manifestv5 "go.podman.io/image/v5/manifest"
 )
 
 type ValidateV2Options struct {

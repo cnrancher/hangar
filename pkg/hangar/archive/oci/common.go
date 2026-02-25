@@ -16,8 +16,8 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"helm.sh/helm/v3/pkg/registry"
 
-	signaturev5 "github.com/containers/image/v5/signature"
-	typesv5 "github.com/containers/image/v5/types"
+	signaturev5 "go.podman.io/image/v5/signature"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 type common struct {

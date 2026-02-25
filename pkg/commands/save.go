@@ -9,10 +9,10 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/hangar"
 	"github.com/cnrancher/hangar/pkg/utils"
-	commonFlag "github.com/containers/common/pkg/flag"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	commonFlag "go.podman.io/common/pkg/flag"
+	"go.podman.io/image/v5/types"
 )
 
 type saveOpts struct {

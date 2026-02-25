@@ -38,7 +38,7 @@ Hangar is open-source and any [issues](https://github.com/cnrancher/hangar/issue
 
 ## License
 
-Copyright 2025 SUSE Rancher
+Copyright 2026 SUSE Rancher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

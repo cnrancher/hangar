@@ -1,6 +1,6 @@
 version: "2"
 run:
-  go: "1.24"
+  go: "1.25"
   tests: false
   allow-parallel-runners: true
 linters:
@@ -13,7 +13,6 @@ linters:
     - ineffassign
     - misspell
     - nakedret
-    - prealloc
     - revive
     - unconvert
     - whitespace

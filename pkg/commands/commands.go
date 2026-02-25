@@ -6,9 +6,9 @@ import (
 
 	"github.com/cnrancher/hangar/pkg/signal"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/signature"
-	"github.com/containers/image/v5/types"
 	"github.com/spf13/cobra"
+	"go.podman.io/image/v5/signature"
+	"go.podman.io/image/v5/types"
 )
 
 var (

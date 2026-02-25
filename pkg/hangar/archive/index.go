@@ -171,7 +171,7 @@ func (img *Image) Platforms(hasUnknown bool) []string {
 		}
 		platformSet[fmt.Sprintf("%v/%v%v", i.OS, i.Arch, i.Variant)] = true
 	}
-	platforms := []string{}
+	platforms := make([]string, 0, len(platformSet))
 	for p := range platformSet {
 		platforms = append(platforms, p)
 	}

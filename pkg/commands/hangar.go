@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/hangar"
-	"github.com/containers/common/pkg/auth"
-	"github.com/containers/common/pkg/retry"
-	"github.com/containers/image/v5/pkg/docker/config"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/auth"
+	"go.podman.io/common/pkg/retry"
+	"go.podman.io/image/v5/pkg/docker/config"
+	"go.podman.io/image/v5/types"
 )
 
 func Execute(args []string) error {

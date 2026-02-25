@@ -9,9 +9,9 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	manifestv5 "go.podman.io/image/v5/manifest"
 )
 
 type ScanOptions struct {

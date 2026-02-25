@@ -8,12 +8,12 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/sign"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/transports/alltransports"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
-	typesv5 "github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 func (s *Source) ValidateSignatureV1(

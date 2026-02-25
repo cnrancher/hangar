@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"github.com/cnrancher/hangar/pkg/image/internal/private"
-	"github.com/containers/common/pkg/retry"
-	"github.com/containers/image/v5/docker"
-	imagev5 "github.com/containers/image/v5/image"
-	"github.com/containers/image/v5/pkg/blobinfocache/none"
-	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
-	typesv5 "github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/retry"
+	"go.podman.io/image/v5/docker"
+	imagev5 "go.podman.io/image/v5/image"
+	"go.podman.io/image/v5/pkg/blobinfocache/none"
+	alltransportsv5 "go.podman.io/image/v5/transports/alltransports"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 // Inspector provides similar functions of 'skopeo inspect' command.

@@ -11,13 +11,13 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/common/pkg/retry"
-	copyv5 "github.com/containers/image/v5/copy"
-	manifestv5 "github.com/containers/image/v5/manifest"
-	signaturev5 "github.com/containers/image/v5/signature"
-	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
-	typesv5 "github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/pkg/retry"
+	copyv5 "go.podman.io/image/v5/copy"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	signaturev5 "go.podman.io/image/v5/signature"
+	alltransportsv5 "go.podman.io/image/v5/transports/alltransports"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 type SignV1Options struct {

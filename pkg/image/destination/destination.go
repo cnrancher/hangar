@@ -16,10 +16,10 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/opencontainers/go-digest"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
-	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
-	typesv5 "github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	alltransportsv5 "go.podman.io/image/v5/transports/alltransports"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 // Destination represents the destination of the image to be copied。

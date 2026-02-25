@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/signature"
+	"go.podman.io/image/v5/signature"
 )
 
 var policy = &signature.Policy{

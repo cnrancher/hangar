@@ -18,8 +18,8 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"github.com/sirupsen/logrus"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
+	manifestv5 "go.podman.io/image/v5/manifest"
 )
 
 // syncObject is the object for sending to worker pool when syncing image

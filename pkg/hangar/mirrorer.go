@@ -14,10 +14,10 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
 
-	imagemanifest "github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	imagemanifest "go.podman.io/image/v5/manifest"
 )
 
 // mirrorObject is the object sending to worker pool when copying image

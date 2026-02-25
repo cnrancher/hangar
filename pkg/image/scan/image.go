@@ -19,9 +19,9 @@ import (
 	"github.com/aquasecurity/trivy/pkg/types"
 	"github.com/aquasecurity/trivy/pkg/vulnerability"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/pkg/docker/config"
-	imagetypes "github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/docker/config"
+	imagetypes "go.podman.io/image/v5/types"
 )
 
 type imageScanner struct {

@@ -15,11 +15,11 @@ import (
 	"github.com/cnrancher/hangar/pkg/utils"
 	"helm.sh/helm/v3/pkg/registry"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
-	alltransportsv5 "github.com/containers/image/v5/transports/alltransports"
-	typesv5 "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	alltransportsv5 "go.podman.io/image/v5/transports/alltransports"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 const (

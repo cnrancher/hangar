@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/types"
 )
 
 var (

@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"slices"
 
-	manifestv5 "github.com/containers/image/v5/manifest"
-	typesv5 "github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	manifestv5 "go.podman.io/image/v5/manifest"
+	typesv5 "go.podman.io/image/v5/types"
 )
 
 const (

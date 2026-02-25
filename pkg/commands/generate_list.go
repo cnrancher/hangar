@@ -446,7 +446,7 @@ func (cc *generateListCmd) finish() error {
 }
 
 func getSourcesList(imageSources map[string]bool) string {
-	var sources = []string{}
+	var sources = make([]string, 0, len(imageSources))
 	for source := range imageSources {
 		sources = append(sources, source)
 	}

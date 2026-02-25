@@ -64,7 +64,7 @@ func signerFromKeyRef(
 	keyRef string,
 	passFunc cosign.PassFunc,
 ) (*SignerVerifier, error) {
-	sv, err := sigs.SignerVerifierFromKeyRef(ctx, keyRef, passFunc)
+	sv, err := sigs.SignerVerifierFromKeyRef(ctx, keyRef, passFunc, nil)
 	if err != nil {
 		return nil, fmt.Errorf("reading key: %w", err)
 	}

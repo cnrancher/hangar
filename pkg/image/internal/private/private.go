@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/retry"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/pkg/retry"
 	"helm.sh/helm/v3/pkg/registry"
 )
 

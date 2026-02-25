@@ -17,10 +17,10 @@ import (
 	"github.com/cnrancher/hangar/pkg/image/source"
 	"github.com/cnrancher/hangar/pkg/image/types"
 	"github.com/cnrancher/hangar/pkg/utils"
-	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/docker/config"
 )
 
 // loadObject is the object sending to worker pool when loading image
