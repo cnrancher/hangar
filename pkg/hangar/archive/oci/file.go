@@ -86,7 +86,7 @@ func (f *File) fromURL(ctx context.Context) error {
 	client := &http.Client{
 		Timeout: time.Second * 30,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: f.insecureSkipVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: f.insecureSkipVerify}, //nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}

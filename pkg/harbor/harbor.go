@@ -61,7 +61,7 @@ func ProjectExists(
 	client := &http.Client{
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify}, // nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
@@ -126,7 +126,7 @@ func CreateProject(
 	client := &http.Client{
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify}, // nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}

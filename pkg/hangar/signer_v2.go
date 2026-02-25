@@ -103,7 +103,7 @@ type Signerv2Opts struct {
 	PublicKey string
 
 	// sigstore private key filename
-	PrivateKey string
+	PrivateKey string `json:"-"`
 
 	// uploads to sigstore transparency log server or not
 	TLogUpload bool

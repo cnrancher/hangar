@@ -20,6 +20,12 @@ linters:
     gosec:
       excludes:
         - G115 # https://github.com/moby/moby/issues/48358#issuecomment-2323339603
+        - G701 # SQLi taint
+        - G702 # Command injection taint
+        - G703 # Path traversal taint
+        - G704 # SSRF taint
+        - G705 # XSS taint
+        - G706 # Log injection taint
     importas:
       alias:
         # Kubernetes

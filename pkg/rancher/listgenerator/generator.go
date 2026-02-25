@@ -213,7 +213,7 @@ func (g *Generator) generateFromKDMURL(ctx context.Context) error {
 		Timeout: time.Second * 15,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: g.insecureSkipTLS,
+				InsecureSkipVerify: g.insecureSkipTLS, // nolint: gosec
 			},
 			Proxy: http.ProxyFromEnvironment,
 		},

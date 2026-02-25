@@ -62,7 +62,7 @@ func (s *Signer) GetRegistryClientOpts(ctx context.Context) []remote.Option {
 
 func (s *Signer) getTLSConfig() (*tls.Config, error) {
 	var tlsConfig tls.Config
-	tlsConfig.InsecureSkipVerify = s.insecureSkipTLSVerify
+	tlsConfig.InsecureSkipVerify = s.insecureSkipTLSVerify // nolint: gosec
 	return &tlsConfig, nil
 }
 

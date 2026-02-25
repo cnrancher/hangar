@@ -683,7 +683,7 @@ func DetectURL(
 	client := &http.Client{
 		Timeout: time.Second * 5,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure}, // nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}

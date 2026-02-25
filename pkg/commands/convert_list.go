@@ -147,7 +147,7 @@ func (cc *convertListCmd) run() error {
 		return fmt.Errorf("failed to save %q: %v", cc.output, err)
 	}
 	defer file.Close()
-	_, err = fmt.Fprintf(file, "%v", strings.Join(convertedLines, "\n"))
+	_, err = file.Write([]byte(strings.Join(convertedLines, "\n")))
 	if err != nil {
 		return fmt.Errorf("failed to write %q: %v", cc.output, err)
 	}

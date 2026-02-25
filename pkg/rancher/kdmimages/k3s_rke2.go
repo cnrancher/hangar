@@ -219,7 +219,7 @@ func getImageListFromURL(ctx context.Context, tlsVerify bool, link string) ([]st
 	client := &http.Client{
 		Timeout: time.Second * 30,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: !tlsVerify}, // nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}

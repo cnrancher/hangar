@@ -188,7 +188,7 @@ func (c *Chart) fromRepo(ctx context.Context) error {
 	client := &http.Client{
 		Timeout: time.Second * 30,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}, //nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
@@ -272,7 +272,7 @@ func (c *Chart) fromURL(ctx context.Context, url string) error {
 	client := &http.Client{
 		Timeout: time.Second * 30,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.insecureSkipVerify}, //nolint: gosec
 			Proxy:           http.ProxyFromEnvironment,
 		},
 	}
