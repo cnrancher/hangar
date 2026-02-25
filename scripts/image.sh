@@ -33,7 +33,7 @@ set -x
 IMAGE_TAG_OPTIONS="-t ${REGISTRY}/${REPO}/hangar:${TAG}"
 if [[ ${TAG} != *rc* ]] && [[ ${TAG} != *beta* ]] && [[ ${TAG} != *alpha* ]] && [[ ${TAG} != latest ]]; then
     # Add latest tag for stable release.
-    IMAGE_TAG_OPTIONS="${IMAGE_TAG_OPTIONS} -t ${REPO}/hangar:latest"
+    IMAGE_TAG_OPTIONS="${IMAGE_TAG_OPTIONS} -t ${REGISTRY}/${REPO}/hangar:latest"
 fi
 
 docker buildx build -f package/Dockerfile \
